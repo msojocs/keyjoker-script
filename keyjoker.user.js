@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker半自动任务（伪）
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.3.6
+// @version      0.3.7
 // @description  keyjoker半自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411,部分操作需手动辅助
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
