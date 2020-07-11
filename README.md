@@ -11,6 +11,6 @@
 |twitterFollow|✔|✔|
 |twitchFollow|✔|✔|
 |discordJoinServer|✔|✔|
-|spotifyLike|✔|❌|
+|spotifyLike|✔|✔|
 |autoRedeem|✔|✔|
 |getHcaptchaAccessCookie|✔|✔|

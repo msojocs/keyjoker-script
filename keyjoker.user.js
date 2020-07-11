@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker半自动任务（伪）
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.4
+// @version      0.5
 // @description  keyjoker半自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411,部分操作需手动辅助
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
@@ -16,6 +16,7 @@
 // @homepage     https://www.jysafe.cn/
 // @run-at       document-end
 // @grant        GM_registerMenuCommand
+// @grant        GM_unregisterMenuCommand
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setClipboard
@@ -462,8 +463,6 @@
         },
         twitchGetIdAuto: function(r, channels)
         {
-            // https://api.twitch.tv/api/channels/swiftizm/access_token?oauth_token=p0sw68vy1us4wyhm2dzoq01c2z5ij0&need_https=true&platform=web&player_type=site&player_backend=mediaplayer
-
             this.httpRequest({
                 url: 'https://api.twitch.tv/api/channels/' + channels + '/access_token?oauth_token=' + GM_getValue("twitchAuth").match(/auth-token=(.+?); /)[1] + '&need_https=true&platform=web&player_type=site&player_backend=mediaplayer',
                 method: 'GET',
@@ -482,6 +481,67 @@
                     console.log(res);
                 },
                 anonymous:true
+            })
+        },
+        spotifyLikeAuto: function(albums){
+            this.spotifyGetUserInfo((userId, accessToken)=>{
+                $.ajax({
+                    type: 'PUT',
+                    url: "https://spclient.wg.spotify.com/collection-view/v1/collection/albums/" + userId + "?base62ids=" + albums + "&model=bookmark",
+                    headers: {authorization: "Bearer " + accessToken},
+                    success: function(data){
+                        console.log(data);
+                    },
+                    error: function(data){
+                        console.error(data);
+                    },
+                    anonymous:true
+                });
+            });
+        },
+        spotifyGetUserInfo: function(r){
+            this.spotifyGetAccessToken(
+                (accessToken)=>{
+                    this.httpRequest({
+                        url: 'https://api.spotify.com/v1/me',
+                        method: 'GET',
+                        headers:{authorization: "Bearer " + accessToken},
+                        onload: (response) => {
+                            if (response.status === 200) {
+                                console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                                r(JSON.parse(response.responseText).id, accessToken);
+                            } else {
+                                console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                            }
+                        },
+                        error:(res)=>{
+                            console.log("error");
+                            console.log(res);
+                        },
+                        anonymous:true
+                    })
+                }
+            )
+        },
+        spotifyGetAccessToken: function(r){
+            this.httpRequest({
+                url: 'https://open.spotify.com/get_access_token?reason=transport&productType=web_player',
+                method: 'GET',
+                onload: (response) => {
+                    if (response.status === 200) {
+                        console.log(response)
+                        console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                        r(JSON.parse(response.responseText).accessToken);
+                    } else {
+                        console.log('Error:' + response.statusText + '(' + response.status + ')')
+                        console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                    }
+                },
+                error:(res)=>{
+                    console.log("error");
+                    console.log(res);
+                }
             })
         },
         hcaptcha: function () {
@@ -685,6 +745,10 @@
                             window.open(task.data.url + "?type=keyjoker");
                         }
                         break;
+                    case "Like Spotify Albums":
+                        var albums = data.data.url.split("album/")[1];
+                        this.spotifyLikeAuto(albums);
+                        break;
                     default:
                         window.open(task.data.url + "?type=keyjoker");
                         break;
@@ -693,7 +757,7 @@
         },
         test: function(){
             this.setAuth();
-            this.twitchFollowAuto("swiftizm");
+            this.spotifyLikeAuto("6m0AchDE7CuNfRE7CW48uH");
         },
         setAuth: function(type){
             if(!GM_getValue("twitterAuth") || type == "twitter")
@@ -810,19 +874,22 @@
     GM_registerMenuCommand("关闭自动redeem",()=>{
         GM_setValue("autoRedeem",0);
     });
-    if(!GM_getValue("advanceMode"))
-    {
-        GM_registerMenuCommand("开启高级模式",()=>{
-            if(GM_getValue("advanceMode") == 1)
-                alert("已经处于高级模式")
-            else
+    function advanceModeSwitch(id){
+        GM_unregisterMenuCommand(id);
+        if(!GM_getValue("advanceMode"))
+        {
+            let id = GM_registerMenuCommand("开启高级模式",()=>{
                 GM_setValue("advanceMode",1);
-        });
-    }else{
-        GM_registerMenuCommand("关闭高级模式",()=>{
-            GM_setValue("advanceMode",0);
-        });
+                advanceModeSwitch(id);
+            });
+        }else{
+            let id = GM_registerMenuCommand("关闭高级模式",()=>{
+                GM_setValue("advanceMode",0);
+                advanceModeSwitch(id);
+            });
+        }
     }
+    advanceModeSwitch(null);
     if(debug)
     {
         GM_registerMenuCommand("Test",()=>{
