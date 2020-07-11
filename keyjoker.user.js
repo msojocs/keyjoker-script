@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker半自动任务（伪）
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.5
+// @version      0.5.2
 // @description  keyjoker半自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411,部分操作需手动辅助
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
@@ -12,6 +12,8 @@
 // @include      *://twitter.com/*
 // @include      *://open.spotify.com/album/*
 // @include      *?type=keyjoker
+// @updateURL    https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
+// @downloadURL  https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @supportURL   https://www.jysafe.cn/
 // @homepage     https://www.jysafe.cn/
 // @run-at       document-end
@@ -39,8 +41,7 @@
 
 (function() {
     'use strict';
-    // 21点56分
-    const debug = 1;
+    const debug = 0;
     // steam信息
     const steamInfo = GM_getValue('steamInfo') || {
       userName: '',
