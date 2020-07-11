@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker半自动任务（伪）
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.5.2
+// @version      0.5.3
 // @description  keyjoker半自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411,部分操作需手动辅助
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
@@ -9,6 +9,8 @@
 // @include      *://steamcommunity.com/profiles/*?type=keyjoker
 // @include      *://steamcommunity.com/groups/*
 // @include      *://discord.com/invite/*
+// @include      *://discord.com/channels/@me?keyjokertask=storageAuth
+// @include      *://www.twitch.tv/settings/profile?keyjokertask=storageAuth
 // @include      *://twitter.com/*
 // @include      *://open.spotify.com/album/*
 // @include      *?type=keyjoker
@@ -16,7 +18,7 @@
 // @downloadURL  https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @supportURL   https://www.jysafe.cn/
 // @homepage     https://www.jysafe.cn/
-// @run-at       document-end
+// @run-at       document-start
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
 // @grant        GM_addStyle
@@ -41,7 +43,8 @@
 
 (function() {
     'use strict';
-    const debug = 0;
+    const debug = 1;
+    const twitterAuth = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
     // steam信息
     const steamInfo = GM_getValue('steamInfo') || {
       userName: '',
@@ -77,7 +80,11 @@
                             }
                         });
                         // 选定任务执行模式
-                        if(GM_setValue("advanceMode"))func.do_task(data);
+                        if(GM_getValue("advanceMode"))
+                        {
+                            if(debug)console.log("当前任务模式：高级")
+                            func.do_task(data);
+                        }
                         else{
                             for(var i = 0; i < data.actions.length; i++)window.open(data.actions[i].data.url + "?type=keyjoker");
                         }
@@ -712,6 +719,7 @@
             },1000);
         },
         do_task: function(data){
+            console.log("do task")
             for(const task of data.actions)
             {
                 switch(task.task.name)
@@ -732,7 +740,7 @@
                     case "Join Discord Server":
                         if(GM_getValue("discordAuth"))
                         {
-                            let server = data.data.url.split(".gg/")[1];
+                            let server = task.data.url.split(".gg/")[1];
                             this.discordJoinServerAuto(server)
                         }else{
                             window.open(task.data.url + "?type=keyjoker");
@@ -746,47 +754,75 @@
                             window.open(task.data.url + "?type=keyjoker");
                         }
                         break;
-                    case "Like Spotify Albums":
-                        var albums = data.data.url.split("album/")[1];
+                    case "Save Spotify Album":
+                        var albums = task.data.url.split("album/")[1];
                         this.spotifyLikeAuto(albums);
                         break;
+                    case "Follow Twitch Channel":
+                        var channel = task.data.url.split("tv/")[1];
+                        this.twitchFollowAuto(channel);
+                        break;
                     default:
-                        window.open(task.data.url + "?type=keyjoker");
+                        console.log("未指定操作" + task.task.name)
                         break;
                 }
             }
         },
         test: function(){
-            this.setAuth();
-            this.spotifyLikeAuto("6m0AchDE7CuNfRE7CW48uH");
+            twitterGetAuth.loadLoginPage()
         },
         setAuth: function(type){
+            if(!GM_getValue("discordAuth") || type == "discord")
+            {
+                /*let discordAuth = prompt('请输入discordAuth：');
+                if(discordAuth.length > 0){
+                    GM_setValue("discordAuth", discordAuth);
+                }*/
+                alert("将在新窗口自动获取discord凭证");
+                window.open("https://discord.com/channels/@me?keyjokertask=storageAuth");
+                //https://discord.com/channels/@me
+            }
             if(!GM_getValue("twitterAuth") || type == "twitter")
             {
-                let twitterAuth = prompt('请输入TwitterAuth：');
-                if(twitterAuth.length > 0){
+                // let twitterAuth = prompt('请输入TwitterAuth：');
+                // if(twitterAuth.length > 0){
                     GM_setValue("twitterAuth", twitterAuth);
-                }
+                //}
             }
             if(!GM_getValue("twitterCookie") || type == "twitter")
             {
                 let twitterCookie = prompt('请输入TwitterCookie：');
+                console.log(twitterCookie)
                 if(twitterCookie.length > 0){
                     GM_setValue("twitterCookie", twitterCookie);
                 }
             }
-            if(!GM_getValue("discordAuth") || type == "discord")
-            {
-                let discordAuth = prompt('请输入discordAuth：');
-                if(discordAuth.length > 0){
-                    GM_setValue("discordAuth", discordAuth);
-                }
-            }
             if(!GM_getValue("twitchAuth") || type == "twitch")
             {
-                console.log("在新窗口获取twitch凭证");
-                window.open("https://www.twitch.tv/settings/profile?keyjokertask=storageCookie");
+                alert("将在新窗口获取twitch凭证");
+                window.open("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth");
             }
+        }
+    }
+    const twitterGetAuth = {
+        loadLoginPage: function(){
+            func.httpRequest({
+                url: 'https://mobile.twitter.com/login',
+                method: 'GET',
+                fetch: (r)=>{
+                    console.log(r)
+                },
+                onload: (response) => {
+                    console.log(response);
+                    //console.log(response.responseHeaders);
+                    //var tk = response.responseHeaders.match(/_mb_tk=(.+?);/)[1];
+                },
+                error:(res)=>{
+                    console.log("error");
+                    console.log(res);
+                },
+                anonymous:true
+            })
         }
     }
     function appHandle(){
@@ -804,9 +840,10 @@
                 }
                 break;
             case "www.twitch.tv":
-                if(location.search == "?keyjokertask=storageCookie")
+                if(location.search == "?keyjokertask=storageAuth")
                 {
                     GM_setValue("twitchAuth", document.cookie);
+                    alert("凭证获取完成")
                     window.close();
                 }
                 // twitch关注
@@ -822,6 +859,12 @@
                 if(document.referrer.indexOf("keyjoker") != -1)func.twitterFollowClick();
                 break;
             case "discord.com":
+                if(location.search == "?keyjokertask=storageAuth")
+                {
+                    GM_setValue("discordAuth", JSON.parse(localStorage.getItem("token")));
+                    alert("凭证获取完成")
+                    window.close();
+                }
                 // Discord
                 if(document.referrer.indexOf("keyjoker") != -1)func.joinDiscordServerClick();
                 break;
@@ -875,8 +918,9 @@
     GM_registerMenuCommand("关闭自动redeem",()=>{
         GM_setValue("autoRedeem",0);
     });
-    function advanceModeSwitch(id){
-        GM_unregisterMenuCommand(id);
+    function advanceModeSwitch(id1, id0){
+        GM_unregisterMenuCommand(id0);
+        GM_unregisterMenuCommand(id1);
         if(!GM_getValue("advanceMode"))
         {
             let id = GM_registerMenuCommand("开启高级模式",()=>{
@@ -884,9 +928,12 @@
                 advanceModeSwitch(id);
             });
         }else{
-            let id = GM_registerMenuCommand("关闭高级模式",()=>{
+            let id0 = GM_registerMenuCommand("凭证设置",()=>{
+                func.setAuth();
+            });
+            let id1 = GM_registerMenuCommand("关闭高级模式",()=>{
                 GM_setValue("advanceMode",0);
-                advanceModeSwitch(id);
+                advanceModeSwitch(id1, id0);
             });
         }
     }
