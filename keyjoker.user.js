@@ -88,12 +88,8 @@
                         else{
                             for(var i = 0; i < data.actions.length; i++)window.open(data.actions[i].data.url + "?type=keyjoker");
                         }
-                        // 重载任务列表
-                        document.getElementsByClassName("row")[1].parentNode.removeChild(document.getElementsByClassName("row")[1]);
-                        $('.layout-container').append('<entries-component></entries-component>');
-                        $.getScript("/js/app.js");
                         // 检查任务是否完成
-                        let checkComplete=setInterval(()=>{
+                        /*let checkComplete=setInterval(()=>{
                             if(document.getElementsByClassName("card mb-4 list-complete-item").length == 0){
                                 // 停止检查操作
                                 clearInterval(checkComplete);
@@ -108,7 +104,7 @@
                                     func.redeem();
                                 }
                             }
-                        },10000);
+                        },10000);*/
                     }else{
                         setTimeout(()=>{
                             reLoad(time,sum);
@@ -391,7 +387,7 @@
             this.httpRequest({
                 url: 'https://api.twitter.com/1.1/statuses/retweet.json',
                 method: 'POST',
-                headers: { authorization: GM_getValue("twitterAuth"), 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':GM_getValue("twitterCookie").match(/ct0=(.+?); /)[1]},
+                headers: { authorization: GM_getValue("twitterAuth"), 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':GM_getValue("twitterCookie").match(/ct0=(.+?);/)[1]},
                 data: $.param({ tweet_mode: "extended",id: retweetId}),
                 onload: (response) => {
                     if (debug) console.log(response)
@@ -768,8 +764,13 @@
                 }
             }
         },
+        reLoadTaskList: function(){
+            // 重载任务列表
+            document.getElementsByClassName("row")[1].parentNode.removeChild(document.getElementsByClassName("row")[1]);
+            $('.layout-container').append('<entries-component></entries-component>');
+            $.getScript("/js/app.js");
+        },
         test: function(){
-            twitterGetAuth.loadLoginPage()
         },
         setAuth: function(type){
             if(!GM_getValue("discordAuth") || type == "discord")
@@ -791,8 +792,7 @@
             }
             if(!GM_getValue("twitterCookie") || type == "twitter")
             {
-                let twitterCookie = prompt('请输入TwitterCookie：');
-                console.log(twitterCookie)
+                let twitterCookie = prompt('请输入TwitterCookie：') + "; ";
                 if(twitterCookie.length > 0){
                     GM_setValue("twitterCookie", twitterCookie);
                 }
@@ -802,27 +802,6 @@
                 alert("将在新窗口获取twitch凭证");
                 window.open("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth");
             }
-        }
-    }
-    const twitterGetAuth = {
-        loadLoginPage: function(){
-            func.httpRequest({
-                url: 'https://mobile.twitter.com/login',
-                method: 'GET',
-                fetch: (r)=>{
-                    console.log(r)
-                },
-                onload: (response) => {
-                    console.log(response);
-                    //console.log(response.responseHeaders);
-                    //var tk = response.responseHeaders.match(/_mb_tk=(.+?);/)[1];
-                },
-                error:(res)=>{
-                    console.log("error");
-                    console.log(res);
-                },
-                anonymous:true
-            })
         }
     }
     function appHandle(){
