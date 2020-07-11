@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.5.4
+// @version      0.5.5
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411,部分操作需手动辅助
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
@@ -89,22 +89,24 @@
                             for(var i = 0; i < data.actions.length; i++)window.open(data.actions[i].data.url + "?type=keyjoker");
                         }
                         // 检查任务是否完成
-                        /*let checkComplete=setInterval(()=>{
-                            if(document.getElementsByClassName("card mb-4 list-complete-item").length == 0){
-                                // 停止检查操作
-                                clearInterval(checkComplete);
-                                // 重新开始检查任务
-                                setTimeout(()=>{
-                                    reLoad(time,0);
-                                },time);
-                            }else
-                            {
-                                if(GM_getValue("autoRedeem"))
+                        func.reLoadTaskList().then(()=>{
+                            let checkComplete=setInterval(()=>{
+                                if(document.getElementsByClassName("card mb-4 list-complete-item").length == 0){
+                                    // 停止检查操作
+                                    clearInterval(checkComplete);
+                                    // 重新开始检查任务
+                                    setTimeout(()=>{
+                                        reLoad(time,0);
+                                    },time);
+                                }else
                                 {
-                                    func.redeem();
+                                    if(GM_getValue("autoRedeem"))
+                                    {
+                                        func.redeem();
+                                    }
                                 }
-                            }
-                        },10000);*/
+                            },20000);
+                        })
                     }else{
                         setTimeout(()=>{
                             reLoad(time,sum);
