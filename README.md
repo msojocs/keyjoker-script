@@ -1,16 +1,16 @@
 # keyjokerScript
  TMScript for keyjoker.
 
-# Support state
-|function|state|
-|--------|-----|
-|steamJoinGroup|✔|
-|steamAutoRep|✔|
-|steamAddWhishList|⭕|
-|twitterRetweet|⭕|
-|twitterFollow|⭕|
-|twitchFollow|⭕|
-|discordJoinGroup|⭕|
-|spotifyLike|⭕|
-|autoRedeem|⭕|
-|getHcaptchaAccessCookie|⭕|
+# Support status
+|function|manual|auto|
+|--------|------|----|
+|steamJoinGroup|✔|✔|
+|steamAutoRep|✔|✔|
+|steamAddWhishList|✔|✔|
+|twitterRetweet|✔|✔|
+|twitterFollow|✔|✔|
+|twitchFollow|✔|✔|
+|discordJoinServer|✔|✔|
+|spotifyLike|✔|❌|
+|autoRedeem|✔|✔|
+|getHcaptchaAccessCookie|✔|✔|

@@ -29,6 +29,7 @@
 // @connect      twitter.com
 // @connect      facebook.com
 // @connect      discordapp.com
+// @connect      discord.com
 // @connect      twitch.tv
 // @connect      *
 // @require      https://greasyfork.org/scripts/379868-jquery-not/code/jQuery%20not%20$.js?version=700787
@@ -37,7 +38,7 @@
 
 (function() {
     'use strict';
-
+    // 21点56分
     const debug = 1;
     // steam信息
     const steamInfo = GM_getValue('steamInfo') || {
@@ -73,15 +74,11 @@
                                 location.reload(true);
                             }
                         });
-                        // 新窗口打开任务链接（免跳转）
-                        for(var i = 0; i < data.actions.length; i++)
-                        {
-                            if(data.actions[i].task.name == "Join Steam Group")
-                                continue;
-                            console.log(data.actions[i]);
-                            window.open(data.actions[i].data.url + "?type=keyjoker");
+                        // 选定任务执行模式
+                        if(GM_setValue("advanceMode"))func.do_task(data);
+                        else{
+                            for(var i = 0; i < data.actions.length; i++)window.open(data.actions[i].data.url + "?type=keyjoker");
                         }
-                        func.do_task(data);
                         // 重载任务列表
                         document.getElementsByClassName("row")[1].parentNode.removeChild(document.getElementsByClassName("row")[1]);
                         $('.layout-container').append('<entries-component></entries-component>');
@@ -145,6 +142,7 @@
         }
     }
     const func = {
+        // [修改自https://greasyfork.org/zh-CN/scripts/370650]
         httpRequest: function (e) {
             const requestObj = {}
             requestObj.url = e.url
@@ -153,7 +151,11 @@
             if (e.dataType) requestObj.responseType = e.dataType
             if (e.headers) requestObj.headers = e.headers
             if (e.data) requestObj.data = e.data
+            if (e.cookie) requestObj.cookie = e.cookie
+            if (e.anonymous) requestObj.anonymous = e.anonymous
             if (e.onload) requestObj.onload = e.onload
+            if (e.fetch) requestObj.fetch = e.fetch
+            if (e.onreadystatechange) requestObj.onreadystatechange = e.onreadystatechange
             requestObj.ontimeout = e.ontimeout || function (data) {
                 if (debug) console.log(data)
                 if (e.status) e.status.error('Error:Timeout(0)')
@@ -172,6 +174,7 @@
             if (debug) console.log('发送请求:', requestObj)
             GM_xmlhttpRequest(requestObj)
         },
+        // steam信息更新[修改自https://greasyfork.org/zh-CN/scripts/370650]
         updateSteamInfo: function (r, type = 'all', update = false) {
             if (new Date().getTime() - steamInfo.updateTime > 10 * 60 * 1000 || update) {
                 const pro = []
@@ -254,6 +257,233 @@
                 }
             }
         },
+        // steam个人资料回复"+rep"
+        steamRepAuto: function(url){
+            let id = url.split("s/")[1];
+            this.updateSteamInfo(() => {
+                this.httpRequest({
+                    url: 'https://steamcommunity.com/comment/Profile/post/' + id + '/-1/',
+                    method: 'POST',
+                    data: {
+                        comment:'+rep',
+                        count:6,
+                        sessionid:steamInfo.communitySessionID,
+                        feature2:-1
+                    },
+                    onload: (response) => {
+                        console.log(response);
+                    }
+                });
+            })
+        },
+        // steam加组[修改自https://greasyfork.org/zh-CN/scripts/370650]
+        joinSteamGroupAuto: function (r, group) {
+            this.updateSteamInfo(() => {
+                if(debug){console.log("====steamInfo====");console.log(steamInfo);}
+                this.httpRequest({
+                    url: 'https://steamcommunity.com/groups/' + group,
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                    data: $.param({ action: 'join', sessionID: steamInfo.communitySessionID }),
+                    onload: (response) => {
+                        if (debug) console.log(response)
+                        if (response.status === 200 && !response.responseText.includes('grouppage_join_area')) {
+                            status.success()
+                            r({ result: 'success', statusText: response.statusText, status: response.status })
+                        } else {
+                            status.error('Error:' + response.statusText + '(' + response.status + ')')
+                            r({ result: 'error', statusText: response.statusText, status: response.status })
+                        }
+                    }
+                })
+            });
+        },
+        // steam加愿望单（In Progress）[修改自https://greasyfork.org/zh-CN/scripts/370650]
+        steamAddWishlistAuto: function (r, gameId) {
+            new Promise(resolve => {
+                this.httpRequest({
+                    url: 'https://store.steampowered.com/api/addtowishlist',
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                    data: $.param({ sessionid: steamInfo.storeSessionID, appid: gameId }),
+                    dataType: 'json',
+                    onload: function (response) {
+                        if (debug) console.log(response)
+                        if (response.status === 200 && response.response && response.response.success === true) {
+                            resolve({ result: 'success', statusText: response.statusText, status: response.status })
+                        } else {
+                            resolve({ result: 'error', statusText: response.statusText, status: response.status })
+                        }
+                    },
+                    onabort: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                    onerror: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                    ontimeout: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                    r: resolve
+                })
+            }).then(result => {
+                if (result.result === 'success') {
+                    r(result)
+                } else {
+                    this.httpRequest({
+                        url: 'https://store.steampowered.com/app/' + gameId,
+                        method: 'GET',
+                        onload: function (response) {
+                            if (debug) console.log(response)
+                            if (response.status === 200) {
+                                if (response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('已在库中')) {
+                                    r({ result: 'success', statusText: response.statusText, status: response.status, own: true })
+                                } else if ((response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('添加至您的愿望单')) || !response.responseText.includes('class="queue_actions_ctn"')) {
+                                    console.error('Error:' + result.statusText + '(' + result.status + ')')
+                                    r({ result: 'error', statusText: response.statusText, status: response.status })
+                                } else {
+                                    r({ result: 'success', statusText: response.statusText, status: response.status })
+                                }
+                            } else {
+                                console.error('Error:' + result.statusText + '(' + result.status + ')')
+                                r({ result: 'error', statusText: response.statusText, status: response.status })
+                            }
+                        },
+                        r
+                    })
+                }
+            }).catch(err => {
+                console.error(err)
+            })
+        },
+        // OK
+        twitterFollowAuto: function(url){
+            if(debug){console.log("====twitterFollowAuto====");console.log(steamInfo);}
+            let userName = url.split("com/")[1];
+            this.twitterGetUserInfo((obj)=>{
+                console.log(obj.data.user.rest_id)
+                let userId = obj.data.user.rest_id;
+                this.httpRequest({
+                    url: 'https://api.twitter.com/1.1/friendships/create.json',
+                    method: 'POST',
+                    headers: { authorization: GM_getValue("twitterAuth"), 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':GM_getValue("twitterCookie").match(/ct0=(.+?); /)[1]},
+                    data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
+                    onload: (response) => {
+                        if (debug) console.log(response)
+                        if (response.status === 200) {
+                            console.log("success")
+                            console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                        } else {
+                            console.log('Error:' + response.statusText + '(' + response.status + ')')
+                            console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                        }
+                    }
+                })
+            }, userName);
+        },
+        // OK
+        twitterRetweetAuto: function(url){
+            if(debug){console.log("====twitterRetweetAuto====");console.log(steamInfo);}
+            let retweetId = url.split("status/")[1];
+            this.httpRequest({
+                url: 'https://api.twitter.com/1.1/statuses/retweet.json',
+                method: 'POST',
+                headers: { authorization: GM_getValue("twitterAuth"), 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':GM_getValue("twitterCookie").match(/ct0=(.+?); /)[1]},
+                data: $.param({ tweet_mode: "extended",id: retweetId}),
+                onload: (response) => {
+                    if (debug) console.log(response)
+                    if (response.status === 200 || (response.status === 403 && response.responseText == '{"errors":[{"code":327,"message":"You have already retweeted this Tweet."}]}')) {
+                        console.log("success");
+                        if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status });
+                    } else {
+                        console.log('Error:' + response.statusText + '(' + response.status + ')')
+                        console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                    }
+                }
+            })
+        },
+        twitterGetUserInfo: function(r, userName){
+            if(debug)console.log("====twitterGetUserInfo====");
+            console.log(document.cookie)
+            this.httpRequest({
+                url: 'https://api.twitter.com/graphql/-xfUfZsnR_zqjFd-IfrN5A/UserByScreenName?variables=%7B%22screen_name%22%3A%22' + userName + '%22%2C%22withHighlightedLabel%22%3Atrue%7D',
+                method: 'GET',
+                headers: { authorization: GM_getValue("twitterAuth"), "content-type": "application/json"},
+                onload: (response) => {
+                    if (response.status === 200) {
+                        console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                        r(JSON.parse(response.responseText));
+                    } else {
+                        console.log('Error:' + response.statusText + '(' + response.status + ')')
+                        console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                    }
+                },
+                error:(res)=>{
+                    console.log("error");
+                    console.log(res);
+                },
+                anonymous:true
+            })
+        },
+        discordJoinServerAuto: function(server){
+            this.httpRequest({
+                url: 'https://discord.com/api/v6/invites/' + server,
+                method: 'POST',
+                headers: { authorization: GM_getValue("discordAuth"), "content-type": "application/json"},
+                onload: (response) => {
+                    if (response.status === 200 && response.responseText.indexOf('"new_member": true') != -1) {
+                        console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                    } else {
+                        console.log('Error:' + response.statusText + '(' + response.status + ')')
+                        console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                    }
+                },
+                error:(res)=>{
+                    console.error(res);
+                },
+                anonymous:true
+            })
+        },
+        twitchFollowAuto: function(channels){
+            this.twitchGetIdAuto(
+                (id)=>{
+                    this.httpRequest({
+                        url: 'https://gql.twitch.tv/gql',
+                        method: 'POST',
+                        headers: { Authorization: "OAuth " + GM_getValue("twitchAuth").match(/auth-token=(.+?); /)[1]},
+                        data: '[{"operationName":"FollowButton_FollowUser","variables":{"input":{"disableNotifications":false,"targetID":"' + id + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"3efee1acda90efdff9fef6e6b4a29213be3ee490781c5b54469717b6131ffdfe"}}}]',
+                        onload: (response) => {
+                            if (debug) console.log(response)
+                            if (response.status === 200) {
+                                console.log("success")
+                                console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                            } else {
+                                console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                            }
+                        }
+                    })
+                },channels
+            );
+        },
+        twitchGetIdAuto: function(r, channels)
+        {
+            // https://api.twitch.tv/api/channels/swiftizm/access_token?oauth_token=p0sw68vy1us4wyhm2dzoq01c2z5ij0&need_https=true&platform=web&player_type=site&player_backend=mediaplayer
+
+            this.httpRequest({
+                url: 'https://api.twitch.tv/api/channels/' + channels + '/access_token?oauth_token=' + GM_getValue("twitchAuth").match(/auth-token=(.+?); /)[1] + '&need_https=true&platform=web&player_type=site&player_backend=mediaplayer',
+                method: 'GET',
+                onload: (response) => {
+                    if (response.status === 200) {
+                        console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                        let rep = JSON.parse(JSON.parse(response.responseText).token);
+                        r(rep.channel_id);
+                    } else {
+                        console.log('Error:' + response.statusText + '(' + response.status + ')')
+                        console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                    }
+                },
+                error:(res)=>{
+                    console.log("error");
+                    console.log(res);
+                },
+                anonymous:true
+            })
+        },
         hcaptcha: function () {
             let hcaptchaClick=setInterval(()=>{
                 console.log("hCaptcha");
@@ -282,39 +512,40 @@
         // 人机验证出现图片时的处理
         hcaptcha2: function () {
             let hcaptcha2Click=setInterval(()=>{
-                if(document.getElementsByClassName("challenge-container")[0].children.length != 0)
+                if(document.getElementsByClassName("challenge-container").length != 0 && document.getElementsByClassName("challenge-container")[0].children.length != 0)
                 {
                     console.log("open hcaptcha");
+                    let text = document.getElementsByClassName("prompt-text")[0].innerText;
+                    document.getElementsByClassName("prompt-text")[0].innerText = text + "\n正在自动获取免验证Cookie";
                     this.httpRequest({
                         url: 'https://accounts.hcaptcha.com/accessibility/get_cookie',
                         method: 'GET',
                         headers: { 'Content-Type': 'application/json'},
                         onload: (response) => {
-                            console.log(response);
-                            if(response.state == 401)
+                            if(response.status == 200)
                             {
-                                alert("获取免验证cookie失败，将在新窗口打开至cookie获取页面");
-                                window.open("https://dashboard.hcaptcha.com/welcome_accessibility");
+                                document.getElementsByClassName("prompt-text")[0].innerText = text + "\n免验证Cookie获取成功，请重新点击验证框";
+                            }else if(response.status == 401)
+                            {
+                                document.getElementsByClassName("prompt-text")[0].innerText = text + "\n当前IP的免验证Cookie获取次数已达上限，请更换assets.hcaptcha.com的代理IP";
+                            }else if(response.status == 500)
+                            {
+                                document.getElementsByClassName("prompt-text")[0].innerText = text + "\n未登录hCaptcha，将在3秒后打开至登录页面";
+                                setTimeout(()=>{window.open("https://dashboard.hcaptcha.com/welcome_accessibility")}, 3000);
+                            }else{
+                                console.error(response);
+                                document.getElementsByClassName("prompt-text")[0].innerText = text + "\n发生未知错误,已将数据记录至控制台";
                             }
+                        },
+                        error: () =>{
+                            console.error("error")
                         }
                     })
                     clearInterval(hcaptcha2Click);
                 }
             },1000);
         },
-        twitch: function () {
-            if(document.referrer.indexOf("keyjoker") != -1)
-            {
-                let twitchClick=setInterval(()=>{
-                    if(document.getElementsByClassName("follow-btn__follow-btn").length == 1)
-                    {
-                        document.getElementsByClassName("follow-btn__follow-btn")[0].getElementsByTagName("button")[0].click();
-                        clearInterval(twitchClick);
-                    }
-                }, 1000);
-            }
-        },
-        steamcommunity: function () {
+        steamcommunityClick: function () {
             if(document.referrer.indexOf("keyjoker") != -1)
             {
                 // 来源keyjoker
@@ -350,47 +581,19 @@
                 }
             }
         },
-        // steam个人资料回复"+rep"
-        steamRep: function(url){
-            let id = url.split("s/")[1];
-            this.updateSteamInfo(() => {
-                this.httpRequest({
-                    url: 'https://steamcommunity.com/comment/Profile/post/' + id + '/-1/',
-                    method: 'POST',
-                    data: {
-                        comment:'+rep',
-                        count:6,
-                        sessionid:steamInfo.communitySessionID,
-                        feature2:-1
-                    },
-                    onload: (response) => {
-                        console.log(response);
+        twitchFollowClick: function () {
+            if(document.referrer.indexOf("keyjoker") != -1)
+            {
+                let twitchClick=setInterval(()=>{
+                    if(document.getElementsByClassName("follow-btn__follow-btn").length == 1)
+                    {
+                        document.getElementsByClassName("follow-btn__follow-btn")[0].getElementsByTagName("button")[0].click();
+                        clearInterval(twitchClick);
                     }
-                });
-            })
+                }, 1000);
+            }
         },
-        joinSteamGroup: function (r, group) {
-            this.updateSteamInfo(() => {
-                if(debug){console.log("====steamInfo====");console.log(steamInfo);}
-                this.httpRequest({
-                    url: 'https://steamcommunity.com/groups/' + group,
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                    data: $.param({ action: 'join', sessionID: steamInfo.communitySessionID }),
-                    onload: (response) => {
-                        if (debug) console.log(response)
-                        if (response.status === 200 && !response.responseText.includes('grouppage_join_area')) {
-                            status.success()
-                            r({ result: 'success', statusText: response.statusText, status: response.status })
-                        } else {
-                            status.error('Error:' + response.statusText + '(' + response.status + ')')
-                            r({ result: 'error', statusText: response.statusText, status: response.status })
-                        }
-                    }
-                })
-            });
-        },
-        twitterRetweet: function(){
+        twitterRetweetClick: function(){
             if(document.referrer.indexOf("keyjoker") != -1)
             {
                 let twitterClick=setInterval(()=>{
@@ -401,7 +604,6 @@
                         $('div[data-testid="retweetConfirm"]').click();
                         clearInterval(twitterClick);
                         let twitterClose=setInterval(()=>{
-                            console.log(jQuery('div[data-testid="placementTracking"]').length + "--" + jQuery('div[data-testid="placementTracking"]')[0].innerText);
                             if($('div[data-testid="unretweet"]').length>0)
                             {
                                 window.close();
@@ -412,8 +614,8 @@
                 },1000);
             }
         },
-        twitterFollow: function(){
-            console.log("执行twitterFollow");
+        twitterFollowClick: function(){
+            if(debug) console.log("执行twitterFollowClick");
             let twitterClick=setInterval(()=>{
                 if($('div[data-testid="placementTracking"]').length > 0)
                 {
@@ -430,7 +632,7 @@
                 }
             },1000);
         },
-        discord: function(){
+        joinDiscordServerClick: function(){
             let discordClick=setInterval(()=>{
                 if(document.getElementsByTagName("button").length == 1 && document.getElementsByTagName("button")[0].innerText == "接受邀请")
                 {
@@ -439,7 +641,7 @@
                 }
             },1000);
         },
-        spotify: function(){
+        spotifyLikeClick: function(){
             let spotifyClick=setInterval(()=>{
                 if(document.getElementsByClassName("spoticon-heart-32").length == 1)
                 {
@@ -455,22 +657,73 @@
                 {
                     case "Join Steam Group":
                         console.log(task);
-                        this.updateSteamInfo('all');
-                        this.joinSteamGroup(console.log, task.data.gid);
+                        // this.updateSteamInfo('all');
+                        this.joinSteamGroupAuto(console.log, task.data.gid);
+                        break;
+                    case "Follow Twitter Account":
+                        if(GM_getValue("twitterAuth"))
+                        {
+                            this.twitterFollowAuto(data.data.url);
+                        }else{
+                            window.open(task.data.url + "?type=keyjoker");
+                        }
+                        break;
+                    case "Join Discord Server":
+                        if(GM_getValue("discordAuth"))
+                        {
+                            let server = data.data.url.split(".gg/")[1];
+                            this.discordJoinServerAuto(server)
+                        }else{
+                            window.open(task.data.url + "?type=keyjoker");
+                        }
+                        break;
+                    case "Retweet Twitter Tweet":
+                        if(GM_getValue("twitterAuth"))
+                        {
+                            this.twitterRetweetAuto(data.data.url);
+                        }else{
+                            window.open(task.data.url + "?type=keyjoker");
+                        }
                         break;
                     default:
+                        window.open(task.data.url + "?type=keyjoker");
                         break;
                 }
             }
         },
         test: function(){
-            this.updateSteamInfo(() => {
-                console.log("====steamInfo====")
-                console.log(steamInfo);
-            });
+            this.setAuth();
+            this.twitchFollowAuto("swiftizm");
+        },
+        setAuth: function(type){
+            if(!GM_getValue("twitterAuth") || type == "twitter")
+            {
+                let twitterAuth = prompt('请输入TwitterAuth：');
+                if(twitterAuth.length > 0){
+                    GM_setValue("twitterAuth", twitterAuth);
+                }
+            }
+            if(!GM_getValue("twitterCookie") || type == "twitter")
+            {
+                let twitterCookie = prompt('请输入TwitterCookie：');
+                if(twitterCookie.length > 0){
+                    GM_setValue("twitterCookie", twitterCookie);
+                }
+            }
+            if(!GM_getValue("discordAuth") || type == "discord")
+            {
+                let discordAuth = prompt('请输入discordAuth：');
+                if(discordAuth.length > 0){
+                    GM_setValue("discordAuth", discordAuth);
+                }
+            }
+            if(!GM_getValue("twitchAuth") || type == "twitch")
+            {
+                console.log("在新窗口获取twitch凭证");
+                window.open("https://www.twitch.tv/settings/profile?keyjokertask=storageCookie");
+            }
         }
     }
-    if(debug)func.test();
     function appHandle(){
         switch(location.hostname)
         {
@@ -486,25 +739,30 @@
                 }
                 break;
             case "www.twitch.tv":
+                if(location.search == "?keyjokertask=storageCookie")
+                {
+                    GM_setValue("twitchAuth", document.cookie);
+                    window.close();
+                }
                 // twitch关注
-                func.twitch();
+                if(document.referrer.indexOf("keyjoker") != -1)func.twitchFollowClick();
                 break;
             case "steamcommunity.com":
                 // Steam 回复“+rep”
-                func.steamcommunity();
+                if(document.referrer.indexOf("keyjoker") != -1)func.steamcommunityClick();
                 break;
             case "twitter.com":
                 // retweet
-                func.twitterRetweet();
-                func.twitterFollow();
+                if(document.referrer.indexOf("keyjoker") != -1)func.twitterRetweetClick();
+                if(document.referrer.indexOf("keyjoker") != -1)func.twitterFollowClick();
                 break;
             case "discord.com":
                 // Discord
-                func.discord();
+                if(document.referrer.indexOf("keyjoker") != -1)func.joinDiscordServerClick();
                 break;
             case "open.spotify.com":
                 // spotify
-                func.spotify();
+                if(document.referrer.indexOf("keyjoker") != -1)func.spotifyLikeClick();
                 break;
             case "assets.hcaptcha.com":
                 // 人机验证
@@ -524,7 +782,7 @@
     }else if(location.href == "https://www.keyjoker.com/entries")
     {
         console.log("keyjoker页面！");
-        if(document.getElementsByClassName("nav-item active")[0].innerText == "Earn Credits")
+        if(document.getElementsByClassName("nav-item active").length != 0 && document.getElementsByClassName("nav-item active")[0].innerText == "Earn Credits")
         {
             let isStart=setInterval(()=>{
                 if(GM_getValue("start")==1){
@@ -552,4 +810,23 @@
     GM_registerMenuCommand("关闭自动redeem",()=>{
         GM_setValue("autoRedeem",0);
     });
+    if(!GM_getValue("advanceMode"))
+    {
+        GM_registerMenuCommand("开启高级模式",()=>{
+            if(GM_getValue("advanceMode") == 1)
+                alert("已经处于高级模式")
+            else
+                GM_setValue("advanceMode",1);
+        });
+    }else{
+        GM_registerMenuCommand("关闭高级模式",()=>{
+            GM_setValue("advanceMode",0);
+        });
+    }
+    if(debug)
+    {
+        GM_registerMenuCommand("Test",()=>{
+            func.test();
+        });
+    }
 })();
