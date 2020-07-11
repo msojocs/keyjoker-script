@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         keyjoker半自动任务（伪）
+// @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.5.3
-// @description  keyjoker半自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411,部分操作需手动辅助
+// @version      0.5.4
+// @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411,部分操作需手动辅助
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
 // @include      *.hcaptcha.com/*
@@ -33,9 +33,9 @@
 // @connect      steamcommunity.com
 // @connect      twitter.com
 // @connect      facebook.com
-// @connect      discordapp.com
 // @connect      discord.com
 // @connect      twitch.tv
+// @connect      *.spotify.com
 // @connect      *
 // @require      https://greasyfork.org/scripts/379868-jquery-not/code/jQuery%20not%20$.js?version=700787
 // @require      https://cdn.staticfile.org/jquery/3.3.1/jquery.min.js
@@ -721,7 +721,6 @@
                 switch(task.task.name)
                 {
                     case "Join Steam Group":
-                        console.log(task);
                         // this.updateSteamInfo('all');
                         this.joinSteamGroupAuto(console.log, task.data.gid);
                         break;
@@ -751,12 +750,22 @@
                         }
                         break;
                     case "Save Spotify Album":
-                        var albums = task.data.url.split("album/")[1];
-                        this.spotifyLikeAuto(albums);
+                        if(GM_getValue("twitterAuth"))
+                        {
+                            let albums = task.data.url.split("album/")[1];
+                            this.spotifyLikeAuto(albums);
+                        }else{
+                            window.open(task.data.url + "?type=keyjoker");
+                        }
                         break;
                     case "Follow Twitch Channel":
-                        var channel = task.data.url.split("tv/")[1];
-                        this.twitchFollowAuto(channel);
+                        if(GM_getValue("twitterAuth"))
+                        {
+                            let channel = task.data.url.split("tv/")[1];
+                            this.twitchFollowAuto(channel);
+                        }else{
+                            window.open(task.data.url + "?type=keyjoker");
+                        }
                         break;
                     default:
                         console.log("未指定操作" + task.task.name)
@@ -773,6 +782,7 @@
         test: function(){
         },
         setAuth: function(type){
+            if(debug)console.log("setAuth");
             if(!GM_getValue("discordAuth") || type == "discord")
             {
                 /*let discordAuth = prompt('请输入discordAuth：');
