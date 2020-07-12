@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.5.4
+// @version      0.5.5
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411,部分操作需手动辅助
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
@@ -237,11 +237,11 @@
                 r(1)
             }
         },
-        redeemAuto: function(task){
-            $('a[href="' + task.redirect_url + '"]')[0].parentNode.lastChild.click();
+        redeemAuto: function(redirect_url){
+            $('a[href="' + redirect_url + '"]')[0].parentNode.lastChild.click();
         },
         // steam个人资料回复"+rep"
-        steamRepAuto: function(url){
+        steamRepAuto: function(r, url){
             let id = url.split("s/")[1];
             this.updateSteamInfo(() => {
                 this.httpRequest({
@@ -255,6 +255,10 @@
                     },
                     onload: (response) => {
                         console.log(response);
+                        if(response.status == 200)
+                        {
+                            r();
+                        }
                     }
                 });
             })
@@ -271,11 +275,12 @@
                     onload: (response) => {
                         if (debug) console.log(response)
                         if (response.status === 200 && !response.responseText.includes('grouppage_join_area')) {
-                            status.success()
-                            r({ result: 'success', statusText: response.statusText, status: response.status })
+                            console.log("joinSteamGroupAuto")
+                            console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                            r();
                         } else {
                             status.error('Error:' + response.statusText + '(' + response.status + ')')
-                            r({ result: 'error', statusText: response.statusText, status: response.status })
+                            console.log({ result: 'error', statusText: response.statusText, status: response.status })
                         }
                     }
                 })
@@ -334,7 +339,7 @@
             })
         },
         // OK
-        twitterFollowAuto: function(url){
+        twitterFollowAuto: function(r, url){
             if(debug){console.log("====twitterFollowAuto====");console.log(steamInfo);}
             let userName = url.split("com/")[1];
             this.twitterGetUserInfo((obj)=>{
@@ -349,6 +354,7 @@
                         if (debug) console.log(response)
                         if (response.status === 200) {
                             console.log("success")
+                            r();
                             console.log({ result: 'success', statusText: response.statusText, status: response.status })
                         } else {
                             console.log('Error:' + response.statusText + '(' + response.status + ')')
@@ -359,7 +365,7 @@
             }, userName);
         },
         // OK
-        twitterRetweetAuto: function(url){
+        twitterRetweetAuto: function(r, url){
             if(debug){console.log("====twitterRetweetAuto====");console.log(steamInfo);}
             let retweetId = url.split("status/")[1];
             this.httpRequest({
@@ -371,6 +377,7 @@
                     if (debug) console.log(response)
                     if (response.status === 200 || (response.status === 403 && response.responseText == '{"errors":[{"code":327,"message":"You have already retweeted this Tweet."}]}')) {
                         console.log("success");
+                        r();
                         if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status });
                     } else {
                         console.log('Error:' + response.statusText + '(' + response.status + ')')
@@ -402,7 +409,7 @@
                 anonymous:true
             })
         },
-        discordJoinServerAuto: function(server){
+        discordJoinServerAuto: function(r, server){
             this.httpRequest({
                 url: 'https://discord.com/api/v6/invites/' + server,
                 method: 'POST',
@@ -410,6 +417,7 @@
                 onload: (response) => {
                     if (response.status === 200 && response.responseText.indexOf('"new_member": true') != -1) {
                         console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                        r();
                     } else {
                         console.log('Error:' + response.statusText + '(' + response.status + ')')
                         console.log({ result: 'error', statusText: response.statusText, status: response.status })
@@ -465,7 +473,7 @@
                 anonymous:true
             })
         },
-        spotifyLikeAuto: function(albums){
+        spotifyLikeAuto: function(r, albums){
             this.spotifyGetUserInfo((userId, accessToken)=>{
                 $.ajax({
                     type: 'PUT',
@@ -473,6 +481,7 @@
                     headers: {authorization: "Bearer " + accessToken},
                     success: function(data){
                         console.log(data);
+                        r();
                     },
                     error: function(data){
                         console.error(data);
@@ -500,6 +509,9 @@
                         error:(res)=>{
                             console.log("error");
                             console.log(res);
+                        },
+                        onreadystatechange :(r)=>{
+                            console.log(r);
                         },
                         anonymous:true
                     })
@@ -700,12 +712,19 @@
                 {
                     case "Join Steam Group":
                         // this.updateSteamInfo('all');
-                        this.joinSteamGroupAuto(console.log, task.data.gid);
+                        this.joinSteamGroupAuto(
+                                ()=>{
+                                    this.redeemAuto(task.redirect_url);
+                                }, task.data.gid);
                         break;
                     case "Follow Twitter Account":
                         if(GM_getValue("twitterAuth"))
                         {
-                            this.twitterFollowAuto(task.data.url);
+                            this.twitterFollowAuto(
+                                ()=>{
+                                    this.redeemAuto(task.redirect_url);
+                                },
+                                task.data.url);
                         }else{
                             window.open(task.data.url + "?type=keyjoker");
                         }
@@ -714,7 +733,11 @@
                         if(GM_getValue("discordAuth"))
                         {
                             let server = task.data.url.split(".gg/")[1];
-                            this.discordJoinServerAuto(server)
+                            this.discordJoinServerAuto(
+                                ()=>{
+                                    this.redeemAuto(task.redirect_url);
+                                },
+                                server)
                         }else{
                             window.open(task.data.url + "?type=keyjoker");
                         }
@@ -722,7 +745,11 @@
                     case "Retweet Twitter Tweet":
                         if(GM_getValue("twitterAuth"))
                         {
-                            this.twitterRetweetAuto(task.data.url);
+                            this.twitterRetweetAuto(
+                                ()=>{
+                                    this.redeemAuto(task.redirect_url);
+                                },
+                                task.data.url);
                         }else{
                             window.open(task.data.url + "?type=keyjoker");
                         }
@@ -730,8 +757,13 @@
                     case "Save Spotify Album":
                         if(GM_getValue("twitterAuth"))
                         {
-                            let albums = task.data.url.split("album/")[1];
-                            this.spotifyLikeAuto(albums);
+                            let albums = task.data.url.split(console.log, "album/")[1];
+                            this.spotifyLikeAuto(
+                                ()=>{
+                                    this.redeemAuto(task.redirect_url);
+                                },
+                                albums
+                            );
                         }else{
                             window.open(task.data.url + "?type=keyjoker");
                         }
@@ -744,6 +776,13 @@
                         }else{
                             window.open(task.data.url + "?type=keyjoker");
                         }
+                        break;
+                    case "steam rep":
+                        this.steamRepAuto(
+                            ()=>{
+                                this.redeemAuto(task.redirect_url);
+                            },
+                            task.data.url);
                         break;
                     default:
                         console.log("未指定操作" + task.task.name)
@@ -758,6 +797,12 @@
             $.getScript("/js/app.js");
         },
         test: function(){
+            this.spotifyLikeAuto(
+                ()=>{
+                    console.log("ok");
+                },
+                "26imYaSSua82QSAs9obH6z"
+            );
         },
         setAuth: function(type){
             if(debug)console.log("setAuth");
@@ -871,20 +916,25 @@
         appHandle();
     }
     GM_registerMenuCommand("设置时间间隔",setTime);
-    GM_registerMenuCommand("开始检测",start);
-    GM_registerMenuCommand("停止检测",()=>{
-        let date=new Date();
-        let hour=date.getHours();
-        let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
-        GM_setValue("start",0);
-        $(".border-bottom").text(hour+":"+min+" 停止执行新任务检测");
-    });
-    GM_registerMenuCommand("开启自动redeem",()=>{
-        GM_setValue("autoRedeem",1);
-    });
-    GM_registerMenuCommand("关闭自动redeem",()=>{
-        GM_setValue("autoRedeem",0);
-    });
+    function checkSwitch(id){
+        GM_unregisterMenuCommand(id);
+        if(0 == GM_getValue("start")){
+            let id = GM_registerMenuCommand("开始检测",()=>{
+                start();
+                checkSwitch(id);
+            });
+        }else{
+            let id = GM_registerMenuCommand("停止检测",()=>{
+                let date=new Date();
+                let hour=date.getHours();
+                let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
+                GM_setValue("start",0);
+                $(".border-bottom").text(hour+":"+min+" 停止执行新任务检测");
+                checkSwitch(id);
+            });
+        }
+    }
+    checkSwitch(null);
     function advanceModeSwitch(id1, id0){
         GM_unregisterMenuCommand(id0);
         GM_unregisterMenuCommand(id1);
