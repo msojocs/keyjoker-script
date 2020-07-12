@@ -1,16 +1,17 @@
 # keyjokerScript
  TMScript for keyjoker.
 
-# Support status
+# Support status 
+[ ✔support |⭕In progress |❌not support ]
 |function|manual|auto|
 |--------|------|----|
-|steamJoinGroup|✔|✔|
-|steamAutoRep|✔|✔|
-|steamAddWhishList|✔|✔|
+|steamJoinGroup|✔|⭕|
+|steamAutoRep|✔|⭕|
+|steamAddWhishList|✔|⭕|
 |twitterRetweet|✔|✔|
 |twitterFollow|✔|✔|
 |twitchFollow|✔|✔|
 |discordJoinServer|✔|✔|
 |spotifyLike|✔|✔|
-|autoRedeem|✔|✔|
+|autoRedeem|✔|⭕|
 |getHcaptchaAccessCookie|✔|✔|
