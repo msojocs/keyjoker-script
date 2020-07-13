@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.6.0
+// @version      0.6.1
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411,部分操作需手动辅助
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
@@ -55,6 +55,14 @@
     const twitterAuth = GM_getValue('twitterAuth') || {
         authorization: "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
         ct0: '',
+        updateTime: 0
+    }
+    const discordAuth = GM_getValue('discordAuth') || {
+        authorization: "",
+        updateTime: 0
+    }
+    const twitchAuth = GM_getValue('twitchAuth') || {
+        "auth-token": "",
         updateTime: 0
     }
     const noticeFrame = {
@@ -138,7 +146,7 @@ style="display: none;"></sup></div>
             switch(data.type)
             {
                 case "taskStatus":
-                    $('.el-notification__content').append('<li>Task: ' + data.task.task.name + ' <a href="' + data.task.data.url + '" target="_blank">' + (data.task.data.name||data.task.data.username) + '</a>|<font id="' + data.task.id + '" class="' + data.status +'">' + data.status +'</font></li>');
+                    $('.el-notification__content').append('<li>' + data.task.task.name + ' <a href="' + data.task.data.url + '" target="_blank">' + (data.task.data.name||data.task.data.username) + '</a>|<font id="' + data.task.id + '" class="' + data.status +'">' + data.status +'</font></li>');
                     break;
                 case "msg":
                     $('.el-notification__content').append("<li>" + data.msg + "</li>");
@@ -167,7 +175,7 @@ style="display: none;"></sup></div>
                     url:"/entries/load",
                     type:"get",
                     headers:{'x-csrf-token': $('meta[name="csrf-token"]').attr('content')},
-                    success:(data)=>{
+                    success:(data,status,xhr)=>{
                         if(data && (data.actions && (data.actions.length > sum) )){
                             console.log(data);
                             let date=new Date();
@@ -184,16 +192,10 @@ style="display: none;"></sup></div>
                                 }
                             });*/
                             // 重载列表
+                            noticeFrame.clearNotice();
                             func.reLoadTaskList(()=>{
-                                // 选定任务执行模式
-                                if(GM_getValue("advanceMode"))
-                                {
-                                    if(debug)console.log("当前任务模式：高级")
-                                    func.do_task(data);
-                                }
-                                else{
-                                    for(var i = 0; i < data.actions.length; i++)window.open(data.actions[i].data.url + "?type=keyjoker");
-                                }
+                                if(debug)console.log("当前任务模式：高级")
+                                func.do_task(data);
                             });
                         }else{
                             setTimeout(()=>{
@@ -216,13 +218,13 @@ style="display: none;"></sup></div>
         function start(){
             // $showTest();
             GM_setValue("start",1);
-            let time=GM_getValue("time");
+            let time = GM_getValue("time");
             if(!time){
                 time=60;
             }
-            //if(confirm("是否以时间间隔"+time+"秒进行任务检测？")){
-            next();
-            //}
+            if(confirm("是否以时间间隔" + time + "秒进行任务检测？")){
+                next();
+            }
         }
         function next(){
             let time=GM_getValue("time");
@@ -240,49 +242,24 @@ style="display: none;"></sup></div>
             appHandle: function(){
                 switch(location.hostname)
                 {
-                    case "dashboard.hcaptcha.com":
-                        // hcaptcha 登录、设置Cookie
-                        //func.hcaptcha();
-                        break;
-                    case "store.steampowered.com":
-                        // Steam 添加愿望单
-                        if(document.referrer.indexOf("keyjoker") != -1)
-                        {
-                            document.getElementById("add_to_wishlist_area").lastElementChild.click();
-                        }
-                        break;
                     case "www.twitch.tv":
                         if(location.search == "?keyjokertask=storageAuth")
                         {
-                            GM_setValue("twitchAuth", document.cookie);
-                            alert("凭证获取完成")
+                            let cookie = document.cookie + ";"
+                            twitchAuth["auth-token"] = cookie.match(/auth-token=(.+?);/)[1]
+                            twitchAuth.updateTime = new Date().getTime()
+                            GM_setValue("twitchAuth", twitchAuth)
                             window.close();
                         }
-                        // twitch关注
-                        if(document.referrer.indexOf("keyjoker") != -1)func.twitchFollowClick();
-                        break;
-                    case "steamcommunity.com":
-                        // Steam 回复“+rep”
-                        if(document.referrer.indexOf("keyjoker") != -1)func.steamcommunityClick();
-                        break;
-                    case "twitter.com":
-                        // retweet
-                        if(document.referrer.indexOf("keyjoker") != -1)func.twitterRetweetClick();
-                        if(document.referrer.indexOf("keyjoker") != -1)func.twitterFollowClick();
                         break;
                     case "discord.com":
                         if(location.search == "?keyjokertask=storageAuth")
                         {
-                            GM_setValue("discordAuth", JSON.parse(localStorage.getItem("token")));
-                            alert("凭证获取完成")
+                            discordAuth.authorization = JSON.parse(localStorage.getItem("token"));
+                            discordAuth.updateTime = new Date().getTime()
+                            GM_setValue("discordAuth", discordAuth);
                             window.close();
                         }
-                        // Discord
-                        if(document.referrer.indexOf("keyjoker") != -1)func.discordJoinServerClick();
-                        break;
-                    case "open.spotify.com":
-                        // spotify
-                        if(document.referrer.indexOf("keyjoker") != -1)func.spotifyLikeClick();
                         break;
                     case "assets.hcaptcha.com":
                         // 人机验证
@@ -292,35 +269,63 @@ style="display: none;"></sup></div>
                         break;
                 }
             },
+            // OK
             discordJoinServerAuto: function(r, server){
-                this.httpRequest({
-                    url: 'https://discord.com/api/v6/invites/' + server,
-                    method: 'POST',
-                    headers: { authorization: GM_getValue("discordAuth"), "content-type": "application/json"},
-                    onload: (response) => {
-                        if (response.status === 200 && response.responseText.indexOf('"new_member": true') != -1) {
-                            //console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                            r('success');
-                        } else {
-                            console.log('Error:' + response.statusText + '(' + response.status + ')')
-                            console.log({ result: 'error', statusText: response.statusText, status: response.status })
-                            r('error');
-                        }
-                    },
-                    error:(res)=>{
-                        console.error(res);
-                    },
-                    anonymous:true
+                this.discordAuthUpdate(()=>{
+                    this.httpRequest({
+                        url: 'https://discord.com/api/v6/invites/' + server,
+                        method: 'POST',
+                        headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
+                        onload: (response) => {
+                            console.log(response)
+                            if (response.status === 200) {
+                                console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                                r('success');
+                            } else {
+                                console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                r('error');
+                            }
+                        },
+                        error:(res)=>{
+                            console.error(res);
+                        },
+                        anonymous:true
+                    })
                 })
             },
-            discordJoinServerClick: function(){
-                let discordClick=setInterval(()=>{
-                    if(document.getElementsByTagName("button").length == 1 && document.getElementsByTagName("button")[0].innerText == "接受邀请")
-                    {
-                        document.getElementsByTagName("button")[0].click();
-                        clearInterval(discordClick);
-                    }
-                },1000);
+            // OK
+            discordAuthUpdate:function(r, update = false){
+                if (new Date().getTime() - discordAuth.updateTime > 30 * 60 * 1000 || update) {
+                    new Promise((resolve)=>{
+                        noticeFrame.addNotice({type:"msg", msg:"将在新窗口自动获取discord凭证"});
+                        window.open("https://discord.com/channels/@me?keyjokertask=storageAuth");
+                        let i = 0;
+                        let check = setInterval(()=>{
+                            i++;
+                            if(GM_getValue("discordAuth") && new Date().getTime() - GM_getValue("discordAuth").updateTime <= 30 * 60 * 1000)
+                            {
+                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">discordAuth updated!</font>"})
+                                discordAuth.authorization = GM_getValue("discordAuth").authorization
+                                discordAuth.updateTime = GM_getValue("discordAuth").updateTime
+                                clearInterval(check);
+                                resolve("success")
+                            }
+                            if(i >= 30)
+                            {
+                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">discordAuth获取超时</font>"})
+                                clearInterval(check);
+                                resolve("error")
+                            }
+                        }, 1000)
+                    }).then((ret)=>{
+                        if(ret == "success"){
+                            r(1)
+                        }
+                    })
+                }else{
+                    r(1)
+                }
             },
             do_task: function(data){
                 console.log("do task")
@@ -341,111 +346,80 @@ style="display: none;"></sup></div>
                                         noticeFrame.updateNotice(task.id, 'error')
                                     }
                                 },
-                                task.data.gid);
+                                task.data.name);
                             break;
                         case "Follow Twitter Account":
-                            if(GM_getValue("twitterAuth"))
-                            {
-                                noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
-                                this.twitterFollowAuto(
-                                    (ret)=>{
-                                        if(ret == "success")
-                                        {
-                                            this.redeemAuto(task.redirect_url);
-                                            noticeFrame.updateNotice(task.id, 'success')
-                                        }else{
-                                            noticeFrame.updateNotice(task.id, 'error')
-                                        }
-                                    },
-                                    task.data.id);
-                            }else{
-                                noticeFrame.addNotice({type: "taskStatus", task:task, status:'error'});
-                                window.open(task.data.url + "?type=keyjoker");
-                            }
+                            noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
+                            console.log(task)
+                            this.twitterFollowAuto(
+                                (ret)=>{
+                                    if(ret == "success")
+                                    {
+                                        this.redeemAuto(task.redirect_url);
+                                        noticeFrame.updateNotice(task.id, 'success')
+                                    }else{
+                                        noticeFrame.updateNotice(task.id, 'error')
+                                    }
+                                },
+                                task.data.username);
                             break;
                         case "Join Discord Server":
-                            if(GM_getValue("discordAuth"))
-                            {
-                                noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
-                                let server = task.data.url.split(".gg/")[1];
-                                this.discordJoinServerAuto(
-                                    (ret)=>{
-                                        if(ret == "success")
-                                        {
-                                            this.redeemAuto(task.redirect_url);
-                                            noticeFrame.updateNotice(task.id, 'success')
-                                        }else{
-                                            noticeFrame.updateNotice(task.id, 'error')
-                                        }
-                                    },
-                                    server)
-                            }else{
-                                noticeFrame.addNotice({type: "taskStatus", task:task, status:'error'});
-                                window.open(task.data.url + "?type=keyjoker");
-                            }
+                            noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
+                            var server = task.data.url.split(".gg/")[1];
+                            this.discordJoinServerAuto(
+                                (ret)=>{
+                                    if(ret == "success")
+                                    {
+                                        this.redeemAuto(task.redirect_url);
+                                        noticeFrame.updateNotice(task.id, 'success')
+                                    }else{
+                                        noticeFrame.updateNotice(task.id, 'error')
+                                    }
+                                },
+                                server)
                             break;
                         case "Retweet Twitter Tweet":
-                            if(GM_getValue("twitterAuth"))
-                            {
-                                noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
-                                this.twitterRetweetAuto(
-                                    (ret)=>{
-                                        if(ret == "success")
-                                        {
-                                            this.redeemAuto(task.redirect_url);
-                                            noticeFrame.updateNotice(task.id, 'success')
-                                        }else{
-                                            noticeFrame.updateNotice(task.id, 'error')
-                                        }
-                                    },
-                                    task.data.url);
-                            }else{
-                                noticeFrame.addNotice({type: "taskStatus", task:task, status:'error'});
-                                window.open(task.data.url + "?type=keyjoker");
-                            }
+                            noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
+                            this.twitterRetweetAuto(
+                                (ret)=>{
+                                    if(ret == "success")
+                                    {
+                                        this.redeemAuto(task.redirect_url);
+                                        noticeFrame.updateNotice(task.id, 'success')
+                                    }else{
+                                        noticeFrame.updateNotice(task.id, 'error')
+                                    }
+                                },
+                                task.data.url);
                             break;
                         case "Save Spotify Album":
-                            if(GM_getValue("twitterAuth"))
-                            {
-                                noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
-                                let albums = task.data.url.split(console.log, "album/")[1];
-                                this.spotifyLikeAuto(
-                                    (ret)=>{
-                                        if(ret == "success")
-                                        {
-                                            this.redeemAuto(task.redirect_url);
-                                            noticeFrame.updateNotice(task.id, 'success')
-                                        }else{
-                                            noticeFrame.updateNotice(task.id, 'error')
-                                        }
-                                    },
-                                    albums
-                                );
-                            }else{
-                                noticeFrame.addNotice({type: "taskStatus", task:task, status:'error'});
-                                window.open(task.data.url + "?type=keyjoker");
-                            }
+                            noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
+                            this.spotifyLikeAuto(
+                                (ret)=>{
+                                    if(ret == "success")
+                                    {
+                                        this.redeemAuto(task.redirect_url);
+                                        noticeFrame.updateNotice(task.id, 'success')
+                                    }else{
+                                        noticeFrame.updateNotice(task.id, 'error')
+                                    }
+                                },
+                                task.data.id
+                            );
                             break;
                         case "Follow Twitch Channel":
-                            if(GM_getValue("twitterAuth"))
-                            {
-                                noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
-                                let channel = task.data.url.split("tv/")[1];
-                                this.twitchFollowAuto(
-                                    (ret)=>{
-                                        if(ret == "success")
-                                        {
-                                            this.redeemAuto(task.redirect_url);
-                                            noticeFrame.updateNotice(task.id, 'success')
-                                        }else{
-                                            noticeFrame.updateNotice(task.id, 'error')
-                                        }
-                                    },
-                                    channel);
-                            }else{
-                                noticeFrame.addNotice({type: "taskStatus", task:task, status:'error'});
-                                window.open(task.data.url + "?type=keyjoker");
-                            }
+                            noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
+                            this.twitchFollowAuto(
+                                (ret)=>{
+                                    if(ret == "success")
+                                    {
+                                        this.redeemAuto(task.redirect_url);
+                                        noticeFrame.updateNotice(task.id, 'success')
+                                    }else{
+                                        noticeFrame.updateNotice(task.id, 'error')
+                                    }
+                                },
+                                task.data.id);
                             break;
                         case "steam rep":
                             noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
@@ -500,31 +474,6 @@ style="display: none;"></sup></div>
                 if (debug) console.log('发送请求:', requestObj)
                 GM_xmlhttpRequest(requestObj)
             },
-            hcaptcha: function () {
-                let hcaptchaClick=setInterval(()=>{
-                    console.log("hCaptcha");
-                    if(document.getElementsByTagName('button').length == 1)
-                    {
-                        if(document.getElementsByTagName('button')[0].innerText == "Login")
-                        {
-                            console.log("Login");
-                            document.getElementsByTagName('button')[0].click();
-                        }else if(document.getElementsByTagName('button')[0].innerText == "Set Cookie"){
-                            console.log("Set Cookie");
-                            document.getElementsByTagName('button')[0].click();
-                            let checkClose=setInterval(()=>{
-                                if(document.getElementsByTagName('span')[0].innerText == "Cookie set.")
-                                {
-                                    console.log("Cookie set");
-                                    window.close();
-                                    clearInterval(checkClose);
-                                }
-                            }, 1000);
-                            clearInterval(hcaptchaClick);
-                        }
-                    }
-                },1000);
-            },
             // 人机验证出现图片时的处理
             hcaptcha2: function () {
                 let hcaptcha2Click=setInterval(()=>{
@@ -544,7 +493,7 @@ style="display: none;"></sup></div>
                                     document.getElementsByClassName("prompt-text")[0].innerText = text + "\n免验证Cookie获取成功，请重新点击验证框";
                                 }else if(response.status == 401)
                                 {
-                                    document.getElementsByClassName("prompt-text")[0].innerText = text + "\n当前IP的免验证Cookie获取次数已达上限，请更换assets.hcaptcha.com的代理IP";
+                                    document.getElementsByClassName("prompt-text")[0].innerText = text + "\n当前IP的免验证Cookie获取次数已达上限，请更换hcaptcha账号";
                                 }else if(response.status == 500)
                                 {
                                     document.getElementsByClassName("prompt-text")[0].innerText = text + "\n未登录hCaptcha，将在3秒后打开至登录页面";
@@ -562,6 +511,7 @@ style="display: none;"></sup></div>
                     }
                 },1000);
             },
+            // OK
             redeemAuto: function(redirect_url){
                 if(0 != $('a[href="' + redirect_url + '"]').length)$('a[href="' + redirect_url + '"]').next().click();
             },
@@ -590,7 +540,7 @@ style="display: none;"></sup></div>
                     window.open("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth");
                 }
             },
-            // steam信息更新[修改自https://greasyfork.org/zh-CN/scripts/370650]
+            // steam信息更新（In Progress）[修改自https://greasyfork.org/zh-CN/scripts/370650]
             steamInfoUpdate: function (r, type = 'all', update = false) {
                 if (new Date().getTime() - steamInfo.updateTime > 10 * 60 * 1000 || update) {
                     const pro = []
@@ -663,7 +613,7 @@ style="display: none;"></sup></div>
                     r(1)
                 }
             },
-            // steam个人资料回复"+rep"
+            // steam个人资料回复"+rep"（In Progress）
             steamRepAuto: function(r, url){
                 let id = url.split("s/")[1];
                 this.steamInfoUpdate(() => {
@@ -686,10 +636,10 @@ style="display: none;"></sup></div>
                     });
                 })
             },
-            // steam加组[修改自https://greasyfork.org/zh-CN/scripts/370650]
+            // steam加组（OK）[修改自https://greasyfork.org/zh-CN/scripts/370650]
             steamJoinGroupAuto: function (r, group) {
                 this.steamInfoUpdate(() => {
-                    if(debug){console.log("====steamInfo====");console.log(steamInfo);}
+                    if(debug){console.log("====steamJoinGroupAuto====");}
                     this.httpRequest({
                         url: 'https://steamcommunity.com/groups/' + group,
                         method: 'POST',
@@ -697,7 +647,7 @@ style="display: none;"></sup></div>
                         data: $.param({ action: 'join', sessionID: steamInfo.communitySessionID }),
                         onload: (response) => {
                             if (debug) console.log(response)
-                            if (response.status === 200 && !response.responseText.includes('grouppage_join_area')) {
+                            if (response.status === 200 && !response.responseText.includes('grouppage_join_area') &&  !response.responseText.includes('error_ctn')) {
                                 console.log("steamJoinGroupAuto")
                                 console.log({ result: 'success', statusText: response.statusText, status: response.status })
                                 r('success');
@@ -762,42 +712,7 @@ style="display: none;"></sup></div>
                     console.error(err)
                 })
             },
-            steamcommunityClick: function () {
-                if(document.referrer.indexOf("keyjoker") != -1)
-                {
-                    // 来源keyjoker
-                    switch(location.pathname.split("/")[1])
-                    {
-                        case "groups":
-                            // 加组
-                            {
-                                let steamClick=setInterval(()=>{
-                                    if(document.getElementsByClassName("grouppage_join_area").length == 1)
-                                    {
-                                        document.getElementsByClassName("grouppage_join_area")[0].getElementsByTagName("a")[0].click();
-                                        clearInterval(steamClick);
-                                    }
-                                }, 1000);
-                            }
-                            break;
-                        case "profiles":
-                            // 评论
-                            {
-                                let profileClick=setInterval(()=>{
-                                    if(document.getElementsByClassName("commentthread_entry_quotebox").length == 1 && document.getElementsByClassName("commentthread_comments")[0].innerText.indexOf(document.getElementById("account_pulldown").innerText) != -1)
-                                    {
-                                        document.getElementsByClassName("commentthread_entry_quotebox")[0].firstElementChild.value="+rep";
-                                        document.getElementsByClassName("commentthread_entry_submitlink")[0].getElementsByClassName("btn_green_white_innerfade btn_small")[0].click();
-                                        clearInterval(profileClick);
-                                    }
-                                }, 1000);
-                            }
-                            break;
-                        default :
-                            break;
-                    }
-                }
-            },
+            // OK
             spotifyLikeAuto: function(r, albums){
                 this.spotifyGetUserInfo((userId, accessToken)=>{
                     $.ajax({
@@ -816,6 +731,7 @@ style="display: none;"></sup></div>
                     });
                 });
             },
+            // OK
             spotifyGetUserInfo: function(r){
                 this.spotifyGetAccessToken(
                     (accessToken)=>{
@@ -844,6 +760,7 @@ style="display: none;"></sup></div>
                     }
                 )
             },
+            // OK
             spotifyGetAccessToken: function(r){
                 this.httpRequest({
                     url: 'https://open.spotify.com/get_access_token?reason=transport&productType=web_player',
@@ -864,38 +781,29 @@ style="display: none;"></sup></div>
                     }
                 })
             },
-            spotifyLikeClick: function(){
-                let spotifyClick=setInterval(()=>{
-                    if(document.getElementsByClassName("spoticon-heart-32").length == 1)
-                    {
-                        document.getElementsByClassName("spoticon-heart-32")[0].click();
-                        clearInterval(spotifyClick);
-                    }
-                },1000);
-            },
-            twitchFollowAuto: function(r, channels){
-                this.twitchGetIdAuto(
-                    (id)=>{
-                        this.httpRequest({
-                            url: 'https://gql.twitch.tv/gql',
-                            method: 'POST',
-                            headers: { Authorization: "OAuth " + GM_getValue("twitchAuth").match(/auth-token=(.+?); /)[1]},
-                            data: '[{"operationName":"FollowButton_FollowUser","variables":{"input":{"disableNotifications":false,"targetID":"' + id + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"3efee1acda90efdff9fef6e6b4a29213be3ee490781c5b54469717b6131ffdfe"}}}]',
-                            onload: (response) => {
-                                if (debug) console.log(response)
-                                if (response.status === 200) {
-                                    r("success")
-                                    console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                                } else {
-                                    console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                    console.log({ result: 'error', statusText: response.statusText, status: response.status })
-                                    r('error')
-                                }
+            // OK
+            twitchFollowAuto: function(r, channelId){
+                this.twitchAuthUpdate(()=>{
+                    this.httpRequest({
+                        url: 'https://gql.twitch.tv/gql',
+                        method: 'POST',
+                        headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
+                        data: '[{"operationName":"FollowButton_FollowUser","variables":{"input":{"disableNotifications":false,"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"3efee1acda90efdff9fef6e6b4a29213be3ee490781c5b54469717b6131ffdfe"}}}]',
+                        onload: (response) => {
+                            if (debug) console.log(response)
+                            if (response.status === 200) {
+                                r("success")
+                                console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                            } else {
+                                console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                r('error')
                             }
-                        })
-                    },channels
-                );
+                        }
+                    })
+                })
             },
+            // 弃用
             twitchGetIdAuto: function(r, channels){
                 this.httpRequest({
                     url: 'https://api.twitch.tv/api/channels/' + channels + '/access_token?oauth_token=' + GM_getValue("twitchAuth").match(/auth-token=(.+?); /)[1] + '&need_https=true&platform=web&player_type=site&player_backend=mediaplayer',
@@ -917,45 +825,68 @@ style="display: none;"></sup></div>
                     anonymous:true
                 })
             },
-            twitchFollowClick: function () {
-                if(document.referrer.indexOf("keyjoker") != -1)
-                {
-                    let twitchClick=setInterval(()=>{
-                        if(document.getElementsByClassName("follow-btn__follow-btn").length == 1)
-                        {
-                            document.getElementsByClassName("follow-btn__follow-btn")[0].getElementsByTagName("button")[0].click();
-                            clearInterval(twitchClick);
+            // OK
+            twitchAuthUpdate:function(r, update = false){
+                if (new Date().getTime() - twitchAuth.updateTime > 30 * 60 * 1000 || update) {
+                    new Promise((resolve)=>{
+                        noticeFrame.addNotice({type:"msg", msg:"将在新窗口自动获取twitch凭证"});
+                        window.open("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth");
+                        let i = 0;
+                        let check = setInterval(()=>{
+                            i++;
+                            if(GM_getValue("twitchAuth") && new Date().getTime() - GM_getValue("twitchAuth").updateTime <= 30 * 60 * 1000)
+                            {
+                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">twitchAuth updated!</font>"})
+                                twitchAuth["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
+                                twitchAuth.updateTime = GM_getValue('twitchAuth').updateTime;
+                                clearInterval(check);
+                                resolve("success")
+                            }
+                            if(i >= 30)
+                            {
+                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">twitchAuth获取超时</font>"})
+                                clearInterval(check);
+                                resolve("error")
+                            }
+                        }, 1000)
+                    }).then((ret)=>{
+                        if(ret == "success"){
+                            r(1)
                         }
-                    }, 1000);
+                    })
+                }else{
+                    r(1)
                 }
             },
             // OK
-            twitterFollowAuto: function(r, userId){
+            twitterFollowAuto: function(r, userName){
                 this.twitterAuthUpdate(()=>{
-                    this.httpRequest({
-                        url: 'https://api.twitter.com/1.1/friendships/create.json',
-                        method: 'POST',
-                        headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
-                        data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
-                        onload: (response) => {
-                            if (debug) console.log(response)
-                            if (response.status === 200) {
-                                //console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                                r("success");
-                            } else {
-                                console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                console.log({ result: 'error', statusText: response.statusText, status: response.status })
-                                r("error");
+                    this.twitterGetUserInfo((userId)=>{
+                        console.log(userId)
+                        this.httpRequest({
+                            url: 'https://api.twitter.com/1.1/friendships/create.json',
+                            method: 'POST',
+                            headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
+                            data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
+                            onload: (response) => {
+                                if (debug) console.log(response)
+                                if (response.status === 200) {
+                                    r("success");
+                                } else {
+                                    console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                    console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                    r("error");
+                                }
                             }
-                        }
-                    })
+                        })
+                    },userName)
                 })
             },
             // OK
             twitterRetweetAuto: function(r, url){
                 if(debug)console.log("====twitterRetweetAuto====");
                 let retweetId = url.split("status/")[1];
-                this.twitterAuthUpdate((ct0)=>{
+                this.twitterAuthUpdate(()=>{
                     this.httpRequest({
                         url: 'https://api.twitter.com/1.1/statuses/retweet.json',
                         method: 'POST',
@@ -965,8 +896,8 @@ style="display: none;"></sup></div>
                             if (debug) console.log(response)
                             if (response.status === 200 || (response.status === 403 && response.responseText == '{"errors":[{"code":327,"message":"You have already retweeted this Tweet."}]}')) {
                                 console.log("success");
-                                r("success");
                                 if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status });
+                                r("success");
                             } else {
                                 console.log('Error:' + response.statusText + '(' + response.status + ')')
                                 console.log({ result: 'error', statusText: response.statusText, status: response.status })
@@ -976,7 +907,7 @@ style="display: none;"></sup></div>
                     })
                 })
             },
-            // 弃用
+            // OK
             twitterGetUserInfo: function(r, userName){
                 if(debug)console.log("====twitterGetUserInfo====");
                 this.httpRequest({
@@ -985,8 +916,8 @@ style="display: none;"></sup></div>
                     headers: { authorization: "Bearer " + twitterAuth.authorization, "content-type": "application/json"},
                     onload: (response) => {
                         if (response.status === 200) {
-                            console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                            r(JSON.parse(response.responseText));
+                            console.log(response)
+                            r(JSON.parse(response.responseText).data.user.rest_id);
                         } else {
                             console.log('Error:' + response.statusText + '(' + response.status + ')')
                             console.log({ result: 'error', statusText: response.statusText, status: response.status })
@@ -999,45 +930,7 @@ style="display: none;"></sup></div>
                     anonymous:true
                 })
             },
-            twitterRetweetClick: function(){
-                if(document.referrer.indexOf("keyjoker") != -1)
-                {
-                    let twitterClick=setInterval(()=>{
-                        if(document.getElementsByTagName("article").length > 0)
-                        {
-                            console.log("Retweet");
-                            $('div[data-testid="retweet"]')[0].click();
-                            $('div[data-testid="retweetConfirm"]').click();
-                            clearInterval(twitterClick);
-                            let twitterClose=setInterval(()=>{
-                                if($('div[data-testid="unretweet"]').length>0)
-                                {
-                                    window.close();
-                                    clearInterval(twitterClose);
-                                }
-                            },1000);
-                        }
-                    },1000);
-                }
-            },
-            twitterFollowClick: function(){
-                if(debug) console.log("执行twitterFollowClick");
-                let twitterClick=setInterval(()=>{
-                    if($('div[data-testid="placementTracking"]').length > 0)
-                    {
-                        $('div[data-testid="placementTracking"]')[0].children[0].children[0].click();
-                        clearInterval(twitterClick);
-                        let twitterClose=setInterval(()=>{
-                            console.log(jQuery('div[data-testid="placementTracking"]').length + "--" + jQuery('div[data-testid="placementTracking"]')[0].innerText);
-                            if(jQuery('div[data-testid="placementTracking"]').length == 1 && jQuery('div[data-testid="placementTracking"]')[0].innerText == "正在关注")
-                            {
-                                window.close();
-                                clearInterval(twitterClose);
-                            }
-                        },1000);
-                    }
-                },1000);
-            },
+            // OK
             twitterAP:function(r){
                 this.httpRequest({
                     url: 'https://twitter.com/settings/account?k',
@@ -1058,6 +951,7 @@ style="display: none;"></sup></div>
                     }
                 })
             },
+            // OK
             twitterAuthUpdate:function(r, update = false){
                 if(new Date().getTime() - twitterAuth.updateTime > 30 * 60 * 1000 || update){
                     new Promise((resolve, reject) => {
@@ -1074,27 +968,38 @@ style="display: none;"></sup></div>
                                         console.log({ result: 'success', statusText: response.statusText, status: response.status })
                                         let ct0 = response.responseHeaders.match(/ct0=(.+?);/)[1]
                                         if(ct0)twitterAuth.ct0 = ct0;
-                                        r(ct0);
+                                        resolve({status:"success"})
                                     } else {
                                         console.log('Error:' + response.statusText + '(' + response.status + ')')
                                         console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                        resolve({status:"error"})
                                     }
                                 },
                                 error:(res)=>{
                                     console.log("error");
                                     console.log(res);
+                                    resolve({status:"error"})
                                 }
                             })
                         })
-                    }).then(()=>{
-                        twitterAuth.updateTime = new Date().getTime()
-                        GM_setValue("twitterAuth", twitterAuth)
+                    }).then((ret)=>{
+                        console.log(ret);
+                        if(ret.status == "success")
+                        {
+                            twitterAuth.updateTime = new Date().getTime()
+                            GM_setValue("twitterAuth", twitterAuth)
+                            r(1);
+                        }else{
+                            noticeFrame.addNotice({type:"msg", msg:"twitter token获取失败"})
+                        }
                     })
                 }else{
                     r(1)
                 }
             },
             test: function(){
+                $('.card').remove();
+                start()
             }
         }
         console.log("load in " + location.hostname);
