@@ -43,7 +43,7 @@
 
 (function() {
     'use strict';
-    const debug = 1;
+    const debug = 0;
     // steam信息
     const steamInfo = GM_getValue('steamInfo') || {
         userName: '',
