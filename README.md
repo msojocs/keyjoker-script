@@ -2,16 +2,18 @@
  TMScript for keyjoker.
 
 # Support status 
-[ ✔support |⭕In progress |❌not support ]
+[ ✔support |⭕In progress |❌not support |➖deleted]
 |function|manual|auto|
 |--------|------|----|
-|steamJoinGroup|❌|✔|
-|steamAutoRep|❌|✔|
-|steamAddWhishList|❌|⭕|
-|twitterRetweet|❌|✔|
-|twitterFollow|❌|✔|
-|twitchFollow|❌|✔|
-|discordJoinServer|❌|✔|
-|spotifyLike|❌|✔|
-|autoRedeem|❌|⭕|
-|getHcaptchaAccessCookie|❌|✔|
+|Join Steam Group|➖|✔|
+|Rep Steam Account|➖|✔|
+|Wishlist Steam Game|➖|⭕|
+|Retweet Twitter Tweet|➖|✔|
+|Follow Twitter Account|➖|✔|
+|Follow Twitch Channel|➖|✔|
+|Join Discord Server|➖|✔|
+|Save Spotify Album|➖|⭕|
+|autoRedeem|➖|⭕|
+|getHcaptchaAccessCookie|➖|✔|
+|Follow Tumblr Blog|❌|✔|
+|Follow Spotify Account|❌|✔|

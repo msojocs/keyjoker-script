@@ -1,19 +1,12 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.6.2
-// @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411,部分操作需手动辅助
+// @version      0.6.3
+// @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
-// @include      *.hcaptcha.com/*
-// @include      *://steamcommunity.com/profiles/*?type=keyjoker
-// @include      *://steamcommunity.com/groups/*
-// @include      *://discord.com/invite/*
 // @include      *://discord.com/channels/@me?keyjokertask=storageAuth
 // @include      *://www.twitch.tv/settings/profile?keyjokertask=storageAuth
-// @include      *://twitter.com/*
-// @include      *://open.spotify.com/album/*
-// @include      *?type=keyjoker
 // @updateURL    https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @downloadURL  https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @supportURL   https://www.jysafe.cn/
@@ -35,8 +28,8 @@
 // @connect      facebook.com
 // @connect      discord.com
 // @connect      twitch.tv
-// @connect      *.spotify.com
-// @connect      *
+// @connect      tumblr.com
+// @connect      spotify.com
 // @require      https://greasyfork.org/scripts/379868-jquery-not/code/jQuery%20not%20$.js?version=700787
 // @require      https://cdn.staticfile.org/jquery/3.3.1/jquery.min.js
 // ==/UserScript==
@@ -299,11 +292,11 @@ style="display: none;"></sup></div>
                 if (new Date().getTime() - discordAuth.updateTime > 30 * 60 * 1000 || update) {
                     new Promise((resolve)=>{
                         noticeFrame.addNotice({type:"msg", msg:"将在新窗口自动获取discord凭证"});
-                        window.open("https://discord.com/channels/@me?keyjokertask=storageAuth");
+                        GM_openInTab("https://discord.com/channels/@me?keyjokertask=storageAuth", true);
                         let i = 0;
                         let check = setInterval(()=>{
                             i++;
-                            if(GM_getValue("discordAuth") && new Date().getTime() - GM_getValue("discordAuth").updateTime <= 30 * 60 * 1000)
+                            if(GM_getValue("discordAuth") && new Date().getTime() - GM_getValue("discordAuth").updateTime <= 2 * 1000)
                             {
                                 noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">discordAuth updated!</font>"})
                                 discordAuth.authorization = GM_getValue("discordAuth").authorization
@@ -311,7 +304,7 @@ style="display: none;"></sup></div>
                                 clearInterval(check);
                                 resolve("success")
                             }
-                            if(i >= 30)
+                            if(i >= 10)
                             {
                                 noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">discordAuth获取超时</font>"})
                                 clearInterval(check);
@@ -328,14 +321,12 @@ style="display: none;"></sup></div>
                 }
             },
             do_task: function(data){
-                console.log("do task")
                 for(const task of data.actions)
                 {
+                    noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
                     switch(task.task.name)
                     {
                         case "Join Steam Group":
-                            // this.steamInfoUpdate('all');
-                            noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
                             this.steamJoinGroupAuto(
                                 (ret)=>{
                                     if(ret == "success")
@@ -348,8 +339,33 @@ style="display: none;"></sup></div>
                                 },
                                 task.data.name);
                             break;
+                        case "Rep Steam Account":
+                            this.steamRepAuto(
+                                (ret)=>{
+                                    if(ret == "success")
+                                    {
+                                        this.redeemAuto(task.redirect_url);
+                                        noticeFrame.updateNotice(task.id, 'success')
+                                    }else{
+                                        noticeFrame.updateNotice(task.id, 'error')
+                                    }
+                                },
+                                task.data.url);
+                            break;
+                        case "Wishlist Steam Game":
+                            this.steamAddWishlistAuto(
+                                (ret)=>{
+                                    if(ret == "success")
+                                    {
+                                        this.redeemAuto(task.redirect_url);
+                                        noticeFrame.updateNotice(task.id, 'success')
+                                    }else{
+                                        noticeFrame.updateNotice(task.id, 'error')
+                                    }
+                                },
+                                task.data.url);
+                            break;
                         case "Follow Twitter Account":
-                            noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
                             console.log(task)
                             this.twitterFollowAuto(
                                 (ret)=>{
@@ -364,7 +380,6 @@ style="display: none;"></sup></div>
                                 task.data.username);
                             break;
                         case "Join Discord Server":
-                            noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
                             var server = task.data.url.split(".gg/")[1];
                             this.discordJoinServerAuto(
                                 (ret)=>{
@@ -379,7 +394,6 @@ style="display: none;"></sup></div>
                                 server)
                             break;
                         case "Retweet Twitter Tweet":
-                            noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
                             this.twitterRetweetAuto(
                                 (ret)=>{
                                     if(ret == "success")
@@ -393,8 +407,7 @@ style="display: none;"></sup></div>
                                 task.data.url);
                             break;
                         case "Save Spotify Album":
-                            noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
-                            this.spotifyLikeAuto(
+                            this.spotifySaveAuto(
                                 (ret)=>{
                                     if(ret == "success")
                                     {
@@ -404,11 +417,24 @@ style="display: none;"></sup></div>
                                         noticeFrame.updateNotice(task.id, 'error')
                                     }
                                 },
-                                task.data.id
+                                task.data
+                            );
+                            break;
+                        case "Follow Spotify Account":
+                            this.spotifyFollowAuto(
+                                (ret)=>{
+                                    if(ret == "success")
+                                    {
+                                        this.redeemAuto(task.redirect_url);
+                                        noticeFrame.updateNotice(task.id, 'success')
+                                    }else{
+                                        noticeFrame.updateNotice(task.id, 'error')
+                                    }
+                                },
+                                task.data
                             );
                             break;
                         case "Follow Twitch Channel":
-                            noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
                             this.twitchFollowAuto(
                                 (ret)=>{
                                     if(ret == "success")
@@ -421,9 +447,8 @@ style="display: none;"></sup></div>
                                 },
                                 task.data.id);
                             break;
-                        case "Rep Steam Account":
-                            noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
-                            this.steamRepAuto(
+                        case "Follow Tumblr Blog":
+                            this.tumblrFollowAuto(
                                 (ret)=>{
                                     if(ret == "success")
                                     {
@@ -433,10 +458,10 @@ style="display: none;"></sup></div>
                                         noticeFrame.updateNotice(task.id, 'error')
                                     }
                                 },
-                                task.data.url);
+                                task.data.name);
                             break;
                         default:
-                            noticeFrame.addNotice({type: "taskStatus", task:task, status:'error'});
+                            noticeFrame.updateNotice(task.id, 'error');
                             console.log("未指定操作" + task.task.name)
                             break;
                     }
@@ -489,6 +514,7 @@ style="display: none;"></sup></div>
                             method: 'GET',
                             headers: { 'Content-Type': 'application/json'},
                             onload: (response) => {
+                                GM_log(response)
                                 if(response.status == 200)
                                 {
                                     document.getElementsByClassName("prompt-text")[0].innerText = text + "\n免验证Cookie获取成功，请重新点击验证框";
@@ -528,18 +554,125 @@ style="display: none;"></sup></div>
                     });
                 }
             },
-            setAuth: function(type){
-                if(debug)console.log("setAuth");
-                if(!GM_getValue("discordAuth") || type == "discord")
-                {
-                    alert("将在新窗口自动获取discord凭证");
-                    window.open("https://discord.com/channels/@me?keyjokertask=storageAuth");
-                }
-                if(!GM_getValue("twitchAuth") || type == "twitch")
-                {
-                    alert("将在新窗口获取twitch凭证");
-                    window.open("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth");
-                }
+            // OK
+            spotifySaveAuto: function(r, data){
+                this.spotifyGetUserInfo((userId, accessToken)=>{
+                    let putUrl = ""
+                    switch(data.type)
+                    {
+                        case "albums":
+                            putUrl = "https://spclient.wg.spotify.com/collection-view/v1/collection/albums/" + userId + "?base62ids=" + data.id + "&model=bookmark";
+                            break;
+                        default:
+                            GM_log(data)
+                            r('error')
+                            return;
+                            break;
+                    }
+                    $.ajax({
+                        type: 'PUT',
+                        url: putUrl,
+                        headers: {authorization: "Bearer " + accessToken},
+                        success: function(data){
+                            console.log(data);
+                            r('success');
+                        },
+                        error: function(data){
+                            console.error(data);
+                            r('error')
+                        },
+                        anonymous:true
+                    });
+                });
+            },
+            // OK
+            spotifyFollowAuto: function(r, data){
+                this.spotifyGetUserInfo((status, accessToken = null)=>{
+                    if(status == "error")
+                    {
+                        r('error')
+                        return;
+                    }
+                    let putUrl = "";
+                    switch(data.type)
+                    {
+                        case "artist":
+                            putUrl = "https://api.spotify.com/v1/me/following?type=artist&ids=" + data.id;
+                            break;
+                        case "playlist":
+                            putUrl = "https://api.spotify.com/v1/playlists/" + data.id + "/followers"
+                            break;
+                        case "user":
+                            putUrl = "https://api.spotify.com/v1/me/following?type=user&ids=" + data.id;
+                            break;
+                        default:
+                            GM_log(data)
+                            r('error')
+                            return;
+                            break;
+                    }
+                    $.ajax({
+                        type: 'PUT',
+                        url: putUrl,
+                        headers: {authorization: "Bearer " + accessToken},
+                        success: function(data){
+                            console.log(data);
+                            r('success');
+                        },
+                        error: function(data){
+                            console.error(data);
+                            r('error')
+                        },
+                        anonymous:true
+                    });
+                });
+            },
+            // OK
+            spotifyGetUserInfo: function(r){
+                this.spotifyGetAccessToken(
+                    (accessToken)=>{
+                        this.httpRequest({
+                            url: 'https://api.spotify.com/v1/me',
+                            method: 'GET',
+                            headers:{authorization: "Bearer " + accessToken},
+                            onload: (response) => {
+                                if (response.status === 200) {
+                                    console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                                    r('success', accessToken);
+                                } else {
+                                    console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                    r('error')
+                                }
+                            },
+                            error:(res)=>{
+                                console.log("error");
+                                r('error')
+                            },
+                            anonymous:true
+                        })
+                    }
+                )
+            },
+            // OK
+            spotifyGetAccessToken: function(r){
+                this.httpRequest({
+                    url: 'https://open.spotify.com/get_access_token?reason=transport&productType=web_player',
+                    method: 'GET',
+                    onload: (response) => {
+                        if (response.status === 200) {
+                            console.log(response)
+                            console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                            r(JSON.parse(response.responseText).accessToken);
+                        } else {
+                            console.log('Error:' + response.statusText + '(' + response.status + ')')
+                            console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                        }
+                    },
+                    error:(res)=>{
+                        console.log("error");
+                        console.log(res);
+                    }
+                })
             },
             // steam信息更新（In Progress）[修改自https://greasyfork.org/zh-CN/scripts/370650]
             steamInfoUpdate: function (r, type = 'all', update = false) {
@@ -691,122 +824,101 @@ style="display: none;"></sup></div>
             },
             // steam加愿望单（In Progress）[修改自https://greasyfork.org/zh-CN/scripts/370650]
             steamAddWishlistAuto: function (r, gameId) {
-                new Promise(resolve => {
-                    this.httpRequest({
-                        url: 'https://store.steampowered.com/api/addtowishlist',
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                        data: $.param({ sessionid: steamInfo.storeSessionID, appid: gameId }),
-                        dataType: 'json',
-                        onload: function (response) {
-                            if (debug) console.log(response)
-                            if (response.status === 200 && response.response && response.response.success === true) {
-                                resolve({ result: 'success', statusText: response.statusText, status: response.status })
-                            } else {
-                                resolve({ result: 'error', statusText: response.statusText, status: response.status })
-                            }
-                        },
-                        onabort: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
-                        onerror: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
-                        ontimeout: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
-                        r: resolve
-                    })
-                }).then(result => {
-                    if (result.result === 'success') {
-                        r(result)
-                    } else {
+                this.steamInfoUpdate(() => {
+                    new Promise(resolve => {
                         this.httpRequest({
-                            url: 'https://store.steampowered.com/app/' + gameId,
-                            method: 'GET',
+                            url: 'https://store.steampowered.com/api/addtowishlist',
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                            data: $.param({ sessionid: steamInfo.storeSessionID, appid: gameId }),
+                            dataType: 'json',
                             onload: function (response) {
                                 if (debug) console.log(response)
-                                if (response.status === 200) {
-                                    if (response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('已在库中')) {
-                                        r({ result: 'success', statusText: response.statusText, status: response.status, own: true })
-                                    } else if ((response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('添加至您的愿望单')) || !response.responseText.includes('class="queue_actions_ctn"')) {
-                                        console.error('Error:' + result.statusText + '(' + result.status + ')')
-                                        r({ result: 'error', statusText: response.statusText, status: response.status })
-                                    } else {
-                                        r({ result: 'success', statusText: response.statusText, status: response.status })
-                                    }
+                                if (response.status === 200 && response.response && response.response.success === true) {
+                                    resolve({ result: 'success', statusText: response.statusText, status: response.status })
                                 } else {
-                                    console.error('Error:' + result.statusText + '(' + result.status + ')')
-                                    r({ result: 'error', statusText: response.statusText, status: response.status })
+                                    resolve({ result: 'error', statusText: response.statusText, status: response.status })
                                 }
                             },
-                            r
+                            onabort: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                            onerror: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                            ontimeout: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                            r: resolve
                         })
-                    }
-                }).catch(err => {
-                    console.error(err)
+                    }).then(result => {
+                        if (result.result === 'success') {
+                            r('success')
+                        } else {
+                            this.httpRequest({
+                                url: 'https://store.steampowered.com/app/' + gameId,
+                                method: 'GET',
+                                onload: function (response) {
+                                    if (debug) console.log(response)
+                                    if (response.status === 200) {
+                                        if (response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('已在库中')) {
+                                            GM_log({ result: 'success', statusText: response.statusText, status: response.status, own: true })
+                                            r('success')
+                                        } else if ((response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('添加至您的愿望单')) || !response.responseText.includes('class="queue_actions_ctn"')) {
+                                            console.error('Error:' + result.statusText + '(' + result.status + ')')
+                                            GM_log({ result: 'error', statusText: response.statusText, status: response.status })
+                                        } else {
+                                            GM_log({ result: 'success', statusText: response.statusText, status: response.status })
+                                            r('success')
+                                        }
+                                    } else {
+                                        console.error('Error:' + result.statusText + '(' + result.status + ')')
+                                        GM_log({ result: 'error', statusText: response.statusText, status: response.status })
+                                    }
+                                },
+                                r
+                            })
+                        }
+                    }).catch(err => {
+                        console.error(err)
+                    })
                 })
             },
             // OK
-            spotifyLikeAuto: function(r, albums){
-                this.spotifyGetUserInfo((userId, accessToken)=>{
-                    $.ajax({
-                        type: 'PUT',
-                        url: "https://spclient.wg.spotify.com/collection-view/v1/collection/albums/" + userId + "?base62ids=" + albums + "&model=bookmark",
-                        headers: {authorization: "Bearer " + accessToken},
-                        success: function(data){
-                            console.log(data);
-                            r('success');
-                        },
-                        error: function(data){
-                            console.error(data);
+            tumblrFollowAuto: function(r, name){
+                this.tumblrGetKey((key)=>{
+                    if(false != key){
+                        if(-1 != key.indexOf("!123") && -1 !=key.indexOf("|") )
+                        {
                             r('error')
-                        },
-                        anonymous:true
-                    });
-                });
-            },
-            // OK
-            spotifyGetUserInfo: function(r){
-                this.spotifyGetAccessToken(
-                    (accessToken)=>{
+                            noticeFrame.addNotice({type:"msg", msg:"<a href=\"https://www.tumblr.com\" target=\"_blank\">Tumblr</a>未登录"})
+                        }
                         this.httpRequest({
-                            url: 'https://api.spotify.com/v1/me',
-                            method: 'GET',
-                            headers:{authorization: "Bearer " + accessToken},
+                            url: 'https://www.tumblr.com/svc/follow',
+                            method: 'POST',
+                            headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
+                            data: $.param({'data[tumblelog]': name}),
                             onload: (response) => {
-                                if (response.status === 200) {
-                                    console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                                    r(JSON.parse(response.responseText).id, accessToken);
-                                } else {
-                                    console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                    console.log({ result: 'error', statusText: response.statusText, status: response.status })
-                                }
-                            },
-                            error:(res)=>{
-                                console.log("error");
-                                console.log(res);
-                            },
-                            onreadystatechange :(r)=>{
-                                console.log(r);
-                            },
-                            anonymous:true
+                                console.log(response);
+                                if(response.status == 200)
+                                {
+                                    r('success');
+                                }else r('error')
+                            }
                         })
+                    }else{
+                        r('error')
                     }
-                )
+                })
             },
             // OK
-            spotifyGetAccessToken: function(r){
+            tumblrGetKey:function(r){
                 this.httpRequest({
-                    url: 'https://open.spotify.com/get_access_token?reason=transport&productType=web_player',
+                    url: 'https://www.tumblr.com/dashboard/iframe',
                     method: 'GET',
                     onload: (response) => {
-                        if (response.status === 200) {
-                            console.log(response)
-                            console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                            r(JSON.parse(response.responseText).accessToken);
-                        } else {
-                            console.log('Error:' + response.statusText + '(' + response.status + ')')
-                            console.log({ result: 'error', statusText: response.statusText, status: response.status })
-                        }
-                    },
-                    error:(res)=>{
-                        console.log("error");
-                        console.log(res);
+                        console.log(response);
+                        if(response.status == 200)
+                        {
+                            let key = response.responseText.match(/id="tumblr_form_key" content="(.+?)">/)
+                            GM_log(key)
+                            if(key)r(key[1]);
+                            else r(false)
+                        }else r(false)
                     }
                 })
             },
@@ -859,11 +971,11 @@ style="display: none;"></sup></div>
                 if (new Date().getTime() - twitchAuth.updateTime > 30 * 60 * 1000 || update) {
                     new Promise((resolve)=>{
                         noticeFrame.addNotice({type:"msg", msg:"将在新窗口自动获取twitch凭证"});
-                        window.open("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth");
+                        GM_openInTab("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth", true);
                         let i = 0;
                         let check = setInterval(()=>{
                             i++;
-                            if(GM_getValue("twitchAuth") && new Date().getTime() - GM_getValue("twitchAuth").updateTime <= 30 * 60 * 1000)
+                            if(GM_getValue("twitchAuth") && new Date().getTime() - GM_getValue("twitchAuth").updateTime <= 2 * 1000)
                             {
                                 noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">twitchAuth updated!</font>"})
                                 twitchAuth["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
@@ -871,7 +983,7 @@ style="display: none;"></sup></div>
                                 clearInterval(check);
                                 resolve("success")
                             }
-                            if(i >= 30)
+                            if(i >= 10)
                             {
                                 noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">twitchAuth获取超时</font>"})
                                 clearInterval(check);
@@ -1029,7 +1141,18 @@ style="display: none;"></sup></div>
             test: function(){
                 $('.card').remove();
                 start()
-                //this.steamRepHisCheck(console.log, "https://steamcommunity.com/id/jiyecafe")
+                //this.tumblrFollowAuto(console.log, "patstaru")
+                /*this.httpRequest({
+                    url: 'https://api.tumblr.com',
+                    method: 'GET',
+                    onload: (response) => {
+                        console.log(response)
+                    },
+                    error:(res)=>{
+                        console.log("error");
+                        console.log(res);
+                    }
+                })*/
             }
         }
         console.log("load in " + location.hostname);
@@ -1077,9 +1200,6 @@ style="display: none;"></sup></div>
             }
         }
         checkSwitch(null);
-        let id0 = GM_registerMenuCommand("凭证设置",()=>{
-            func.setAuth();
-        });
         if(debug)
         {
             GM_registerMenuCommand("Test",()=>{
