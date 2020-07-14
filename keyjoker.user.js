@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.6.1
+// @version      0.6.2
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411,部分操作需手动辅助
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
@@ -421,7 +421,7 @@ style="display: none;"></sup></div>
                                 },
                                 task.data.id);
                             break;
-                        case "steam rep":
+                        case "Rep Steam Account":
                             noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
                             this.steamRepAuto(
                                 (ret)=>{
@@ -482,7 +482,8 @@ style="display: none;"></sup></div>
                         console.log("open hcaptcha");
                         let text = document.getElementsByClassName("prompt-text")[0].innerText;
                         document.getElementsByClassName("prompt-text")[0].innerText = text + "\n正在自动获取免验证Cookie";
-                        //$(".task-grid").remove();
+                        $(".task-grid").remove();
+                        $(".challenge-example").remove();
                         this.httpRequest({
                             url: 'https://accounts.hcaptcha.com/accessibility/get_cookie',
                             method: 'GET',
@@ -584,7 +585,7 @@ style="display: none;"></sup></div>
                                     if (debug) console.log(response)
                                     if (response.status === 200) {
                                         if ($(response.responseText).find('a[href*="/login/"]').length > 0) {
-                                            status.error('Error:' + getI18n('loginSteamStore'), true)
+                                            console.log('Error:store not Login', true)
                                             reject(Error('Not Login'))
                                         } else {
                                             const storeSessionID = response.responseText.match(/g_sessionID = "(.+?)";/)
@@ -613,26 +614,54 @@ style="display: none;"></sup></div>
                     r(1)
                 }
             },
-            // steam个人资料回复"+rep"（In Progress）
+            // steam个人资料回复"+rep"（OK）
             steamRepAuto: function(r, url){
                 let id = url.split("s/")[1];
+                this.steamRepHisCheck((ret) => {
+                    console.log(ret)
+                    if(!ret){
+                        this.httpRequest({
+                            url: 'https://steamcommunity.com/comment/Profile/post/' + id + '/-1/',
+                            method: 'POST',
+                            data: {
+                                comment:'+rep',
+                                count:6,
+                                sessionid:steamInfo.communitySessionID,
+                                feature2:-1
+                            },
+                            onload: (response) => {
+                                console.log(response);
+                                if(response.status == 200)
+                                {
+                                    r('success');
+                                }else r('error')
+                            }
+                        })
+                    }else{
+                        r('success');
+                    }
+                },url)
+            },
+            steamRepHisCheck: function (r, url){
                 this.steamInfoUpdate(() => {
                     this.httpRequest({
-                        url: 'https://steamcommunity.com/comment/Profile/post/' + id + '/-1/',
-                        method: 'POST',
-                        data: {
-                            comment:'+rep',
-                            count:6,
-                            sessionid:steamInfo.communitySessionID,
-                            feature2:-1
-                        },
+                        url: url,
+                        method: 'GET',
                         onload: (response) => {
-                            console.log(response);
                             if(response.status == 200)
                             {
-                                r('success');
-                            }else r('error')
+                                let comments = response.responseText.match(/commentthread_comments([\s\S]*)commentthread_footer/);
+                                console.log(comments)
+                                if(comments != null)
+                                    r(comments[1].includes(steamInfo.steam64Id));
+                                else
+                                    noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">steam评论区未找到</font>"})
+                            }else{
+                                console.log(response)
+                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">出现异常</font>"})
+                            }
                         }
+                        //,anonymous:true
                     });
                 })
             },
@@ -1000,6 +1029,7 @@ style="display: none;"></sup></div>
             test: function(){
                 $('.card').remove();
                 start()
+                //this.steamRepHisCheck(console.log, "https://steamcommunity.com/id/jiyecafe")
             }
         }
         console.log("load in " + location.hostname);

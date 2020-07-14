@@ -5,13 +5,13 @@
 [ ✔support |⭕In progress |❌not support ]
 |function|manual|auto|
 |--------|------|----|
-|steamJoinGroup|✔|⭕|
-|steamAutoRep|✔|⭕|
-|steamAddWhishList|✔|⭕|
-|twitterRetweet|✔|✔|
-|twitterFollow|✔|✔|
-|twitchFollow|✔|✔|
-|discordJoinServer|✔|✔|
-|spotifyLike|✔|✔|
-|autoRedeem|✔|⭕|
-|getHcaptchaAccessCookie|✔|✔|
+|steamJoinGroup|❌|✔|
+|steamAutoRep|❌|✔|
+|steamAddWhishList|❌|⭕|
+|twitterRetweet|❌|✔|
+|twitterFollow|❌|✔|
+|twitchFollow|❌|✔|
+|discordJoinServer|❌|✔|
+|spotifyLike|❌|✔|
+|autoRedeem|❌|⭕|
+|getHcaptchaAccessCookie|❌|✔|
