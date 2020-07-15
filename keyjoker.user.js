@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.6.5
+// @version      0.6.6
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
@@ -720,18 +720,15 @@ style="display: none;"></sup></div>
                         this.httpRequest({
                             url: 'https://steamcommunity.com/comment/Profile/post/' + id + '/-1/',
                             method: 'POST',
-                            data: {
-                                comment:'+rep',
-                                count:6,
-                                sessionid:steamInfo.communitySessionID,
-                                feature2:-1
-                            },
+                            data: $.param({comment:'+rep',count:6,sessionid:steamInfo.communitySessionID,feature2:-1}),
+                            headers:{'content-type': 'application/x-www-form-urlencoded'},
                             onload: (response) => {
                                 console.log(response);
                                 if(response.status == 200)
                                 {
-                                    r(200);
-                                }else r(201)
+                                    let ret = JSON.parse(response.response)
+                                    if(ret.success == true)GM_log(200);else GM_log(201);
+                                }else GM_log(201)
                             }
                         })
                     }else{
@@ -1130,9 +1127,23 @@ style="display: none;"></sup></div>
             },
             // ==========Twitter End========
             test: function(){
-                $('.card').remove();
-                start()
-                //this.tumblrFollowAuto(console.log, "patstaru")
+                //$('.card').remove();
+                //start()
+                //this.steamRepAuto(console.log, "76561198969657790")
+                this.httpRequest({
+                    url: 'https://steamcommunity.com/comment/Profile/post/76561198969657790/-1/',
+                    method: 'POST',
+                    data: $.param({comment:'+rep',count:6,sessionid:steamInfo.communitySessionID,feature2:-1}),
+                    headers:{'content-type': 'application/x-www-form-urlencoded'},
+                    onload: (response) => {
+                        console.log(response);
+                        if(response.status == 200)
+                        {
+                            let ret = JSON.parse(response.response)
+                            if(ret.success == true)GM_log(200);else GM_log(201);
+                        }else GM_log(201)
+                    }
+                })
             }
         }
         if(document.getElementById("logout-form") && location.search !== "")
