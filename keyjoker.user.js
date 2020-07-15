@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.6.3
+// @version      0.6.5
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
@@ -52,10 +52,12 @@
     }
     const discordAuth = GM_getValue('discordAuth') || {
         authorization: "",
+        status:0,
         updateTime: 0
     }
     const twitchAuth = GM_getValue('twitchAuth') || {
         "auth-token": "",
+        status:0,
         updateTime: 0
     }
     const noticeFrame = {
@@ -72,6 +74,7 @@
 font.success{color:green}
 font.error{color:red;}
 font.warning{color:#00f;}
+font.wait{color:#9c27b0;}
 [class^=el-icon-]{font-family:element-icons !important;speak:none;font-style:normal;font-weight:400;font-variant:normal;text-transform:none;line-height:1;vertical-align:baseline;display:inline-block;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .el-icon-brush:before{content:"\\e76e"}
 .el-icon-document:before{content:"\\e785"}
@@ -155,6 +158,11 @@ style="display: none;"></sup></div>
             $('font#' + id).removeClass()
             $('font#' + id).addClass(status)
             $('font#' + id).text(status)
+        },
+        updateNotice1: function(data){
+            $('font#' + data.id).removeClass()
+            $('font#' + data.id).addClass(data.class)
+            $('font#' + data.id).text(data.text || data.class)
         }
     }
     try{
@@ -170,24 +178,23 @@ style="display: none;"></sup></div>
                     headers:{'x-csrf-token': $('meta[name="csrf-token"]').attr('content')},
                     success:(data,status,xhr)=>{
                         if(data && (data.actions && (data.actions.length > sum) )){
-                            console.log(data);
+                            if(debug)console.log(data);
                             let date=new Date();
                             let hour=date.getHours();
                             let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                             $(".border-bottom").text(hour+":"+min+" 检测到新任务");
-                            /*$show({
+                            $show({
                                 title:"keyjoker新任务",
                                 msg:"keyjoker网站更新"+(data.actions.length-sum)+"个新任务！",
                                 icon:"https://www.keyjoker.com/favicon-32x32.png",
                                 time:0,
                                 onclick:function(){
-                                    location.reload(true);
+                                    //location.reload(true);
                                 }
-                            });*/
+                            });
                             // 重载列表
                             noticeFrame.clearNotice();
                             func.reLoadTaskList(()=>{
-                                if(debug)console.log("当前任务模式：高级")
                                 func.do_task(data);
                             });
                         }else{
@@ -209,7 +216,6 @@ style="display: none;"></sup></div>
             }
         }
         function start(){
-            // $showTest();
             GM_setValue("start",1);
             let time = GM_getValue("time");
             if(!time){
@@ -220,7 +226,7 @@ style="display: none;"></sup></div>
             }
         }
         function next(){
-            let time=GM_getValue("time");
+            let time = GM_getValue("time");
             if(!time){
                 time=60;
             }
@@ -232,6 +238,7 @@ style="display: none;"></sup></div>
             }
         }
         const func = {
+            // twitch & discord 凭证存储，人机验证处理
             appHandle: function(){
                 switch(location.hostname)
                 {
@@ -239,8 +246,12 @@ style="display: none;"></sup></div>
                         if(location.search == "?keyjokertask=storageAuth")
                         {
                             let cookie = document.cookie + ";"
-                            twitchAuth["auth-token"] = cookie.match(/auth-token=(.+?);/)[1]
-                            twitchAuth.updateTime = new Date().getTime()
+                            twitchAuth.updateTime = new Date().getTime();
+                            if(cookie.match(/auth-token=(.+?);/) != null)
+                            {
+                                twitchAuth["auth-token"] = cookie.match(/auth-token=(.+?);/)[1]
+                                twitchAuth.status = 1;
+                            }else twitchAuth.status = 0;
                             GM_setValue("twitchAuth", twitchAuth)
                             window.close();
                         }
@@ -249,7 +260,9 @@ style="display: none;"></sup></div>
                         if(location.search == "?keyjokertask=storageAuth")
                         {
                             discordAuth.authorization = JSON.parse(localStorage.getItem("token"));
-                            discordAuth.updateTime = new Date().getTime()
+                            if(discordAuth.authorization != null)discordAuth.status = 0;
+                            else discordAuth.status = 1;
+                            discordAuth.updateTime = new Date().getTime();
                             GM_setValue("discordAuth", discordAuth);
                             window.close();
                         }
@@ -262,45 +275,58 @@ style="display: none;"></sup></div>
                         break;
                 }
             },
-            // OK
+            // discord自动加入服务器（OK）
             discordJoinServerAuto: function(r, server){
-                this.discordAuthUpdate(()=>{
+                this.discordAuthUpdate((ret)=>{
+                    if(ret != 200)
+                    {
+                        r(ret);
+                        return;
+                    }
                     this.httpRequest({
                         url: 'https://discord.com/api/v6/invites/' + server,
                         method: 'POST',
                         headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
                         onload: (response) => {
-                            console.log(response)
+                            if(debug)console.log(response)
                             if (response.status === 200) {
-                                console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                                r('success');
+                                if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                                r(200);
                             } else {
                                 console.log('Error:' + response.statusText + '(' + response.status + ')')
                                 console.log({ result: 'error', statusText: response.statusText, status: response.status })
-                                r('error');
+                                r(201);
                             }
                         },
                         error:(res)=>{
                             console.error(res);
+                            r(201);
                         },
                         anonymous:true
                     })
                 })
             },
-            // OK
+            // discord凭证更新（OK）
             discordAuthUpdate:function(r, update = false){
-                if (new Date().getTime() - discordAuth.updateTime > 30 * 60 * 1000 || update) {
+                if (new Date().getTime() - discordAuth.updateTime > 30 * 60 * 1000 || discordAuth.status == 0 || update) {
+                    r(203)
                     new Promise((resolve)=>{
-                        noticeFrame.addNotice({type:"msg", msg:"将在新窗口自动获取discord凭证"});
                         GM_openInTab("https://discord.com/channels/@me?keyjokertask=storageAuth", true);
                         let i = 0;
                         let check = setInterval(()=>{
                             i++;
                             if(GM_getValue("discordAuth") && new Date().getTime() - GM_getValue("discordAuth").updateTime <= 2 * 1000)
                             {
+                                if(GM_getValue("discordAuth").status == 0)
+                                {
+                                    clearInterval(check);
+                                    resolve(202)
+                                    return;
+                                }
                                 noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">discordAuth updated!</font>"})
                                 discordAuth.authorization = GM_getValue("discordAuth").authorization
                                 discordAuth.updateTime = GM_getValue("discordAuth").updateTime
+                                discordAuth.status = GM_getValue("discordAuth").status;
                                 clearInterval(check);
                                 resolve("success")
                             }
@@ -313,159 +339,89 @@ style="display: none;"></sup></div>
                         }, 1000)
                     }).then((ret)=>{
                         if(ret == "success"){
-                            r(1)
-                        }
+                            r(200)
+                        }else r(ret)
                     })
                 }else{
-                    r(1)
+                    r(200)
                 }
             },
+            // 做任务
             do_task: function(data){
                 for(const task of data.actions)
                 {
                     noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
+                    let react = (code)=>{
+                        switch(code)
+                        {
+                            case 200:
+                                this.redeemAuto(task.redirect_url);
+                                noticeFrame.updateNotice(task.id, 'success')
+                                break;
+                            case 201:
+                                noticeFrame.updateNotice(task.id, 'error')
+                                break;
+                            case 202:
+                                noticeFrame.updateNotice1({id:task.id, class:"error", text:"Not Login"})
+                                break;
+                            case 203:
+                                noticeFrame.updateNotice1({id:task.id, class:"wait", text:"Getting Auth"})
+                                break;
+                            case 204:
+                                noticeFrame.updateNotice1({id:task.id, class:"error", text:"Network Error"})
+                                break;
+                            default:
+                                noticeFrame.updateNotice(task.id, 'Unknown Error')
+                                break;
+                        }
+                    }
                     switch(task.task.name)
                     {
                         case "Join Steam Group":
-                            this.steamJoinGroupAuto(
-                                (ret)=>{
-                                    if(ret == "success")
-                                    {
-                                        this.redeemAuto(task.redirect_url);
-                                        noticeFrame.updateNotice(task.id, 'success')
-                                    }else{
-                                        noticeFrame.updateNotice(task.id, 'error')
-                                    }
-                                },
-                                task.data.name);
+                            this.steamJoinGroupAuto(react, task.data.name);
                             break;
                         case "Rep Steam Account":
-                            this.steamRepAuto(
-                                (ret)=>{
-                                    if(ret == "success")
-                                    {
-                                        this.redeemAuto(task.redirect_url);
-                                        noticeFrame.updateNotice(task.id, 'success')
-                                    }else{
-                                        noticeFrame.updateNotice(task.id, 'error')
-                                    }
-                                },
-                                task.data.url);
+                            this.steamRepAuto(react, task.data.id);
                             break;
                         case "Wishlist Steam Game":
-                            this.steamAddWishlistAuto(
-                                (ret)=>{
-                                    if(ret == "success")
-                                    {
-                                        this.redeemAuto(task.redirect_url);
-                                        noticeFrame.updateNotice(task.id, 'success')
-                                    }else{
-                                        noticeFrame.updateNotice(task.id, 'error')
-                                    }
-                                },
-                                task.data.url);
+                            this.steamAddWishlistAuto(react, task.data.id);
                             break;
                         case "Follow Twitter Account":
-                            console.log(task)
-                            this.twitterFollowAuto(
-                                (ret)=>{
-                                    if(ret == "success")
-                                    {
-                                        this.redeemAuto(task.redirect_url);
-                                        noticeFrame.updateNotice(task.id, 'success')
-                                    }else{
-                                        noticeFrame.updateNotice(task.id, 'error')
-                                    }
-                                },
-                                task.data.username);
+                            this.twitterFollowAuto(react, task.data);
                             break;
                         case "Join Discord Server":
                             var server = task.data.url.split(".gg/")[1];
-                            this.discordJoinServerAuto(
-                                (ret)=>{
-                                    if(ret == "success")
-                                    {
-                                        this.redeemAuto(task.redirect_url);
-                                        noticeFrame.updateNotice(task.id, 'success')
-                                    }else{
-                                        noticeFrame.updateNotice(task.id, 'error')
-                                    }
-                                },
-                                server)
+                            this.discordJoinServerAuto(react, server)
                             break;
                         case "Retweet Twitter Tweet":
-                            this.twitterRetweetAuto(
-                                (ret)=>{
-                                    if(ret == "success")
-                                    {
-                                        this.redeemAuto(task.redirect_url);
-                                        noticeFrame.updateNotice(task.id, 'success')
-                                    }else{
-                                        noticeFrame.updateNotice(task.id, 'error')
-                                    }
-                                },
-                                task.data.url);
+                            this.twitterRetweetAuto(react, task.data.url);
                             break;
                         case "Save Spotify Album":
-                            this.spotifySaveAuto(
-                                (ret)=>{
-                                    if(ret == "success")
-                                    {
-                                        this.redeemAuto(task.redirect_url);
-                                        noticeFrame.updateNotice(task.id, 'success')
-                                    }else{
-                                        noticeFrame.updateNotice(task.id, 'error')
-                                    }
-                                },
-                                task.data
-                            );
+                            this.spotifySaveAuto(react, task.data);
                             break;
                         case "Follow Spotify Account":
-                            this.spotifyFollowAuto(
-                                (ret)=>{
-                                    if(ret == "success")
-                                    {
-                                        this.redeemAuto(task.redirect_url);
-                                        noticeFrame.updateNotice(task.id, 'success')
-                                    }else{
-                                        noticeFrame.updateNotice(task.id, 'error')
-                                    }
-                                },
-                                task.data
-                            );
+                            this.spotifyFollowAuto(react, task.data);
                             break;
                         case "Follow Twitch Channel":
-                            this.twitchFollowAuto(
-                                (ret)=>{
-                                    if(ret == "success")
-                                    {
-                                        this.redeemAuto(task.redirect_url);
-                                        noticeFrame.updateNotice(task.id, 'success')
-                                    }else{
-                                        noticeFrame.updateNotice(task.id, 'error')
-                                    }
-                                },
-                                task.data.id);
+                            this.twitchFollowAuto(react, task.data.id);
                             break;
                         case "Follow Tumblr Blog":
-                            this.tumblrFollowAuto(
-                                (ret)=>{
-                                    if(ret == "success")
-                                    {
-                                        this.redeemAuto(task.redirect_url);
-                                        noticeFrame.updateNotice(task.id, 'success')
-                                    }else{
-                                        noticeFrame.updateNotice(task.id, 'error')
-                                    }
-                                },
-                                task.data.name);
+                            this.tumblrFollowAuto(react, task.data.name);
                             break;
                         default:
-                            noticeFrame.updateNotice(task.id, 'error');
-                            console.log("未指定操作" + task.task.name)
+                            noticeFrame.updateNotice1({id:task.id, class:"error", text:"Unknow Type:" + task.task.name})
+                            console.error("未指定操作" + task.task.name)
                             break;
                     }
                 }
+                let completeCheck = setInterval(()=>{
+                    if($(".list-complete-item").length == 0)
+                    {
+                        noticeFrame.addNotice({type:"msg", msg:"任务似乎已完成，恢复监测!"});
+                        next();
+                        clearInterval(completeCheck);
+                    }
+                }, 10 * 1000)
             },
             // [修改自https://greasyfork.org/zh-CN/scripts/370650]
             httpRequest: function (e) {
@@ -504,11 +460,12 @@ style="display: none;"></sup></div>
                 let hcaptcha2Click=setInterval(()=>{
                     if(document.getElementsByClassName("challenge-container").length != 0 && document.getElementsByClassName("challenge-container")[0].children.length != 0)
                     {
+                        clearInterval(hcaptcha2Click);
                         console.log("open hcaptcha");
                         let text = document.getElementsByClassName("prompt-text")[0].innerText;
                         document.getElementsByClassName("prompt-text")[0].innerText = text + "\n正在自动获取免验证Cookie";
-                        $(".task-grid").remove();
-                        $(".challenge-example").remove();
+                        //$(".task-grid").remove();
+                        //$(".challenge-example").remove();
                         this.httpRequest({
                             url: 'https://accounts.hcaptcha.com/accessibility/get_cookie',
                             method: 'GET',
@@ -520,7 +477,8 @@ style="display: none;"></sup></div>
                                     document.getElementsByClassName("prompt-text")[0].innerText = text + "\n免验证Cookie获取成功，请重新点击验证框";
                                 }else if(response.status == 401)
                                 {
-                                    document.getElementsByClassName("prompt-text")[0].innerText = text + "\n当前IP的免验证Cookie获取次数已达上限，请更换hcaptcha账号";
+                                    document.getElementsByClassName("prompt-text")[0].innerText = text + "\n当前账号或IP的免验证Cookie获取次数已达上限，请更换hcaptcha账号或IP";
+                                    // setTimeout(()=>{window.open("https://dashboard.hcaptcha.com/welcome_accessibility")}, 3000);
                                 }else if(response.status == 500)
                                 {
                                     document.getElementsByClassName("prompt-text")[0].innerText = text + "\n未登录hCaptcha，将在3秒后打开至登录页面";
@@ -531,10 +489,9 @@ style="display: none;"></sup></div>
                                 }
                             },
                             error: () =>{
-                                console.error("error")
+                                if(debug)console.error("error")
                             }
                         })
-                        clearInterval(hcaptcha2Click);
                     }
                 },1000);
             },
@@ -556,16 +513,21 @@ style="display: none;"></sup></div>
             },
             // OK
             spotifySaveAuto: function(r, data){
-                this.spotifyGetUserInfo((userId, accessToken)=>{
+                this.spotifyGetUserInfo((status, accessToken = null, userId = null)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
                     let putUrl = ""
                     switch(data.type)
                     {
-                        case "albums":
+                        case "album":
                             putUrl = "https://spclient.wg.spotify.com/collection-view/v1/collection/albums/" + userId + "?base62ids=" + data.id + "&model=bookmark";
                             break;
                         default:
                             GM_log(data)
-                            r('error')
+                            r(201)
                             return;
                             break;
                     }
@@ -575,11 +537,11 @@ style="display: none;"></sup></div>
                         headers: {authorization: "Bearer " + accessToken},
                         success: function(data){
                             console.log(data);
-                            r('success');
+                            r(200);
                         },
                         error: function(data){
                             console.error(data);
-                            r('error')
+                            r(201)
                         },
                         anonymous:true
                     });
@@ -588,9 +550,9 @@ style="display: none;"></sup></div>
             // OK
             spotifyFollowAuto: function(r, data){
                 this.spotifyGetUserInfo((status, accessToken = null)=>{
-                    if(status == "error")
+                    if(status != 200)
                     {
-                        r('error')
+                        r(status)
                         return;
                     }
                     let putUrl = "";
@@ -606,8 +568,8 @@ style="display: none;"></sup></div>
                             putUrl = "https://api.spotify.com/v1/me/following?type=user&ids=" + data.id;
                             break;
                         default:
-                            GM_log(data)
-                            r('error')
+                            if(debug)GM_log(data)
+                            r(201)
                             return;
                             break;
                     }
@@ -616,12 +578,12 @@ style="display: none;"></sup></div>
                         url: putUrl,
                         headers: {authorization: "Bearer " + accessToken},
                         success: function(data){
-                            console.log(data);
-                            r('success');
+                            if(debug)console.log(data);
+                            r(200);
                         },
                         error: function(data){
-                            console.error(data);
-                            r('error')
+                            if(debug)console.error(data);
+                            r(201)
                         },
                         anonymous:true
                     });
@@ -629,24 +591,30 @@ style="display: none;"></sup></div>
             },
             // OK
             spotifyGetUserInfo: function(r){
+                r(203)
                 this.spotifyGetAccessToken(
-                    (accessToken)=>{
+                    (status, accessToken)=>{
+                        if(status != 200)
+                        {
+                            r(status);
+                            return;
+                        }
                         this.httpRequest({
                             url: 'https://api.spotify.com/v1/me',
                             method: 'GET',
                             headers:{authorization: "Bearer " + accessToken},
                             onload: (response) => {
                                 if (response.status === 200) {
-                                    console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                                    r('success', accessToken);
+                                    if(debug)console.log(response)
+                                    r(200, accessToken, JSON.parse(response.responseText).id);
                                 } else {
-                                    console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                    r('error')
+                                    if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                    r(202)
                                 }
                             },
                             error:(res)=>{
-                                console.log("error");
-                                r('error')
+                                if(debug)console.log("error");
+                                r(202)
                             },
                             anonymous:true
                         })
@@ -660,17 +628,15 @@ style="display: none;"></sup></div>
                     method: 'GET',
                     onload: (response) => {
                         if (response.status === 200) {
-                            console.log(response)
-                            console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                            r(JSON.parse(response.responseText).accessToken);
+                            r(200, JSON.parse(response.responseText).accessToken);
                         } else {
-                            console.log('Error:' + response.statusText + '(' + response.status + ')')
-                            console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                            if(debug)console.log(response)
+                            r(202);
                         }
                     },
                     error:(res)=>{
-                        console.log("error");
-                        console.log(res);
+                        if(debug)console.log(res);
+                        r(202);
                     }
                 })
             },
@@ -687,7 +653,7 @@ style="display: none;"></sup></div>
                                     if (debug) console.log(response)
                                     if (response.status === 200) {
                                         if ($(response.responseText).find('a[href*="/login/home"]').length > 0) {
-                                            console.log(Error('Not Login'))
+                                            if(debug)console.log(Error('Not Login'))
                                         } else {
                                             const steam64Id = response.responseText.match(/g_steamID = "(.+?)";/)
                                             const communitySessionID = response.responseText.match(/g_sessionID = "(.+?)";/)
@@ -695,12 +661,11 @@ style="display: none;"></sup></div>
                                             if (steam64Id) steamInfo.steam64Id = steam64Id[1]
                                             if (communitySessionID) steamInfo.communitySessionID = communitySessionID[1]
                                             if (userName) steamInfo.userName = userName[1]
-                                            console.log("community update")
                                             resolve()
                                         }
                                     } else {
-                                        console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                        console.log(Error('Request Failed'))
+                                        if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                        if(debug)console.log(Error('Request Failed'))
                                     }
                                 },
                                 r: resolve,
@@ -748,10 +713,8 @@ style="display: none;"></sup></div>
                 }
             },
             // steam个人资料回复"+rep"（OK）
-            steamRepAuto: function(r, url){
-                let id = url.split("s/")[1];
+            steamRepAuto: function(r, id){
                 this.steamRepHisCheck((ret) => {
-                    console.log(ret)
                     if(!ret){
                         this.httpRequest({
                             url: 'https://steamcommunity.com/comment/Profile/post/' + id + '/-1/',
@@ -766,19 +729,19 @@ style="display: none;"></sup></div>
                                 console.log(response);
                                 if(response.status == 200)
                                 {
-                                    r('success');
-                                }else r('error')
+                                    r(200);
+                                }else r(201)
                             }
                         })
                     }else{
-                        r('success');
+                        r(200);
                     }
-                },url)
+                },id)
             },
-            steamRepHisCheck: function (r, url){
+            steamRepHisCheck: function (r, id){
                 this.steamInfoUpdate(() => {
                     this.httpRequest({
-                        url: url,
+                        url: "https://steamcommunity.com/profiles/" + id,
                         method: 'GET',
                         onload: (response) => {
                             if(response.status == 200)
@@ -801,7 +764,7 @@ style="display: none;"></sup></div>
             // steam加组（OK）[修改自https://greasyfork.org/zh-CN/scripts/370650]
             steamJoinGroupAuto: function (r, group) {
                 this.steamInfoUpdate(() => {
-                    if(debug){console.log("====steamJoinGroupAuto====");}
+                    if(debug)console.log("====steamJoinGroupAuto====");
                     this.httpRequest({
                         url: 'https://steamcommunity.com/groups/' + group,
                         method: 'POST',
@@ -812,11 +775,11 @@ style="display: none;"></sup></div>
                             if (response.status === 200 && !response.responseText.includes('grouppage_join_area') &&  !response.responseText.includes('error_ctn')) {
                                 console.log("steamJoinGroupAuto")
                                 console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                                r('success');
+                                r(200);
                             } else {
-                                status.error('Error:' + response.statusText + '(' + response.status + ')')
+                                console.error('Error:' + response.statusText + '(' + response.status + ')')
                                 console.log({ result: 'error', statusText: response.statusText, status: response.status })
-                                r('error');
+                                r(201);
                             }
                         }
                     })
@@ -847,7 +810,7 @@ style="display: none;"></sup></div>
                         })
                     }).then(result => {
                         if (result.result === 'success') {
-                            r('success')
+                            r(200)
                         } else {
                             this.httpRequest({
                                 url: 'https://store.steampowered.com/app/' + gameId,
@@ -857,17 +820,19 @@ style="display: none;"></sup></div>
                                     if (response.status === 200) {
                                         if (response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('已在库中')) {
                                             GM_log({ result: 'success', statusText: response.statusText, status: response.status, own: true })
-                                            r('success')
+                                            r(200)
                                         } else if ((response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('添加至您的愿望单')) || !response.responseText.includes('class="queue_actions_ctn"')) {
                                             console.error('Error:' + result.statusText + '(' + result.status + ')')
                                             GM_log({ result: 'error', statusText: response.statusText, status: response.status })
+                                            r(201)
                                         } else {
                                             GM_log({ result: 'success', statusText: response.statusText, status: response.status })
-                                            r('success')
+                                            r(200)
                                         }
                                     } else {
                                         console.error('Error:' + result.statusText + '(' + result.status + ')')
                                         GM_log({ result: 'error', statusText: response.statusText, status: response.status })
+                                        r(201)
                                     }
                                 },
                                 r
@@ -875,17 +840,23 @@ style="display: none;"></sup></div>
                         }
                     }).catch(err => {
                         console.error(err)
+                        r(201)
                     })
                 })
             },
-            // OK
+            // tumblr关注博客（OK）
             tumblrFollowAuto: function(r, name){
-                this.tumblrGetKey((key)=>{
+                this.tumblrGetKey((status, key = false)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
                     if(false != key){
                         if(-1 != key.indexOf("!123") && -1 !=key.indexOf("|") )
                         {
-                            r('error')
-                            noticeFrame.addNotice({type:"msg", msg:"<a href=\"https://www.tumblr.com\" target=\"_blank\">Tumblr</a>未登录"})
+                            r(202)
+                            return;
                         }
                         this.httpRequest({
                             url: 'https://www.tumblr.com/svc/follow',
@@ -893,137 +864,155 @@ style="display: none;"></sup></div>
                             headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
                             data: $.param({'data[tumblelog]': name}),
                             onload: (response) => {
-                                console.log(response);
+                                if(debug)console.log(response);
                                 if(response.status == 200)
                                 {
-                                    r('success');
-                                }else r('error')
+                                    r(200);
+                                }else r(201)
                             }
                         })
                     }else{
-                        r('error')
+                        r(201)
                     }
                 })
             },
-            // OK
+            // tumblr获取请求头key（OK）
             tumblrGetKey:function(r){
+                r(203)
                 this.httpRequest({
                     url: 'https://www.tumblr.com/dashboard/iframe',
                     method: 'GET',
                     onload: (response) => {
-                        console.log(response);
+                        if(debug)console.log(response);
                         if(response.status == 200)
                         {
                             let key = response.responseText.match(/id="tumblr_form_key" content="(.+?)">/)
                             GM_log(key)
-                            if(key)r(key[1]);
-                            else r(false)
-                        }else r(false)
+                            if(key)r(200, key[1]);
+                            else r(666)
+                        }else r(201)
                     }
                 })
             },
-            // OK
+            // twitch关注（OK）
             twitchFollowAuto: function(r, channelId){
-                this.twitchAuthUpdate(()=>{
+                this.twitchAuthUpdate((status)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
                     this.httpRequest({
                         url: 'https://gql.twitch.tv/gql',
                         method: 'POST',
                         headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
                         data: '[{"operationName":"FollowButton_FollowUser","variables":{"input":{"disableNotifications":false,"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"3efee1acda90efdff9fef6e6b4a29213be3ee490781c5b54469717b6131ffdfe"}}}]',
                         onload: (response) => {
-                            if (debug) console.log(response)
+                            if (debug)console.log(response)
                             if (response.status === 200) {
-                                r("success")
-                                console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                            } else {
-                                console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                console.log({ result: 'error', statusText: response.statusText, status: response.status })
-                                r('error')
+                                if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                                r(200)
+                            } else if(response.status === 401){
+                                twitchAuth.updateTime = 0;
+                                GM_setValue("twitchAuth", null);
+                                r(202)
+                            }else{
+                                if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                r(201)
                             }
                         }
                     })
                 })
             },
             // 弃用
-            twitchGetIdAuto: function(r, channels){
+            twitchGetId: function(r, channels){
                 this.httpRequest({
                     url: 'https://api.twitch.tv/api/channels/' + channels + '/access_token?oauth_token=' + GM_getValue("twitchAuth").match(/auth-token=(.+?); /)[1] + '&need_https=true&platform=web&player_type=site&player_backend=mediaplayer',
                     method: 'GET',
                     onload: (response) => {
                         if (response.status === 200) {
-                            console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                            if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
                             let rep = JSON.parse(JSON.parse(response.responseText).token);
                             r(rep.channel_id);
                         } else {
-                            console.log('Error:' + response.statusText + '(' + response.status + ')')
-                            console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                            if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                            r('error')
                         }
                     },
                     error:(res)=>{
-                        console.log("error");
-                        console.log(res);
+                        if(debug)console.log("error");
+                        if(debug)console.log(res);
                     },
                     anonymous:true
                 })
             },
-            // OK
+            // twitch凭证更新（OK）
             twitchAuthUpdate:function(r, update = false){
                 if (new Date().getTime() - twitchAuth.updateTime > 30 * 60 * 1000 || update) {
+                    r(203)
                     new Promise((resolve)=>{
-                        noticeFrame.addNotice({type:"msg", msg:"将在新窗口自动获取twitch凭证"});
                         GM_openInTab("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth", true);
                         let i = 0;
                         let check = setInterval(()=>{
                             i++;
                             if(GM_getValue("twitchAuth") && new Date().getTime() - GM_getValue("twitchAuth").updateTime <= 2 * 1000)
                             {
-                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">twitchAuth updated!</font>"})
+                                if(GM_getValue("twitchAuth").status == 0)
+                                {
+                                    clearInterval(check);
+                                    resolve(202)
+                                    return;
+                                }
                                 twitchAuth["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
                                 twitchAuth.updateTime = GM_getValue('twitchAuth').updateTime;
+                                twitchAuth.status = GM_getValue('twitchAuth').status;
                                 clearInterval(check);
-                                resolve("success")
+                                resolve(200)
                             }
                             if(i >= 10)
                             {
                                 noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">twitchAuth获取超时</font>"})
                                 clearInterval(check);
-                                resolve("error")
+                                resolve(201)
                             }
                         }, 1000)
                     }).then((ret)=>{
-                        if(ret == "success"){
-                            r(1)
-                        }
+                        r(ret);
                     })
                 }else{
-                    r(1)
+                    r(200)
                 }
             },
-            // OK
-            twitterFollowAuto: function(r, userName){
+            // 推特关注用户（OK）
+            twitterFollowAuto: function(r, data){
                 this.twitterAuthUpdate(()=>{
                     this.twitterGetUserInfo((userId)=>{
-                        console.log(userId)
+                        if(debug)console.log(userId)
+                        if("error" == userId)
+                        {
+                            r(201);
+                            return;
+                        }
                         this.httpRequest({
                             url: 'https://api.twitter.com/1.1/friendships/create.json',
                             method: 'POST',
                             headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
                             data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
                             onload: (response) => {
-                                if (debug) console.log(response)
+                                if (debug)console.log(response)
                                 if (response.status === 200) {
-                                    r("success");
+                                    r(200);
                                 } else {
-                                    console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                    console.log({ result: 'error', statusText: response.statusText, status: response.status })
-                                    r("error");
+                                    if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                    if(debug)console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                    r(201);
                                 }
                             }
                         })
-                    },userName)
+                    },data.username)
                 })
             },
-            // OK
+            // 推特转推（OK）
             twitterRetweetAuto: function(r, url){
                 if(debug)console.log("====twitterRetweetAuto====");
                 let retweetId = url.split("status/")[1];
@@ -1034,21 +1023,20 @@ style="display: none;"></sup></div>
                         headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
                         data: $.param({ tweet_mode: "extended",id: retweetId}),
                         onload: (response) => {
-                            if (debug) console.log(response)
+                            if (debug)console.log(response)
                             if (response.status === 200 || (response.status === 403 && response.responseText == '{"errors":[{"code":327,"message":"You have already retweeted this Tweet."}]}')) {
-                                console.log("success");
+                                if(debug)console.log("success");
                                 if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status });
-                                r("success");
+                                r(200);
                             } else {
-                                console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                console.log({ result: 'error', statusText: response.statusText, status: response.status })
-                                r('error');
+                                if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                r(201);
                             }
                         }
                     })
                 })
             },
-            // OK
+            // 推特根据用户名获取用户id（OK）
             twitterGetUserInfo: function(r, userName){
                 if(debug)console.log("====twitterGetUserInfo====");
                 this.httpRequest({
@@ -1057,42 +1045,42 @@ style="display: none;"></sup></div>
                     headers: { authorization: "Bearer " + twitterAuth.authorization, "content-type": "application/json"},
                     onload: (response) => {
                         if (response.status === 200) {
-                            console.log(response)
+                            if(debug)console.log(response)
                             r(JSON.parse(response.responseText).data.user.rest_id);
                         } else {
-                            console.log('Error:' + response.statusText + '(' + response.status + ')')
-                            console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                            if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                            r('error')
                         }
                     },
                     error:(res)=>{
-                        console.log("error");
-                        console.log(res);
+                        if(debug)console.log(res);
+                        r('error')
                     },
                     anonymous:true
                 })
             },
-            // OK
+            // 推特取得用户页面响应头（OK）
             twitterAP:function(r){
                 this.httpRequest({
                     url: 'https://twitter.com/settings/account?k',
                     method: 'GET',
                     onload: (response) => {
                         if (response.status === 200) {
-                            console.log(response)
-                            console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                            if(debug)console.log(response)
+                            if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
                             r(response.responseHeaders)
                         } else {
-                            console.log('Error:' + response.statusText + '(' + response.status + ')')
-                            console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                            if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                            if(debug)console.log({ result: 'error', statusText: response.statusText, status: response.status })
                         }
                     },
                     error:(res)=>{
-                        console.log("error");
-                        console.log(res);
+                        if(debug)console.log("error");
+                        if(debug)console.log(res);
                     }
                 })
             },
-            // OK
+            // 推特凭证更新（OK）
             twitterAuthUpdate:function(r, update = false){
                 if(new Date().getTime() - twitterAuth.updateTime > 30 * 60 * 1000 || update){
                     new Promise((resolve, reject) => {
@@ -1104,34 +1092,34 @@ style="display: none;"></sup></div>
                                 headers: { authorization: "Bearer " + twitterAuth.authorization,"x-csrf-token":xcf , "content-type": "application/json"},
                                 data: "category=perftown&log=%5B%7B%22description%22%3A%22rweb%3Aseen_ids%3Apersistence%3Aget%3Asuccess%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A568%7D%2C%7B%22description%22%3A%22rweb%3Aseen_ids%3Apersistence%3Aget%3Asuccess%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A571%7D%2C%7B%22description%22%3A%22rweb%3Ainit%3AstorePrepare%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A581%7D%2C%7B%22description%22%3A%22rweb%3Attft%3AperfSupported%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A1%7D%2C%7B%22description%22%3A%22rweb%3Attft%3Aconnect%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A22%7D%2C%7B%22description%22%3A%22rweb%3Attft%3Aprocess%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A1497%7D%2C%7B%22description%22%3A%22rweb%3Attft%3Aresponse%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A425%7D%2C%7B%22description%22%3A%22rweb%3Attft%3Ainteractivity%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A2217%7D%5D",
                                 onload: (response) => {
-                                    console.log(response)
+                                    if(debug)console.log(response)
                                     if (response.status === 200) {
-                                        console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                                        if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
                                         let ct0 = response.responseHeaders.match(/ct0=(.+?);/)[1]
                                         if(ct0)twitterAuth.ct0 = ct0;
                                         resolve({status:"success"})
                                     } else {
-                                        console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                        console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                        if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                        if(debug)console.log({ result: 'error', statusText: response.statusText, status: response.status })
                                         resolve({status:"error"})
                                     }
                                 },
                                 error:(res)=>{
-                                    console.log("error");
-                                    console.log(res);
+                                    if(debug)console.log("error");
+                                    if(debug)console.log(res);
                                     resolve({status:"error"})
                                 }
                             })
                         })
                     }).then((ret)=>{
-                        console.log(ret);
+                        if(debug)console.log(ret);
                         if(ret.status == "success")
                         {
                             twitterAuth.updateTime = new Date().getTime()
                             GM_setValue("twitterAuth", twitterAuth)
                             r(1);
                         }else{
-                            noticeFrame.addNotice({type:"msg", msg:"twitter token获取失败"})
+                            noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">twitter token获取失败</font>"})
                         }
                     })
                 }else{
@@ -1142,29 +1130,13 @@ style="display: none;"></sup></div>
                 $('.card').remove();
                 start()
                 //this.tumblrFollowAuto(console.log, "patstaru")
-                /*this.httpRequest({
-                    url: 'https://api.tumblr.com',
-                    method: 'GET',
-                    onload: (response) => {
-                        console.log(response)
-                    },
-                    error:(res)=>{
-                        console.log("error");
-                        console.log(res);
-                    }
-                })*/
             }
         }
-        console.log("load in " + location.hostname);
-        if(document.getElementsByClassName("cf-section cf-highlight cf-captcha-container").length != 0)
-        {
-            console.log("cf验证页面！");
-        }else if(document.getElementById("logout-form") && location.search !== "")
+        if(document.getElementById("logout-form") && location.search !== "")
         {
             location.href = location.pathname;
         }else if(location.href == "https://www.keyjoker.com/entries")
         {
-            console.log("keyjoker任务页面！");
             window.onload=()=>{
                 if(document.getElementsByClassName("nav-item active").length != 0 && document.getElementsByClassName("nav-item active")[0].innerText == "Earn Credits")
                 {

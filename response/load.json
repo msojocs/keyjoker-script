@@ -1,0 +1,29 @@
+{
+    "actions": [
+        {
+            "id": 9582,
+            "clicks": 117,
+            "entries": 114,
+            "text": "Follow the channel \"wackywiller\" on Twitch",
+            "redirect_url": "https://www.keyjoker.com/entries/open/9582",
+            "report_url": "https://www.keyjoker.com/reports/new/9582",
+            "data": {
+                "id": "120948840",
+                "url": "https://twitch.tv/wackywiller",
+                "name": "wackywiller"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "twitch",
+                    "color": "#6441a4"
+                },
+                "identifier": {
+                    "description": "Users of our platform follow a Twitch channel of your choice."
+                },
+                "name": "Follow Twitch Channel"
+            }
+        }
+    ],
+    "reward": 100
+}

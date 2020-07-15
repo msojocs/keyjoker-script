@@ -1,0 +1,249 @@
+[
+    {
+        "actions": [
+            {
+                "id": 1,
+                "clicks": 6085,
+                "entries": 7601,
+                "text": "Follow \"CSGOIdleEmpire\" on Twitter",
+                "redirect_url": "https://www.keyjoker.com/entries/open/1",
+                "report_url": "https://www.keyjoker.com/reports/new/1",
+                "data": {
+                    "id": 769356077758607360,
+                    "url": "https://twitter.com/CSGOIdleEmpire",
+                    "username": "CSGOIdleEmpire"
+                },
+                "redeeming": false,
+                "task": {
+                    "provider": {
+                        "icon": "twitter",
+                        "color": "#1da1f2"
+                    },
+                    "identifier": {
+                        "description": "Users of our platform follow a Twitter account of your choice."
+                    },
+                    "name": "Follow Twitter Account"
+                }
+            },
+            {
+                "id": 9413,
+                "clicks": 606,
+                "entries": 495,
+                "text": "Join the server \"Trademart\" on Discord",
+                "redirect_url": "https://www.keyjoker.com/entries/open/9413",
+                "report_url": "https://www.keyjoker.com/reports/new/9413",
+                "data": {
+                    "id": "530817290418126869",
+                    "url": "https://discord.gg/9MdpuN7",
+                    "name": "Trademart"
+                },
+                "redeeming": false,
+                "task": {
+                    "provider": {
+                        "icon": "discord",
+                        "color": "#7289da"
+                    },
+                    "identifier": {
+                        "description": "Users of our platform join a Discord server of your choice."
+                    },
+                    "name": "Join Discord Server"
+                }
+            },
+            {
+                "id": 8808,
+                "clicks": 1438,
+                "entries": 1452,
+                "text": "Retweet the tweet of \"HamstersOnline\" on Twitter",
+                "redirect_url": "https://www.keyjoker.com/entries/open/8808",
+                "report_url": "https://www.keyjoker.com/reports/new/8808",
+                "data": {
+                    "id": 1255276427685093381,
+                    "url": "https://twitter.com/HamstersOnline/status/1255276427685093381",
+                    "name": "HamstersOnline"
+                },
+                "redeeming": false,
+                "task": {
+                    "provider": {
+                        "icon": "twitter",
+                        "color": "#1da1f2"
+                    },
+                    "identifier": {
+                        "description": "Users of our platform retweet a Tweet of your choice."
+                    },
+                    "name": "Retweet Twitter Tweet"
+                }
+            },
+            {
+                "id": 2,
+                "clicks": 8147,
+                "entries": 9869,
+                "text": "Join the group \"Idle-Empire\" on Steam",
+                "redirect_url": "https://www.keyjoker.com/entries/open/2",
+                "report_url": "https://www.keyjoker.com/reports/new/2",
+                "data": {
+                    "gid": "10011448",
+                    "url": "https://steamcommunity.com/groups/idle-empire",
+                    "name": "Idle-Empire"
+                },
+                "redeeming": false,
+                "task": {
+                    "provider": {
+                        "icon": "steam",
+                        "color": "#171a21"
+                    },
+                    "identifier": {
+                        "description": "Users of our platform join a Steam group of your choice."
+                    },
+                    "name": "Join Steam Group"
+                }
+            },
+            {
+                "id": 9581,
+                "clicks": 52,
+                "entries": 97,
+                "text": "Save \"Drink and Drive\" to your Spotify library",
+                "redirect_url": "https://www.keyjoker.com/entries/open/9581",
+                "report_url": "https://www.keyjoker.com/reports/new/9581",
+                "data": {
+                    "id": "26imYaSSua82QSAs9obH6z",
+                    "url": "https://open.spotify.com/album/26imYaSSua82QSAs9obH6z",
+                    "name": "Drink and Drive",
+                    "type": "album"
+                },
+                "redeeming": false,
+                "task": {
+                    "provider": {
+                        "icon": "spotify",
+                        "color": "#1ed760"
+                    },
+                    "identifier": {
+                        "description": "Users of our platform save a Spotify album or track of your choice."
+                    },
+                    "name": "Save Spotify Album"
+                }
+            },
+            {
+                "id": 9582,
+                "clicks": 117,
+                "entries": 114,
+                "text": "Follow the channel \"wackywiller\" on Twitch",
+                "redirect_url": "https://www.keyjoker.com/entries/open/9582",
+                "report_url": "https://www.keyjoker.com/reports/new/9582",
+                "data": {
+                    "id": "120948840",
+                    "url": "https://twitch.tv/wackywiller",
+                    "name": "wackywiller"
+                },
+                "redeeming": false,
+                "task": {
+                    "provider": {
+                        "icon": "twitch",
+                        "color": "#6441a4"
+                    },
+                    "identifier": {
+                        "description": "Users of our platform follow a Twitch channel of your choice."
+                    },
+                    "name": "Follow Twitch Channel"
+                }
+            },
+            {
+                "id": 9619,
+                "clicks": 1,
+                "entries": 0,
+                "text": "Write a \"+rep\" comment for \"jiyecafe1\" on Steam",
+                "redirect_url": "https://www.keyjoker.com/entries/open/9619",
+                "report_url": "https://www.keyjoker.com/reports/new/9619",
+                "data": {
+                    "id": "76561199055568575",
+                    "url": "https://steamcommunity.com/profiles/76561199055568575",
+                    "name": "jiyecafe1"
+                },
+                "redeeming": false,
+                "task": {
+                    "provider": {
+                        "icon": "steam",
+                        "color": "#171a21"
+                    },
+                    "identifier": {
+                        "description": "Users of our platform +rep a Steam account of your choice."
+                    },
+                    "name": "Rep Steam Account"
+                }
+            },
+            {
+                "id": 9624,
+                "clicks": 0,
+                "entries": 0,
+                "text": "Follow \"patstaru\" on Tumblr",
+                "redirect_url": "https://www.keyjoker.com/entries/open/9624",
+                "report_url": "https://www.keyjoker.com/reports/new/9624",
+                "data": {
+                    "id": "t:20S3GGn87zw8aodpIrvkDQ",
+                    "url": "https://patstaru.tumblr.com",
+                    "name": "patstaru"
+                },
+                "redeeming": false,
+                "task": {
+                    "provider": {
+                        "icon": "tumblr",
+                        "color": "#35465d"
+                    },
+                    "identifier": {
+                        "description": "Users of our platform follow a Tumblr blog of your choice."
+                    },
+                    "name": "Follow Tumblr Blog"
+                }
+            },
+            {
+                "id": 9625,
+                "clicks": 0,
+                "entries": 0,
+                "text": "Follow \"RapCaviar\" on Spotify",
+                "redirect_url": "https://www.keyjoker.com/entries/open/9625",
+                "report_url": "https://www.keyjoker.com/reports/new/9625",
+                "data": {
+                    "id": "37i9dQZF1DX0XUsuxWHRQd",
+                    "url": "https://open.spotify.com/playlist/37i9dQZF1DX0XUsuxWHRQd",
+                    "name": "RapCaviar",
+                    "type": "playlist"
+                },
+                "redeeming": false,
+                "task": {
+                    "provider": {
+                        "icon": "spotify",
+                        "color": "#1ed760"
+                    },
+                    "identifier": {
+                        "description": "Users of our platform follow a Spotify user, artist, or playlist of your choice."
+                    },
+                    "name": "Follow Spotify Account"
+                }
+            },
+            {
+                "id": 9626,
+                "clicks": 0,
+                "entries": 0,
+                "text": "Add \"Grand Theft Auto V\" to your Steam wishlist",
+                "data": {
+                    "id": "271590",
+                    "name": "Grand Theft Auto V",
+                    "url": "https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/"
+                },
+                "redeeming": false,
+                "redirect_url": "https://www.keyjoker.com/entries/open/9626",
+                "report_url": "https://www.keyjoker.com/reports/new/9626",
+                "task": {
+                    "provider": {
+                        "color": "#171a21",
+                        "icon": "steam"
+                    },
+                    "identifier": {
+                        "description": "Users of our platform add a game of your choice to their Steam wishlist."
+                    },
+                    "name": "Wishlist Steam Game"
+                }
+            }
+        ],
+        "reward": 100
+    }
+]
