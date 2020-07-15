@@ -1,27 +1,27 @@
 {
     "actions": [
         {
-            "id": 9582,
-            "clicks": 117,
-            "entries": 114,
-            "text": "Follow the channel \"wackywiller\" on Twitch",
-            "redirect_url": "https://www.keyjoker.com/entries/open/9582",
-            "report_url": "https://www.keyjoker.com/reports/new/9582",
+            "id": 8808,
+            "clicks": 1438,
+            "entries": 1452,
+            "text": "Retweet the tweet of \"HamstersOnline\" on Twitter",
+            "redirect_url": "https://www.keyjoker.com/entries/open/8808",
+            "report_url": "https://www.keyjoker.com/reports/new/8808",
             "data": {
-                "id": "120948840",
-                "url": "https://twitch.tv/wackywiller",
-                "name": "wackywiller"
+                "id": 1283331301840281601,
+                "url": "https://twitter.com/kyoto_np/status/1283331301840281601",
+                "name": "kyoto_np"
             },
             "redeeming": false,
             "task": {
                 "provider": {
-                    "icon": "twitch",
-                    "color": "#6441a4"
+                    "icon": "twitter",
+                    "color": "#1da1f2"
                 },
                 "identifier": {
-                    "description": "Users of our platform follow a Twitch channel of your choice."
+                    "description": "Users of our platform retweet a Tweet of your choice."
                 },
-                "name": "Follow Twitch Channel"
+                "name": "Retweet Twitter Tweet"
             }
         }
     ],

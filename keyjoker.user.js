@@ -5,6 +5,7 @@
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
+// @include      *://assets.hcaptcha.com/*
 // @include      *://discord.com/channels/@me?keyjokertask=storageAuth
 // @include      *://www.twitch.tv/settings/profile?keyjokertask=storageAuth
 // @updateURL    https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
@@ -983,6 +984,7 @@ style="display: none;"></sup></div>
                     r(200)
                 }
             },
+            // ==========Twitter Start========
             // 推特关注用户（OK）
             twitterFollowAuto: function(r, data){
                 this.twitterAuthUpdate(()=>{
@@ -1126,6 +1128,7 @@ style="display: none;"></sup></div>
                     r(1)
                 }
             },
+            // ==========Twitter End========
             test: function(){
                 $('.card').remove();
                 start()
