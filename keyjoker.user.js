@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.6.6
+// @version      0.6.7
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
@@ -379,7 +379,7 @@ style="display: none;"></sup></div>
                     switch(task.task.name)
                     {
                         case "Join Steam Group":
-                            this.steamJoinGroupAuto(react, task.data.name);
+                            this.steamJoinGroupAuto(react, task.data.url);
                             break;
                         case "Rep Steam Account":
                             this.steamRepAuto(react, task.data.id);
@@ -760,17 +760,17 @@ style="display: none;"></sup></div>
                 })
             },
             // steam加组（OK）[修改自https://greasyfork.org/zh-CN/scripts/370650]
-            steamJoinGroupAuto: function (r, group) {
+            steamJoinGroupAuto: function (r, url) {
                 this.steamInfoUpdate(() => {
                     if(debug)console.log("====steamJoinGroupAuto====");
                     this.httpRequest({
-                        url: 'https://steamcommunity.com/groups/' + group,
+                        url: url,
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
                         data: $.param({ action: 'join', sessionID: steamInfo.communitySessionID }),
                         onload: (response) => {
                             if (debug) console.log(response)
-                            if (response.status === 200 && !response.responseText.includes('grouppage_join_area') &&  !response.responseText.includes('error_ctn')) {
+                            if (response.status === 200 && !response.responseText.includes('grouppage_join_area') && !response.responseText.includes('error_ctn')) {
                                 console.log("steamJoinGroupAuto")
                                 console.log({ result: 'success', statusText: response.statusText, status: response.status })
                                 r(200);
@@ -1129,21 +1129,7 @@ style="display: none;"></sup></div>
             test: function(){
                 //$('.card').remove();
                 //start()
-                //this.steamRepAuto(console.log, "76561198969657790")
-                this.httpRequest({
-                    url: 'https://steamcommunity.com/comment/Profile/post/76561198969657790/-1/',
-                    method: 'POST',
-                    data: $.param({comment:'+rep',count:6,sessionid:steamInfo.communitySessionID,feature2:-1}),
-                    headers:{'content-type': 'application/x-www-form-urlencoded'},
-                    onload: (response) => {
-                        console.log(response);
-                        if(response.status == 200)
-                        {
-                            let ret = JSON.parse(response.response)
-                            if(ret.success == true)GM_log(200);else GM_log(201);
-                        }else GM_log(201)
-                    }
-                })
+                //this.steamJoinGroupAuto(console.log, "https://steamcommunity.com/groups/tianmiao")
             }
         }
         if(document.getElementById("logout-form") && location.search !== "")
