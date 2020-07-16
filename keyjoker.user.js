@@ -160,8 +160,10 @@ style="display: none;"></sup></div>
                                     noticeFrame.addNotice({type:"msg", msg:"发现新版本！<font class=\"success\">" + ret.ver + "=>" + ret.msg + "</font>"})
                                 }else if(ret.ver < GM_info.script.version){
                                     noticeFrame.addNotice({type:"msg", msg:"震惊(○´･д･)ﾉ！<font class=\"success\">你的版本比最新版本还要新！</font>"})
-                                }else{
+                                }else if(ret.ver == GM_info.script.version){
                                     noticeFrame.addNotice({type:"msg",msg:"当前已是最新版本！"})
+                                }else{
+                                    noticeFrame.addNotice({type:"msg",msg:"<font class=\"error\">发生了未知异常！！</font>"})
                                 }
                             },
                             error:(ret)=>{
