@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.6.7
+// @version      0.6.8
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
@@ -20,6 +20,8 @@
 // @grant        GM_setClipboard
 // @grant        GM_setValue
 // @grant        GM_getValue
+// @grant        GM_listValues
+// @grant        GM_deleteValue
 // @grant        GM_openInTab
 // @grant        GM_log
 // @connect      accounts.hcaptcha.com
@@ -31,6 +33,7 @@
 // @connect      twitch.tv
 // @connect      tumblr.com
 // @connect      spotify.com
+// @connect      jysafe.cn
 // @require      https://greasyfork.org/scripts/379868-jquery-not/code/jQuery%20not%20$.js?version=700787
 // @require      https://cdn.staticfile.org/jquery/3.3.1/jquery.min.js
 // ==/UserScript==
@@ -61,10 +64,11 @@
         status:0,
         updateTime: 0
     }
-    const noticeFrame = {
-        loadFrame: ()=>{
-            if(debug)console.log("loadFrame");
-            $('body').append(`<style>
+    try{
+        const noticeFrame = {
+            loadFrame: ()=>{
+                if(debug)console.log("loadFrame");
+                $('body').append(`<style>
 .fuck-task-logs li{display:list-item !important;float:none !important}
 #extraBtn .el-badge.item{margin-bottom:4px !important}
 #extraBtn .el-badge.item sup{padding-right:0 !important}
@@ -105,26 +109,25 @@ font.wait{color:#9c27b0;}
 <div role="alert" class="el-notification fuck-task-logs right" style="bottom: 16px; z-index: 2000;">
 <div class="el-notification__group">
 <h2 id="extraBtn" class="el-notification__title">
-<div class="el-badge item"><button type="button" class="el-button el-button--default is-circle"
+<div class="el-badge item"><button id="checkUpdate" type="button" class="el-button el-button--default is-circle"
 title="检查更新">
 <i class="el-icon-refresh"></i>
 </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
 style="display: none;"></sup></div>
-<div class="el-badge item"><button type="button" class="el-button el-button--default is-circle" title="设置">
+<div class="el-badge item"><button id="reset" type="button" class="el-button el-button--default is-circle" title="设置">
 <i class="el-icon-setting"></i>
-</button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"></sup>
+</button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
 </div>
-<div class="el-badge item"><button type="button" class="el-button el-button--default is-circle"
+<div class="el-badge item"><button id="changeLog" type="button" class="el-button el-button--default is-circle"
 title="查看更新内容">
 <i class="el-icon-document"></i>
-</button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
-style="display: none;"></sup></div>
-<div class="el-badge item"><button type="button" class="el-button el-button--default is-circle"
-title="清理缓存">
+</button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup></div>
+<div class="el-badge item"><button id="clearNotice" type="button" class="el-button el-button--default is-circle"
+title="清空执行日志">
 <i class="el-icon-brush"></i>
 </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
 style="display: none;"></sup></div>
-<div class="el-badge item"><button type="button" class="el-button el-button--default is-circle"
+<div class="el-badge item"><button id="report" type="button" class="el-button el-button--default is-circle"
 title="提交建议/BUG">
 <i class="el-icon-s-promotion"></i>
 </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
@@ -138,35 +141,135 @@ style="display: none;"></sup></div>
 </div>
 </div>
 </div>`)
-        },
-        addNotice: function(data){
-            switch(data.type)
-            {
-                case "taskStatus":
-                    $('.el-notification__content').append('<li>' + data.task.task.name + ' <a href="' + data.task.data.url + '" target="_blank">' + (data.task.data.name||data.task.data.username) + '</a>|<font id="' + data.task.id + '" class="' + data.status +'">' + data.status +'</font></li>');
-                    break;
-                case "msg":
-                    $('.el-notification__content').append("<li>" + data.msg + "</li>");
-                    break;
-                default:
-                    break;
+                $('button#checkUpdate').click(
+                    function(){
+                        noticeFrame.addNotice({type:"msg",msg:"正在检查版本信息...(当前版本：" + GM_info.script.version + ")"})
+                        func.httpRequest({
+                            url: 'https://task.jysafe.cn/keyjoker/script/update.php?type=ver',
+                            method: 'GET',
+                            headers:{action: "keyjoker"},
+                            onload: (response) => {
+                                let ret = JSON.parse(response.response)
+                                if(ret.status != 200)
+                                {
+                                    noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + ret.msg + "</font>"})
+                                    return;
+                                }
+                                if(ret.ver > GM_info.script.version)
+                                {
+                                    noticeFrame.addNotice({type:"msg", msg:"发现新版本！<font class=\"success\">" + ret.ver + "=>" + ret.msg + "</font>"})
+                                }else if(ret.ver < GM_info.script.version){
+                                    noticeFrame.addNotice({type:"msg", msg:"震惊(○´･д･)ﾉ！<font class=\"success\">你的版本比最新版本还要新！</font>"})
+                                }else{
+                                    noticeFrame.addNotice({type:"msg",msg:"当前已是最新版本！"})
+                                }
+                            },
+                            error:(ret)=>{
+                                console.log(ret);
+                                noticeFrame.addNotice({type:"msg", msg:"请求异常！请至控制台查看详情！"})
+                            },
+                            anonymous:true
+                        })
+                    })
+                $('button#clearNotice').click(
+                    function(){
+                        noticeFrame.clearNotice()
+                    })
+                $('button#changeLog').click(
+                    function(){
+                        noticeFrame.addNotice({type:"msg", msg:"获取日志中..."})
+                        func.httpRequest({
+                            url: 'https://task.jysafe.cn/keyjoker/script/update.php?type=changelog&ver=' + GM_info.script.version,
+                            method: 'GET',
+                            headers:{action: "keyjoker"},
+                            onload: (response) => {
+                                let ret = JSON.parse(response.response)
+                                if(ret.status != 200)
+                                {
+                                    noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + ret.msg + "</font>"})
+                                }else
+                                {
+                                    noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">" + ret.msg + "</font>"})
+                                }
+                            },
+                            error:(ret)=>{
+                                console.log(ret);
+                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">请求异常！请至控制台查看详情！</font>"})
+                            },
+                            anonymous:true
+                        })
+                    })
+                $('button#reset').click(
+                    function(){
+                        if(!confirm("你确定要执行重置操作？"))return;
+                        noticeFrame.addNotice({type:"msg",msg:"正在重置设置"})
+                        const listValues = GM_listValues()
+                        for (const value of listValues) {
+                            if(value == "currentVer")continue;
+                            noticeFrame.addNotice({type:"msg",msg:"<font class=\"error\">正在删除：" + value + "</font>"})
+                            GM_deleteValue(value)
+                        }
+                        noticeFrame.addNotice({type:"msg",msg:"设置重置完毕"})
+                    })
+                $('button#report').click(
+                    function(){
+                        noticeFrame.addNotice({type:"msg",msg:"目前提供以下反馈渠道："})
+                        noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
+                        noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/jiyeme/keyjokerScript/issues/new/choose\" target=\"_blank\">GitHub</a>"})
+                        noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://keylol.com/t620181-1-1\" target=\"_blank\">其乐社区</a>"})
+                    })
+                if(GM_getValue("currentVer") != GM_info.script.version)
+                {
+                    func.httpRequest({
+                        url: 'https://task.jysafe.cn/keyjoker/script/update.php?type=changelog&ver=' + GM_info.script.version,
+                        method: 'GET',
+                        headers:{action: "keyjoker"},
+                        onload: (response) => {
+                            let ret = JSON.parse(response.response)
+                            if(ret.status != 200)
+                            {
+                                noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + ret.msg + "</font>"})
+                            }else
+                            {
+                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">" + ret.msg + "</font>"})
+                            }
+                        },
+                        error:(ret)=>{
+                            console.log(ret);
+                            noticeFrame.addNotice({type:"msg", msg:"请求异常！请至控制台查看详情！"})
+                        },
+                        anonymous:true
+                    })
+                    GM_setValue("currentVer", GM_info.script.version)
+                }
+            },
+            addNotice: function(data){
+                switch(data.type)
+                {
+                    case "taskStatus":
+                        $('.el-notification__content').append('<li>' + data.task.task.name + ' <a href="' + data.task.data.url + '" target="_blank">' + (data.task.data.name||data.task.data.username) + '</a>|<font id="' + data.task.id + '" class="' + data.status +'">' + data.status +'</font></li>');
+                        break;
+                    case "msg":
+                        $('.el-notification__content').append("<li>" + data.msg + "</li>");
+                        break;
+                    default:
+                        break;
+                }
+            },
+            clearNotice:()=>{
+                $('.el-notification__content li').remove();
+            },
+            updateNotice: function(id, status){
+                $('font#' + id).removeClass()
+                $('font#' + id).addClass(status)
+                $('font#' + id).text(status)
+            },
+            updateNotice1: function(data){
+                $('font#' + data.id).removeClass()
+                $('font#' + data.id).addClass(data.class)
+                $('font#' + data.id).text(data.text || data.class)
             }
-        },
-        clearNotice:()=>{
-            $('.el-notification__content li').remove();
-        },
-        updateNotice: function(id, status){
-            $('font#' + id).removeClass()
-            $('font#' + id).addClass(status)
-            $('font#' + id).text(status)
-        },
-        updateNotice1: function(data){
-            $('font#' + data.id).removeClass()
-            $('font#' + data.id).addClass(data.class)
-            $('font#' + data.id).text(data.text || data.class)
         }
-    }
-    try{
         function reLoad(time,sum){
             let date=new Date();
             let hour=date.getHours();
@@ -1126,12 +1229,27 @@ style="display: none;"></sup></div>
                 }
             },
             // ==========Twitter End========
+            runDirectUrl:function(direct_url){
+                this.httpRequest({
+                    url: direct_url,
+                    method: 'GET',
+                    headers: {'x-csrf-token': $('meta[name="csrf-token"]').attr('content')},
+                    onload: (response) => {
+                        console.log(response)
+                    },
+                    error:(res)=>{
+                        if(debug)console.log(res);
+                        r('error')
+                    }
+                })
+            },
             test: function(){
-                //$('.card').remove();
-                //start()
+                $('.card').remove();
+                start()
                 //this.steamJoinGroupAuto(console.log, "https://steamcommunity.com/groups/tianmiao")
             }
         }
+
         if(document.getElementById("logout-form") && location.search !== "")
         {
             location.href = location.pathname;
@@ -1155,18 +1273,18 @@ style="display: none;"></sup></div>
         GM_registerMenuCommand("设置时间间隔",setTime);
         function checkSwitch(id){
             GM_unregisterMenuCommand(id);
-            if(0 == GM_getValue("start")){
-                let id = GM_registerMenuCommand("开始检测",()=>{
-                    start();
-                    checkSwitch(id);
-                });
-            }else{
+            if(1 == GM_getValue("start")){
                 let id = GM_registerMenuCommand("停止检测",()=>{
                     let date=new Date();
                     let hour=date.getHours();
                     let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                     GM_setValue("start",0);
                     $(".border-bottom").text(hour+":"+min+" 停止执行新任务检测");
+                    checkSwitch(id);
+                });
+            }else{
+                let id = GM_registerMenuCommand("开始检测",()=>{
+                    start();
                     checkSwitch(id);
                 });
             }
