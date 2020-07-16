@@ -10,7 +10,7 @@
 // @include      *://www.twitch.tv/settings/profile?keyjokertask=storageAuth
 // @updateURL    https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @downloadURL  https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
-// @supportURL   https://www.jysafe.cn/
+// @supportURL   https://www.jysafe.cn/4332.air
 // @homepage     https://www.jysafe.cn/
 // @run-at       document-start
 // @grant        GM_registerMenuCommand
@@ -86,6 +86,7 @@ font.wait{color:#9c27b0;}
 .el-icon-refresh:before{content:"\\e6d0"}
 .el-icon-s-promotion:before{content:"\\e7ba"}
 .el-icon-setting:before{content:"\\e6ca"}
+.el-icon-video-play:before{content:"\\e7c0"}
 .el-notification{display:-webkit-box;display:-ms-flexbox;display:flex;padding:14px 26px 14px 13px;border-radius:8px;-webkit-box-sizing:border-box;box-sizing:border-box;border:1px solid #ebeef5;position:fixed;background-color:#fff;-webkit-box-shadow:0 2px 12px 0 rgba(0,0,0,.1);box-shadow:0 2px 12px 0 rgba(0,0,0,.1);-webkit-transition:opacity .3s,left .3s,right .3s,top .4s,bottom .3s,-webkit-transform .3s;transition:opacity .3s,left .3s,right .3s,top .4s,bottom .3s,-webkit-transform .3s;transition:opacity .3s,transform .3s,left .3s,right .3s,top .4s,bottom .3s;transition:opacity .3s,transform .3s,left .3s,right .3s,top .4s,bottom .3s,-webkit-transform .3s;overflow:hidden}
 .el-notification__group{margin-left:13px;margin-right:8px}
 .el-notification__title{font-weight:700;font-size:16px;color:#303133;margin:0}
@@ -115,7 +116,7 @@ title="检查更新">
 </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
 style="display: none;"></sup></div>
 <div class="el-badge item"><button id="fuck" type="button" class="el-button el-button--default is-circle" title="强制做任务">
-<i class="el-icon-setting"></i>
+<i class="el-icon-video-play"></i>
 </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
 </div>
 <div class="el-badge item"><button id="changeLog" type="button" class="el-button el-button--default is-circle"
@@ -446,6 +447,7 @@ style="display: none;"></sup></div>
                 for(const task of data.actions)
                 {
                     noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
+                    this.runDirectUrl(task.redirect_url)
                     let react = (code)=>{
                         switch(code)
                         {
@@ -688,7 +690,7 @@ style="display: none;"></sup></div>
                             r(200);
                         },
                         error: function(data){
-                            if(debug)console.error(data);
+                            console.error(data);
                             r(201)
                         },
                         anonymous:true
@@ -714,12 +716,12 @@ style="display: none;"></sup></div>
                                     if(debug)console.log(response)
                                     r(200, accessToken, JSON.parse(response.responseText).id);
                                 } else {
-                                    if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                    console.log('Error:' + response.statusText + '(' + response.status + ')')
                                     r(202)
                                 }
                             },
                             error:(res)=>{
-                                if(debug)console.log("error");
+                                console.log("error");
                                 r(202)
                             },
                             anonymous:true
@@ -736,7 +738,7 @@ style="display: none;"></sup></div>
                         if (response.status === 200) {
                             r(200, JSON.parse(response.responseText).accessToken);
                         } else {
-                            if(debug)console.log(response)
+                            console.log(response)
                             r(202);
                         }
                     },
@@ -770,8 +772,8 @@ style="display: none;"></sup></div>
                                             resolve()
                                         }
                                     } else {
-                                        if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                        if(debug)console.log(Error('Request Failed'))
+                                        console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                        console.log(Error('Request Failed'))
                                     }
                                 },
                                 r: resolve,
@@ -833,7 +835,7 @@ style="display: none;"></sup></div>
                                 {
                                     let ret = JSON.parse(response.response)
                                     if(ret.success == true)GM_log(200);else GM_log(201);
-                                }else GM_log(201)
+                                }else r(201)
                             }
                         })
                     }else{
@@ -851,10 +853,8 @@ style="display: none;"></sup></div>
                             {
                                 let comments = response.responseText.match(/commentthread_comments([\s\S]*)commentthread_footer/);
                                 console.log(comments)
-                                if(comments != null)
-                                    r(comments[1].includes(steamInfo.steam64Id));
-                                else
-                                    noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">steam评论区未找到</font>"})
+                                if(comments != null)r(comments[1].includes(steamInfo.steam64Id));
+                                else noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">steam评论区未找到</font>"})
                             }else{
                                 console.log(response)
                                 noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">出现异常</font>"})
@@ -1020,7 +1020,7 @@ style="display: none;"></sup></div>
                                 GM_setValue("twitchAuth", null);
                                 r(202)
                             }else{
-                                if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                console.log('Error:' + response.statusText + '(' + response.status + ')')
                                 r(201)
                             }
                         }
@@ -1038,13 +1038,13 @@ style="display: none;"></sup></div>
                             let rep = JSON.parse(JSON.parse(response.responseText).token);
                             r(rep.channel_id);
                         } else {
-                            if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                            console.log('Error:' + response.statusText + '(' + response.status + ')')
                             r('error')
                         }
                     },
                     error:(res)=>{
-                        if(debug)console.log("error");
-                        if(debug)console.log(res);
+                        console.log("error");
+                        console.log(res);
                     },
                     anonymous:true
                 })
@@ -1107,8 +1107,8 @@ style="display: none;"></sup></div>
                                 if (response.status === 200) {
                                     r(200);
                                 } else {
-                                    if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                    if(debug)console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                    console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                    console.log({ result: 'error', statusText: response.statusText, status: response.status })
                                     r(201);
                                 }
                             }
@@ -1133,7 +1133,7 @@ style="display: none;"></sup></div>
                                 if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status });
                                 r(200);
                             } else {
-                                if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                console.log('Error:' + response.statusText + '(' + response.status + ')')
                                 r(201);
                             }
                         }
@@ -1152,12 +1152,12 @@ style="display: none;"></sup></div>
                             if(debug)console.log(response)
                             r(JSON.parse(response.responseText).data.user.rest_id);
                         } else {
-                            if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
+                            console.log('Error:' + response.statusText + '(' + response.status + ')')
                             r('error')
                         }
                     },
                     error:(res)=>{
-                        if(debug)console.log(res);
+                        console.log(res);
                         r('error')
                     },
                     anonymous:true
@@ -1174,13 +1174,13 @@ style="display: none;"></sup></div>
                             if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
                             r(response.responseHeaders)
                         } else {
-                            if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
-                            if(debug)console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                            console.log('Error:' + response.statusText + '(' + response.status + ')')
+                            console.log({ result: 'error', statusText: response.statusText, status: response.status })
                         }
                     },
                     error:(res)=>{
-                        if(debug)console.log("error");
-                        if(debug)console.log(res);
+                        console.log("error");
+                        console.log(res);
                     }
                 })
             },
@@ -1203,14 +1203,14 @@ style="display: none;"></sup></div>
                                         if(ct0)twitterAuth.ct0 = ct0;
                                         resolve({status:"success"})
                                     } else {
-                                        if(debug)console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                        if(debug)console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                        console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                        console.log({ result: 'error', statusText: response.statusText, status: response.status })
                                         resolve({status:"error"})
                                     }
                                 },
                                 error:(res)=>{
-                                    if(debug)console.log("error");
-                                    if(debug)console.log(res);
+                                    console.log("error");
+                                    console.log(res);
                                     resolve({status:"error"})
                                 }
                             })
@@ -1232,6 +1232,7 @@ style="display: none;"></sup></div>
             },
             // ==========Twitter End========
             runDirectUrl:function(direct_url){
+                GM_log("====访问跳转链接====")
                 this.httpRequest({
                     url: direct_url,
                     method: 'GET',
@@ -1240,20 +1241,20 @@ style="display: none;"></sup></div>
                         console.log(response)
                     },
                     error:(res)=>{
-                        if(debug)console.log(res);
-                        r('error')
+                        console.log(res);
                     }
                 })
             },
             test: function(){
-                $('.card').remove();
-                start()
-                //this.steamJoinGroupAuto(console.log, "https://steamcommunity.com/groups/tianmiao")
+                //$('.card').remove();
+                //start()
+                this.runDirectUrl("https://www.keyjoker.com/entries/open/1")
             }
         }
 
-        if(document.getElementById("logout-form") && location.search !== "")
+        if((document.getElementById("logout-form") && location.search !== "") || ($('.container').innerText == "Whoops, looks like something went wrong."))
         {
+            GM_log("跳转")
             location.href = location.pathname;
         }else if(location.href == "https://www.keyjoker.com/entries")
         {
