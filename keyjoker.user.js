@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.6.8
+// @version      0.6.9
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
@@ -114,7 +114,7 @@ title="检查更新">
 <i class="el-icon-refresh"></i>
 </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
 style="display: none;"></sup></div>
-<div class="el-badge item"><button id="reset" type="button" class="el-button el-button--default is-circle" title="设置">
+<div class="el-badge item"><button id="fuck" type="button" class="el-button el-button--default is-circle" title="强制做任务">
 <i class="el-icon-setting"></i>
 </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
 </div>
@@ -171,53 +171,42 @@ style="display: none;"></sup></div>
                             anonymous:true
                         })
                     })
-                $('button#clearNotice').click(
-                    function(){
-                        noticeFrame.clearNotice()
+                $('button#fuck').click(function(){
+                    $('.card').remove();
+                    start()
+                })
+                $('button#clearNotice').click(function(){
+                    noticeFrame.clearNotice()
+                })
+                $('button#changeLog').click(function(){
+                    noticeFrame.addNotice({type:"msg", msg:"获取日志中..."})
+                    func.httpRequest({
+                        url: 'https://task.jysafe.cn/keyjoker/script/update.php?type=changelog&ver=' + GM_info.script.version,
+                        method: 'GET',
+                        headers:{action: "keyjoker"},
+                        onload: (response) => {
+                            let ret = JSON.parse(response.response)
+                            if(ret.status != 200)
+                            {
+                                noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + ret.msg + "</font>"})
+                            }else
+                            {
+                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">" + ret.msg + "</font>"})
+                            }
+                        },
+                        error:(ret)=>{
+                            console.log(ret);
+                            noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">请求异常！请至控制台查看详情！</font>"})
+                        },
+                        anonymous:true
                     })
-                $('button#changeLog').click(
-                    function(){
-                        noticeFrame.addNotice({type:"msg", msg:"获取日志中..."})
-                        func.httpRequest({
-                            url: 'https://task.jysafe.cn/keyjoker/script/update.php?type=changelog&ver=' + GM_info.script.version,
-                            method: 'GET',
-                            headers:{action: "keyjoker"},
-                            onload: (response) => {
-                                let ret = JSON.parse(response.response)
-                                if(ret.status != 200)
-                                {
-                                    noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + ret.msg + "</font>"})
-                                }else
-                                {
-                                    noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">" + ret.msg + "</font>"})
-                                }
-                            },
-                            error:(ret)=>{
-                                console.log(ret);
-                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">请求异常！请至控制台查看详情！</font>"})
-                            },
-                            anonymous:true
-                        })
-                    })
-                $('button#reset').click(
-                    function(){
-                        if(!confirm("你确定要执行重置操作？"))return;
-                        noticeFrame.addNotice({type:"msg",msg:"正在重置设置"})
-                        const listValues = GM_listValues()
-                        for (const value of listValues) {
-                            if(value == "currentVer")continue;
-                            noticeFrame.addNotice({type:"msg",msg:"<font class=\"error\">正在删除：" + value + "</font>"})
-                            GM_deleteValue(value)
-                        }
-                        noticeFrame.addNotice({type:"msg",msg:"设置重置完毕"})
-                    })
-                $('button#report').click(
-                    function(){
-                        noticeFrame.addNotice({type:"msg",msg:"目前提供以下反馈渠道："})
-                        noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
-                        noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/jiyeme/keyjokerScript/issues/new/choose\" target=\"_blank\">GitHub</a>"})
-                        noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://keylol.com/t620181-1-1\" target=\"_blank\">其乐社区</a>"})
-                    })
+                })
+                $('button#report').click(function(){
+                    noticeFrame.addNotice({type:"msg",msg:"目前提供以下反馈渠道："})
+                    noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
+                    noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/jiyeme/keyjokerScript/issues/new/choose\" target=\"_blank\">GitHub</a>"})
+                    noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://keylol.com/t620181-1-1\" target=\"_blank\">其乐社区</a>"})
+                })
                 if(GM_getValue("currentVer") != GM_info.script.version)
                 {
                     func.httpRequest({
@@ -320,12 +309,12 @@ style="display: none;"></sup></div>
             }
         }
         function start(){
-            GM_setValue("start",1);
             let time = GM_getValue("time");
             if(!time){
                 time=60;
             }
             if(confirm("是否以时间间隔" + time + "秒进行任务检测？")){
+                GM_setValue("start",1);
                 next();
             }
         }
@@ -614,6 +603,17 @@ style="display: none;"></sup></div>
                         else console.error(status, rep);
                     });
                 }
+            },
+            reset: function (){
+                if(!confirm("你确定要执行重置操作？"))return;
+                noticeFrame.addNotice({type:"msg",msg:"正在重置设置"})
+                const listValues = GM_listValues()
+                for (const value of listValues) {
+                    if(value == "currentVer")continue;
+                    noticeFrame.addNotice({type:"msg",msg:"<font class=\"error\">正在删除：" + value + "</font>"})
+                    GM_deleteValue(value)
+                }
+                noticeFrame.addNotice({type:"msg",msg:"设置重置完毕"})
             },
             // OK
             spotifySaveAuto: function(r, data){
@@ -1259,18 +1259,19 @@ style="display: none;"></sup></div>
                 if(document.getElementsByClassName("nav-item active").length != 0 && document.getElementsByClassName("nav-item active")[0].innerText == "Earn Credits")
                 {
                     noticeFrame.loadFrame();
-                    let isStart=setInterval(()=>{
+                    //let isStart=setInterval(()=>{
                         if(GM_getValue("start")==1){
-                            clearInterval(isStart);
+                            //clearInterval(isStart);
                             next();
                         }
-                    },1000);
+                    //},1000);
                 }
             }
         }else{
             func.appHandle();
         }
-        GM_registerMenuCommand("设置时间间隔",setTime);
+        GM_registerMenuCommand("设置时间间隔", setTime);
+        GM_registerMenuCommand("重置设置", func.reset);
         function checkSwitch(id){
             GM_unregisterMenuCommand(id);
             if(1 == GM_getValue("start")){
