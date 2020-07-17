@@ -846,8 +846,8 @@ style="display: none;"></sup></div>
                         data: $.param({ action: 'join', sessionID: steamInfo.communitySessionID }),
                         onload: (response) => {
                             if (response.status === 200 && !response.responseText.includes('grouppage_join_area')) {
-                                if(response.responseText.match(/<h3>(.+?)<\/h3>/) && response.responseText.match(/<h3>(.+?)<\/h3>/)[1] == "您已经是该组的成员了。")r(200);
-                                else r(201)
+                                if(response.responseText.match(/<h3>(.+?)<\/h3>/) && response.responseText.match(/<h3>(.+?)<\/h3>/)[1] != "您已经是该组的成员了。")r(201);
+                                else r(200)
                             } else {
                                 console.error(response)
                                 r(201);
