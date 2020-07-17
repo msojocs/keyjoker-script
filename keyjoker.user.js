@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.6.9
+// @version      0.7.0
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @include      *://www.keyjoker.com/entries*
@@ -41,6 +41,11 @@
 (function() {
     'use strict';
     const debug = 0;
+    const discordAuth = GM_getValue('discordAuth') || {
+        authorization: "",
+        status:0,
+        updateTime: 0
+    }
     // steam信息
     const steamInfo = GM_getValue('steamInfo') || {
         userName: '',
@@ -49,26 +54,20 @@
         storeSessionID: '',
         updateTime: 0
     }
-    const twitterAuth = GM_getValue('twitterAuth') || {
-        authorization: "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
-        ct0: '',
-        updateTime: 0
-    }
-    const discordAuth = GM_getValue('discordAuth') || {
-        authorization: "",
-        status:0,
-        updateTime: 0
-    }
     const twitchAuth = GM_getValue('twitchAuth') || {
         "auth-token": "",
         status:0,
         updateTime: 0
     }
-    try{
-        const noticeFrame = {
-            loadFrame: ()=>{
-                if(debug)console.log("loadFrame");
-                $('body').append(`<style>
+    const twitterAuth = GM_getValue('twitterAuth') || {
+        authorization: "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+        ct0: '',
+        updateTime: 0
+    }
+    const noticeFrame = {
+        loadFrame: ()=>{
+            if(debug)console.log("loadFrame");
+            $('body').append(`<style>
 .fuck-task-logs li{display:list-item !important;float:none !important}
 #extraBtn .el-badge.item{margin-bottom:4px !important}
 #extraBtn .el-badge.item sup{padding-right:0 !important}
@@ -142,195 +141,106 @@ style="display: none;"></sup></div>
 </div>
 </div>
 </div>`)
-                $('button#checkUpdate').click(
-                    function(){
-                        noticeFrame.addNotice({type:"msg",msg:"正在检查版本信息...(当前版本：" + GM_info.script.version + ")"})
-                        func.httpRequest({
-                            url: 'https://task.jysafe.cn/keyjoker/script/update.php?type=ver',
-                            method: 'GET',
-                            headers:{action: "keyjoker"},
-                            onload: (response) => {
-                                let ret = JSON.parse(response.response)
-                                if(ret.status != 200)
-                                {
-                                    noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + ret.msg + "</font>"})
-                                    return;
-                                }
-                                if(ret.ver > GM_info.script.version)
-                                {
-                                    noticeFrame.addNotice({type:"msg", msg:"发现新版本！<font class=\"success\">" + ret.ver + "=>" + ret.msg + "</font>"})
-                                }else if(ret.ver < GM_info.script.version){
-                                    noticeFrame.addNotice({type:"msg", msg:"震惊(○´･д･)ﾉ！<font class=\"success\">你的版本比最新版本还要新！</font>"})
-                                }else if(ret.ver == GM_info.script.version){
-                                    noticeFrame.addNotice({type:"msg",msg:"当前已是最新版本！"})
-                                }else{
-                                    noticeFrame.addNotice({type:"msg",msg:"<font class=\"error\">发生了未知异常！！</font>"})
-                                }
-                            },
-                            error:(ret)=>{
-                                console.log(ret);
-                                noticeFrame.addNotice({type:"msg", msg:"请求异常！请至控制台查看详情！"})
-                            },
-                            anonymous:true
-                        })
-                    })
-                $('button#fuck').click(function(){
-                    $('.card').remove();
-                    start()
-                })
-                $('button#clearNotice').click(function(){
-                    noticeFrame.clearNotice()
-                })
-                $('button#changeLog').click(function(){
-                    noticeFrame.addNotice({type:"msg", msg:"获取日志中..."})
-                    func.httpRequest({
-                        url: 'https://task.jysafe.cn/keyjoker/script/update.php?type=changelog&ver=' + GM_info.script.version,
-                        method: 'GET',
-                        headers:{action: "keyjoker"},
-                        onload: (response) => {
-                            let ret = JSON.parse(response.response)
-                            if(ret.status != 200)
-                            {
-                                noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + ret.msg + "</font>"})
-                            }else
-                            {
-                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">" + ret.msg + "</font>"})
-                            }
-                        },
-                        error:(ret)=>{
-                            console.log(ret);
-                            noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">请求异常！请至控制台查看详情！</font>"})
-                        },
-                        anonymous:true
-                    })
-                })
-                $('button#report').click(function(){
-                    noticeFrame.addNotice({type:"msg",msg:"目前提供以下反馈渠道："})
-                    noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
-                    noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/jiyeme/keyjokerScript/issues/new/choose\" target=\"_blank\">GitHub</a>"})
-                    noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://keylol.com/t620181-1-1\" target=\"_blank\">其乐社区</a>"})
-                })
-                if(GM_getValue("currentVer") != GM_info.script.version)
-                {
-                    func.httpRequest({
-                        url: 'https://task.jysafe.cn/keyjoker/script/update.php?type=changelog&ver=' + GM_info.script.version,
-                        method: 'GET',
-                        headers:{action: "keyjoker"},
-                        onload: (response) => {
-                            let ret = JSON.parse(response.response)
-                            if(ret.status != 200)
-                            {
-                                noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + ret.msg + "</font>"})
-                            }else
-                            {
-                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">" + ret.msg + "</font>"})
-                            }
-                        },
-                        error:(ret)=>{
-                            console.log(ret);
-                            noticeFrame.addNotice({type:"msg", msg:"请求异常！请至控制台查看详情！"})
-                        },
-                        anonymous:true
-                    })
-                    GM_setValue("currentVer", GM_info.script.version)
-                }
-            },
-            addNotice: function(data){
-                switch(data.type)
-                {
-                    case "taskStatus":
-                        $('.el-notification__content').append('<li>' + data.task.task.name + ' <a href="' + data.task.data.url + '" target="_blank">' + (data.task.data.name||data.task.data.username) + '</a>|<font id="' + data.task.id + '" class="' + data.status +'">' + data.status +'</font></li>');
-                        break;
-                    case "msg":
-                        $('.el-notification__content').append("<li>" + data.msg + "</li>");
-                        break;
-                    default:
-                        break;
-                }
-            },
-            clearNotice:()=>{
-                $('.el-notification__content li').remove();
-            },
-            updateNotice: function(id, status){
-                $('font#' + id).removeClass()
-                $('font#' + id).addClass(status)
-                $('font#' + id).text(status)
-            },
-            updateNotice1: function(data){
-                $('font#' + data.id).removeClass()
-                $('font#' + data.id).addClass(data.class)
-                $('font#' + data.id).text(data.text || data.class)
+        },
+        addNotice: function(data){
+            switch(data.type)
+            {
+                case "taskStatus":
+                    $('.el-notification__content').append('<li>' + data.task.task.name + ' <a href="' + data.task.data.url + '" target="_blank">' + (data.task.data.name||data.task.data.username) + '</a>|<font id="' + data.task.id + '" class="' + data.status +'">' + data.status +'</font></li>');
+                    break;
+                case "msg":
+                    $('.el-notification__content').append("<li>" + data.msg + "</li>");
+                    break;
+                default:
+                    break;
             }
+        },
+        clearNotice:()=>{
+            $('.el-notification__content li').remove();
+        },
+        updateNotice: function(id, status){
+            $('font#' + id).removeClass()
+            $('font#' + id).addClass(status)
+            $('font#' + id).text(status)
+        },
+        updateNotice1: function(data){
+            $('font#' + data.id).removeClass()
+            $('font#' + data.id).addClass(data.class)
+            $('font#' + data.id).text(data.text || data.class)
         }
-        function reLoad(time,sum){
-            let date=new Date();
-            let hour=date.getHours();
-            let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
-            if(GM_getValue("start")==1){
-                $(".border-bottom").text(hour+":"+min+" 执行新任务检测");
-                $.ajax({
-                    url:"/entries/load",
-                    type:"get",
-                    headers:{'x-csrf-token': $('meta[name="csrf-token"]').attr('content')},
-                    success:(data,status,xhr)=>{
-                        if(data && (data.actions && (data.actions.length > sum) )){
-                            if(debug)console.log(data);
-                            let date=new Date();
-                            let hour=date.getHours();
-                            let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
-                            $(".border-bottom").text(hour+":"+min+" 检测到新任务");
-                            $show({
-                                title:"keyjoker新任务",
-                                msg:"keyjoker网站更新"+(data.actions.length-sum)+"个新任务！",
-                                icon:"https://www.keyjoker.com/favicon-32x32.png",
-                                time:0,
-                                onclick:function(){
-                                    //location.reload(true);
-                                }
-                            });
-                            // 重载列表
-                            noticeFrame.clearNotice();
-                            func.reLoadTaskList(()=>{
-                                func.do_task(data);
-                            });
-                        }else{
-                            setTimeout(()=>{
-                                reLoad(time,sum);
-                            },time);
+    }
+    try{
+        const checkTask = {
+            reLoad: function (time,sum){
+                let date=new Date();
+                let hour=date.getHours();
+                let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
+                if(GM_getValue("start")==1){
+                    $(".border-bottom").text(hour+":"+min+" 执行新任务检测");
+                    $.ajax({
+                        url:"/entries/load",
+                        type:"get",
+                        headers:{'x-csrf-token': $('meta[name="csrf-token"]').attr('content')},
+                        success:(data,status,xhr)=>{
+                            if(data && (data.actions && (data.actions.length > sum) )){
+                                if(debug)console.log(data);
+                                let date=new Date();
+                                let hour=date.getHours();
+                                let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
+                                $(".border-bottom").text(hour+":"+min+" 检测到新任务");
+                                $show({
+                                    title:"keyjoker新任务",
+                                    msg:"keyjoker网站更新"+(data.actions.length-sum)+"个新任务！",
+                                    icon:"https://www.keyjoker.com/favicon-32x32.png",
+                                    time:0,
+                                    onclick:function(){
+                                        //location.reload(true);
+                                    }
+                                });
+                                // 重载列表
+                                noticeFrame.clearNotice();
+                                func.reLoadTaskList(()=>{
+                                    func.do_task(data);
+                                });
+                            }else{
+                                setTimeout(()=>{
+                                    this.reLoad(time,sum);
+                                },time);
+                            }
+                        },
+                        error:(err)=>{
+                            window.location.reload(true);
                         }
-                    },
-                    error:(err)=>{
-                        window.location.reload(true);
-                    }
-                });
-            }
-        }
-        function setTime(){
-            let time=prompt('请输入获取任务信息的时间间隔(单位:秒)：');
-            if(!isNaN(time)){
-                GM_setValue("time",parseInt(time));
-            }
-        }
-        function start(){
-            let time = GM_getValue("time");
-            if(!time){
-                time=60;
-            }
-            if(confirm("是否以时间间隔" + time + "秒进行任务检测？")){
-                GM_setValue("start",1);
-                next();
-            }
-        }
-        function next(){
-            let time = GM_getValue("time");
-            if(!time){
-                time=60;
-            }
-            let sum=$(".list-complete-item").length;
-            if(sum>0){
-                reLoad(time*1000,sum);
-            }else{
-                reLoad(time*1000,0);
+                    });
+                }
+            },
+            setTime: function (){
+                let time=prompt('请输入获取任务信息的时间间隔(单位:秒)：');
+                if(!isNaN(time)){
+                    GM_setValue("time",parseInt(time));
+                }
+            },
+            start: function (){
+                let time = GM_getValue("time");
+                if(!time){
+                    time=60;
+                }
+                if(confirm("是否以时间间隔" + time + "秒进行任务检测？")){
+                    GM_setValue("start",1);
+                    this.next();
+                }
+            },
+            next: function (){
+                let time = GM_getValue("time");
+                if(!time){
+                    time=60;
+                }
+                let sum=$(".list-complete-item").length;
+                if(sum>0){
+                    this.reLoad(time*1000,sum);
+                }else{
+                    this.reLoad(time*1000,0);
+                }
             }
         }
         const func = {
@@ -356,7 +266,7 @@ style="display: none;"></sup></div>
                         if(location.search == "?keyjokertask=storageAuth")
                         {
                             discordAuth.authorization = JSON.parse(localStorage.getItem("token"));
-                            if(discordAuth.authorization != null)discordAuth.status = 0;
+                            if(discordAuth.authorization == null)discordAuth.status = 0;
                             else discordAuth.status = 1;
                             discordAuth.updateTime = new Date().getTime();
                             GM_setValue("discordAuth", discordAuth);
@@ -370,6 +280,37 @@ style="display: none;"></sup></div>
                     default :
                         break;
                 }
+            },
+            checkUpdate: function(){
+                noticeFrame.addNotice({type:"msg",msg:"正在检查版本信息...(当前版本：" + GM_info.script.version + ")"})
+                func.httpRequest({
+                    url: 'https://task.jysafe.cn/keyjoker/script/update.php?type=ver',
+                    method: 'GET',
+                    headers:{action: "keyjoker"},
+                    onload: (response) => {
+                        let ret = JSON.parse(response.response)
+                        if(ret.status != 200)
+                        {
+                            noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + ret.msg + "</font>"})
+                            return;
+                        }
+                        if(ret.ver > GM_info.script.version)
+                        {
+                            noticeFrame.addNotice({type:"msg", msg:"发现新版本！<font class=\"success\">" + ret.ver + "=>" + ret.msg + "</font>"})
+                        }else if(ret.ver < GM_info.script.version){
+                            noticeFrame.addNotice({type:"msg", msg:"震惊(○´･д･)ﾉ！<font class=\"success\">你的版本比最新版本还要新！</font>"})
+                        }else if(ret.ver == GM_info.script.version){
+                            noticeFrame.addNotice({type:"msg",msg:"当前已是最新版本！"})
+                        }else{
+                            noticeFrame.addNotice({type:"msg",msg:"<font class=\"error\">发生了未知异常！！</font>"})
+                        }
+                    },
+                    error:(ret)=>{
+                        console.log(ret);
+                        noticeFrame.addNotice({type:"msg", msg:"请求异常！请至控制台查看详情！"})
+                    },
+                    anonymous:true
+                })
             },
             // discord自动加入服务器（OK）
             discordJoinServerAuto: function(r, server){
@@ -388,6 +329,37 @@ style="display: none;"></sup></div>
                             if (response.status === 200) {
                                 if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
                                 r(200);
+                            } else {
+                                console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                r(201);
+                            }
+                        },
+                        error:(res)=>{
+                            console.error(res);
+                            r(201);
+                        },
+                        anonymous:true
+                    })
+                })
+            },
+            // discord自动退组服务器（OK）
+            discordLeaveServerAuto: function(r, serverId){
+                this.discordAuthUpdate((ret)=>{
+                    if(ret != 200)
+                    {
+                        r(ret);
+                        return;
+                    }
+                    $.ajax({
+                        url: 'https://discord.com/api/v6/users/@me/guilds/' + serverId,
+                        method: 'DELETE',
+                        headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
+                        onload: (response) => {
+                            if(debug)console.log(response)
+                            if (response.status === 204) {
+                                if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                                r(204);
                             } else {
                                 console.log('Error:' + response.statusText + '(' + response.status + ')')
                                 console.log({ result: 'error', statusText: response.statusText, status: response.status })
@@ -515,7 +487,7 @@ style="display: none;"></sup></div>
                     if($(".list-complete-item").length == 0)
                     {
                         noticeFrame.addNotice({type:"msg", msg:"任务似乎已完成，恢复监测!"});
-                        next();
+                        checkTask.next();
                         clearInterval(completeCheck);
                     }
                 }, 10 * 1000)
@@ -620,7 +592,7 @@ style="display: none;"></sup></div>
                 noticeFrame.addNotice({type:"msg",msg:"设置重置完毕"})
             },
             // OK
-            spotifySaveAuto: function(r, data){
+            spotifySaveAuto: function(r, data, del = false){
                 this.spotifyGetUserInfo((status, accessToken = null, userId = null)=>{
                     if(status != 200)
                     {
@@ -640,7 +612,7 @@ style="display: none;"></sup></div>
                             break;
                     }
                     $.ajax({
-                        type: 'PUT',
+                        type: !del?'PUT':"DELETE",
                         url: putUrl,
                         headers: {authorization: "Bearer " + accessToken},
                         success: function(data){
@@ -656,7 +628,7 @@ style="display: none;"></sup></div>
                 });
             },
             // OK
-            spotifyFollowAuto: function(r, data){
+            spotifyFollowAuto: function(r, data, del = false){
                 this.spotifyGetUserInfo((status, accessToken = null)=>{
                     if(status != 200)
                     {
@@ -682,7 +654,7 @@ style="display: none;"></sup></div>
                             break;
                     }
                     $.ajax({
-                        type: 'PUT',
+                        type: !del?'PUT':"DELETE",
                         url: putUrl,
                         headers: {authorization: "Bearer " + accessToken},
                         success: function(data){
@@ -888,6 +860,62 @@ style="display: none;"></sup></div>
                     })
                 });
             },
+            // steam退组
+            steamLeaveGroupAuto: function (r, url) {
+                let groupName = url.split('s/')[1];
+                this.getGroupID(groupName, (groupName, groupId) => {
+                    var postUrl = ""
+                    postUrl = (steamInfo.userName) ? 'https://steamcommunity.com/id/' + steamInfo.userName + '/home_process' : 'https://steamcommunity.com/profiles/' + steamInfo.steam64Id + '/home_process'
+                    this.httpRequest({
+                        url: postUrl,
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                        data: $.param({ sessionID: steamInfo.communitySessionID, action: 'leaveGroup', groupId: groupId }),
+                        onload: (response) => {
+                            if (debug) console.log(response)
+                            if (response.status === 200 && response.finalUrl.includes('groups') && $(response.responseText.toLowerCase()).find(`a[href='https://steamcommunity.com/groups/${groupName.toLowerCase()}']`).length === 0) {
+                                r(200)
+                            } else {
+                                r(201)
+                            }
+                        },
+                        r
+                    })
+                })
+            },
+            getGroupID: function (groupName, callback) {
+                this.steamInfoUpdate(() => {
+                    new Promise(resolve => {
+                        this.httpRequest({
+                            url: 'https://steamcommunity.com/groups/' + groupName,
+                            method: 'GET',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                            onload: function (response) {
+                                if (debug) console.log(response)
+                                if (response.status === 200) {
+                                    const groupId = response.responseText.match(/OpenGroupChat\( '([0-9]+)'/)
+                                    if (groupId === null) {
+                                        console.error('Error:' + response.statusText + '(' + response.status + ')')
+                                        resolve(false)
+                                    } else {
+                                        resolve(groupId[1])
+                                    }
+                                } else {
+                                    console.error('Error:' + response.statusText + '(' + response.status + ')')
+                                    resolve(false)
+                                }
+                            },
+                            r: () => {
+                                resolve(false)
+                            }
+                        })
+                    }).then(groupId => {
+                        if (groupId !== false && callback) callback(groupName, groupId)
+                    }).catch(err => {
+                        console.error(err)
+                    })
+                })
+            },
             // steam加愿望单（In Progress）[修改自https://greasyfork.org/zh-CN/scripts/370650]
             steamAddWishlistAuto: function (r, gameId) {
                 this.steamInfoUpdate(() => {
@@ -947,6 +975,62 @@ style="display: none;"></sup></div>
                     })
                 })
             },
+            // steam移除愿望单（In Progress）[修改自https://greasyfork.org/zh-CN/scripts/370650]
+            steamRemoveWishlistAuto: function (r, gameId) {
+                this.steamInfoUpdate(() => {
+                    new Promise(resolve => {
+                        this.httpRequest({
+                            url: 'https://store.steampowered.com/api/removefromwishlist',
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                            data: $.param({ sessionid: steamInfo.storeSessionID, appid: gameId }),
+                            dataType: 'json',
+                            onload: function (response) {
+                                if (debug) console.log(response)
+                                if (response.status === 200 && response.response && response.response.success === true) {
+                                    resolve({ result: 'success', statusText: response.statusText, status: response.status })
+                                } else {
+                                    resolve({ result: 'error', statusText: response.statusText, status: response.status })
+                                }
+                            },
+                            onabort: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                            onerror: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                            ontimeout: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                            r: resolve
+                        })
+                    }).then(result => {
+                        if (result.result === 'success') {
+                            r(200)
+                        } else {
+                            this.httpRequest({
+                                url: 'https://store.steampowered.com/app/' + gameId,
+                                method: 'GET',
+                                onload: function (response) {
+                                    if (debug) console.log(response)
+                                    if (response.status === 200) {
+                                        if (response.responseText.includes('class="queue_actions_ctn"') && (response.responseText.includes('已在库中') || response.responseText.includes('添加至您的愿望单'))) {
+                                            GM_log({ result: 'success', statusText: response.statusText, status: response.status, own: true })
+                                            r(200)
+                                        } else {
+                                            console.error('Error:' + result.statusText + '(' + result.status + ')')
+                                            r(201)
+                                        }
+                                    } else {
+                                        console.error('Error:' + result.statusText + '(' + result.status + ')')
+                                        GM_log({ result: 'error', statusText: response.statusText, status: response.status })
+                                        r(201)
+                                    }
+                                },
+                                r
+                            })
+                        }
+                    }).catch(err => {
+                        console.error(err)
+                        r(201)
+                    })
+                })
+            },
+            // ============Tumblr Start=========
             // tumblr关注博客（OK）
             tumblrFollowAuto: function(r, name){
                 this.tumblrGetKey((status, key = false)=>{
@@ -963,6 +1047,38 @@ style="display: none;"></sup></div>
                         }
                         this.httpRequest({
                             url: 'https://www.tumblr.com/svc/follow',
+                            method: 'POST',
+                            headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
+                            data: $.param({'data[tumblelog]': name}),
+                            onload: (response) => {
+                                if(debug)console.log(response);
+                                if(response.status == 200)
+                                {
+                                    r(200);
+                                }else r(201)
+                            }
+                        })
+                    }else{
+                        r(201)
+                    }
+                })
+            },
+            // tumblr取消关注博客
+            tumblrUnfollowAuto: function(r, name){
+                this.tumblrGetKey((status, key = false)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
+                    if(false != key){
+                        if(-1 != key.indexOf("!123") && -1 !=key.indexOf("|") )
+                        {
+                            r(202)
+                            return;
+                        }
+                        this.httpRequest({
+                            url: 'https://www.tumblr.com/svc/unfollow',
                             method: 'POST',
                             headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
                             data: $.param({'data[tumblelog]': name}),
@@ -997,6 +1113,7 @@ style="display: none;"></sup></div>
                     }
                 })
             },
+            // ============Twitch Start=========
             // twitch关注（OK）
             twitchFollowAuto: function(r, channelId){
                 this.twitchAuthUpdate((status)=>{
@@ -1010,6 +1127,36 @@ style="display: none;"></sup></div>
                         method: 'POST',
                         headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
                         data: '[{"operationName":"FollowButton_FollowUser","variables":{"input":{"disableNotifications":false,"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"3efee1acda90efdff9fef6e6b4a29213be3ee490781c5b54469717b6131ffdfe"}}}]',
+                        onload: (response) => {
+                            if (debug)console.log(response)
+                            if (response.status === 200) {
+                                if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                                r(200)
+                            } else if(response.status === 401){
+                                twitchAuth.updateTime = 0;
+                                GM_setValue("twitchAuth", null);
+                                r(202)
+                            }else{
+                                console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                r(201)
+                            }
+                        }
+                    })
+                })
+            },
+            // twitch关注（OK）
+            twitchUnfollowAuto: function(r, channelId){
+                this.twitchAuthUpdate((status)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
+                    this.httpRequest({
+                        url: 'https://gql.twitch.tv/gql',
+                        method: 'POST',
+                        headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
+                        data: '[{"operationName":"FollowButton_UnfollowUser","variables":{"input":{"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"d7fbdb4e9780dcdc0cc1618ec783309471cd05a59584fc3c56ea1c52bb632d41"}}}]',
                         onload: (response) => {
                             if (debug)console.log(response)
                             if (response.status === 200) {
@@ -1099,6 +1246,35 @@ style="display: none;"></sup></div>
                         }
                         this.httpRequest({
                             url: 'https://api.twitter.com/1.1/friendships/create.json',
+                            method: 'POST',
+                            headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
+                            data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
+                            onload: (response) => {
+                                if (debug)console.log(response)
+                                if (response.status === 200) {
+                                    r(200);
+                                } else {
+                                    console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                    console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                    r(201);
+                                }
+                            }
+                        })
+                    },data.username)
+                })
+            },
+            // 推特取消关注用户（OK）
+            twitterUnfollowAuto: function(r, data){
+                this.twitterAuthUpdate(()=>{
+                    this.twitterGetUserInfo((userId)=>{
+                        if(debug)console.log(userId)
+                        if("error" == userId)
+                        {
+                            r(201);
+                            return;
+                        }
+                        this.httpRequest({
+                            url: 'https://api.twitter.com/1.1/friendships/destroy.json',
                             method: 'POST',
                             headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
                             data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
@@ -1246,34 +1422,106 @@ style="display: none;"></sup></div>
                 })
             },
             test: function(){
-                //$('.card').remove();
-                //start()
-                this.runDirectUrl("https://www.keyjoker.com/entries/open/1")
+                this.spotifySaveAuto(console.log, {id:"1R6vbGGXSEZZmTGn7ewwRL",type:"album"}, true)
             }
         }
-
-        if((document.getElementById("logout-form") && location.search !== "") || ($('.container').innerText == "Whoops, looks like something went wrong."))
-        {
-            GM_log("跳转")
-            location.href = location.pathname;
-        }else if(location.href == "https://www.keyjoker.com/entries")
-        {
-            window.onload=()=>{
+        // ============Start===========
+        window.onload=()=>{
+            if((document.getElementById("logout-form") && location.search !== "") || ($('.container').innerText == "Whoops, looks like something went wrong."))
+            {
+                location.href = location.pathname;
+            }else if(location.href == "https://www.keyjoker.com/entries")
+            {
                 if(document.getElementsByClassName("nav-item active").length != 0 && document.getElementsByClassName("nav-item active")[0].innerText == "Earn Credits")
                 {
                     noticeFrame.loadFrame();
+                    // 事件绑定
+                    eventBind();
                     //let isStart=setInterval(()=>{
-                        if(GM_getValue("start")==1){
-                            //clearInterval(isStart);
-                            next();
-                        }
+                    if(GM_getValue("start")==1){
+                        //clearInterval(isStart);
+                        checkTask.next();
+                    }
                     //},1000);
+                    checkUpdate();
                 }
+            }else{
+                func.appHandle();
             }
-        }else{
-            func.appHandle();
         }
-        GM_registerMenuCommand("设置时间间隔", setTime);
+        function checkUpdate(){
+            // 隔一段时间检测新版本
+            if(new Date().getTime() - (GM_getValue("lastCheckUpdate") || 0) > 6 * 60 * 60 * 1000)
+            {
+                func.checkUpdate();
+                GM_setValue("lastCheckUpdate", new Date().getTime())
+            }
+        }
+        function eventBind(){
+            $('button#checkUpdate').click(()=>{func.checkUpdate()})
+            $('button#fuck').click(function(){
+                $('.card').remove();
+                checkTask.start()
+            })
+            $('button#clearNotice').click(function(){
+                noticeFrame.clearNotice()
+            })
+            $('button#changeLog').click(function(){
+                noticeFrame.addNotice({type:"msg", msg:"获取日志中..."})
+                func.httpRequest({
+                    url: 'https://task.jysafe.cn/keyjoker/script/update.php?type=changelog&ver=' + GM_info.script.version,
+                    method: 'GET',
+                    headers:{action: "keyjoker"},
+                    onload: (response) => {
+                        let ret = JSON.parse(response.response)
+                        if(ret.status != 200)
+                        {
+                            noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + ret.msg + "</font>"})
+                        }else
+                        {
+                            noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">" + ret.msg + "</font>"})
+                        }
+                    },
+                    error:(ret)=>{
+                        console.log(ret);
+                        noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">请求异常！请至控制台查看详情！</font>"})
+                    },
+                    anonymous:true
+                })
+            })
+            $('button#report').click(function(){
+                noticeFrame.addNotice({type:"msg",msg:"目前提供以下反馈渠道："})
+                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
+                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/jiyeme/keyjokerScript/issues/new/choose\" target=\"_blank\">GitHub</a>"})
+                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://keylol.com/t620181-1-1\" target=\"_blank\">其乐社区</a>"})
+            })
+            // 版本升级后显示一次更新日志
+            if(GM_getValue("currentVer") != GM_info.script.version)
+            {
+                func.httpRequest({
+                    url: 'https://task.jysafe.cn/keyjoker/script/update.php?type=changelog&ver=' + GM_info.script.version,
+                    method: 'GET',
+                    headers:{action: "keyjoker"},
+                    onload: (response) => {
+                        let ret = JSON.parse(response.response)
+                        if(ret.status != 200)
+                        {
+                            noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + ret.msg + "</font>"})
+                        }else
+                        {
+                            noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">" + ret.msg + "</font>"})
+                        }
+                    },
+                    error:(ret)=>{
+                        console.log(ret);
+                        noticeFrame.addNotice({type:"msg", msg:"请求异常！请至控制台查看详情！"})
+                    },
+                    anonymous:true
+                })
+                GM_setValue("currentVer", GM_info.script.version)
+            }
+        }
+        GM_registerMenuCommand("设置时间间隔", checkTask.setTime);
         GM_registerMenuCommand("重置设置", func.reset);
         function checkSwitch(id){
             GM_unregisterMenuCommand(id);
@@ -1283,12 +1531,12 @@ style="display: none;"></sup></div>
                     let hour=date.getHours();
                     let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                     GM_setValue("start",0);
-                    $(".border-bottom").text(hour+":"+min+" 停止执行新任务检测");
+                    $(".border-bottom").text(hour + ":" + min + " 停止执行新任务检测");
                     checkSwitch(id);
                 });
             }else{
                 let id = GM_registerMenuCommand("开始检测",()=>{
-                    start();
+                    checkTask.start();
                     checkSwitch(id);
                 });
             }
