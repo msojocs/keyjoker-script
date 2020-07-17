@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.7.0
+// @version      0.7.1
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
+// @icon         https://www.jysafe.cn/assets/images/avatar.jpg
 // @include      *://www.keyjoker.com/entries*
 // @include      *://assets.hcaptcha.com/*
 // @include      *://discord.com/channels/@me?keyjokertask=storageAuth
@@ -136,7 +137,6 @@ style="display: none;"></sup></div>
 <h2 class="el-notification__title">任务执行日志</h2>
 <div class="el-notification__content" style="">
 <p></p>
-<!--<li>正在更新Steam社区SessionID(用于加组退组)...<font class="success">Success</font>-->
 </li>
 </div>
 </div>
@@ -419,7 +419,7 @@ style="display: none;"></sup></div>
                 for(const task of data.actions)
                 {
                     noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
-                    this.runDirectUrl(task.redirect_url)
+                    //this.runDirectUrl(task.redirect_url)
                     let react = (code)=>{
                         switch(code)
                         {
@@ -839,21 +839,17 @@ style="display: none;"></sup></div>
             // steam加组（OK）[修改自https://greasyfork.org/zh-CN/scripts/370650]
             steamJoinGroupAuto: function (r, url) {
                 this.steamInfoUpdate(() => {
-                    if(debug)console.log("====steamJoinGroupAuto====");
                     this.httpRequest({
                         url: url,
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
                         data: $.param({ action: 'join', sessionID: steamInfo.communitySessionID }),
                         onload: (response) => {
-                            if (debug) console.log(response)
-                            if (response.status === 200 && !response.responseText.includes('grouppage_join_area') && !response.responseText.includes('error_ctn')) {
-                                console.log("steamJoinGroupAuto")
-                                console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                                r(200);
+                            if (response.status === 200 && !response.responseText.includes('grouppage_join_area')) {
+                                if(response.responseText.match(/<h3>(.+?)<\/h3>/) && response.responseText.match(/<h3>(.+?)<\/h3>/)[1] == "您已经是该组的成员了。")r(200);
+                                else r(201)
                             } else {
-                                console.error('Error:' + response.statusText + '(' + response.status + ')')
-                                console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                console.error(response)
                                 r(201);
                             }
                         }
@@ -872,10 +868,10 @@ style="display: none;"></sup></div>
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
                         data: $.param({ sessionID: steamInfo.communitySessionID, action: 'leaveGroup', groupId: groupId }),
                         onload: (response) => {
-                            if (debug) console.log(response)
                             if (response.status === 200 && response.finalUrl.includes('groups') && $(response.responseText.toLowerCase()).find(`a[href='https://steamcommunity.com/groups/${groupName.toLowerCase()}']`).length === 0) {
                                 r(200)
                             } else {
+                                console.error(response)
                                 r(201)
                             }
                         },
@@ -895,13 +891,13 @@ style="display: none;"></sup></div>
                                 if (response.status === 200) {
                                     const groupId = response.responseText.match(/OpenGroupChat\( '([0-9]+)'/)
                                     if (groupId === null) {
-                                        console.error('Error:' + response.statusText + '(' + response.status + ')')
+                                        console.error(response)
                                         resolve(false)
                                     } else {
                                         resolve(groupId[1])
                                     }
                                 } else {
-                                    console.error('Error:' + response.statusText + '(' + response.status + ')')
+                                    console.error(response)
                                     resolve(false)
                                 }
                             },
@@ -950,10 +946,9 @@ style="display: none;"></sup></div>
                                     if (debug) console.log(response)
                                     if (response.status === 200) {
                                         if (response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('已在库中')) {
-                                            GM_log({ result: 'success', statusText: response.statusText, status: response.status, own: true })
                                             r(200)
                                         } else if ((response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('添加至您的愿望单')) || !response.responseText.includes('class="queue_actions_ctn"')) {
-                                            console.error('Error:' + result.statusText + '(' + result.status + ')')
+                                            console.error(response)
                                             GM_log({ result: 'error', statusText: response.statusText, status: response.status })
                                             r(201)
                                         } else {
@@ -961,8 +956,7 @@ style="display: none;"></sup></div>
                                             r(200)
                                         }
                                     } else {
-                                        console.error('Error:' + result.statusText + '(' + result.status + ')')
-                                        GM_log({ result: 'error', statusText: response.statusText, status: response.status })
+                                        console.error(response)
                                         r(201)
                                     }
                                 },
@@ -986,7 +980,6 @@ style="display: none;"></sup></div>
                             data: $.param({ sessionid: steamInfo.storeSessionID, appid: gameId }),
                             dataType: 'json',
                             onload: function (response) {
-                                if (debug) console.log(response)
                                 if (response.status === 200 && response.response && response.response.success === true) {
                                     resolve({ result: 'success', statusText: response.statusText, status: response.status })
                                 } else {
@@ -1009,15 +1002,13 @@ style="display: none;"></sup></div>
                                     if (debug) console.log(response)
                                     if (response.status === 200) {
                                         if (response.responseText.includes('class="queue_actions_ctn"') && (response.responseText.includes('已在库中') || response.responseText.includes('添加至您的愿望单'))) {
-                                            GM_log({ result: 'success', statusText: response.statusText, status: response.status, own: true })
                                             r(200)
                                         } else {
                                             console.error('Error:' + result.statusText + '(' + result.status + ')')
                                             r(201)
                                         }
                                     } else {
-                                        console.error('Error:' + result.statusText + '(' + result.status + ')')
-                                        GM_log({ result: 'error', statusText: response.statusText, status: response.status })
+                                        console.error(response)
                                         r(201)
                                     }
                                 },
@@ -1051,11 +1042,14 @@ style="display: none;"></sup></div>
                             headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
                             data: $.param({'data[tumblelog]': name}),
                             onload: (response) => {
-                                if(debug)console.log(response);
                                 if(response.status == 200)
                                 {
                                     r(200);
-                                }else r(201)
+                                }else
+                                {
+                                    console.error(response);
+                                    r(201);
+                                }
                             }
                         })
                     }else{
@@ -1083,11 +1077,13 @@ style="display: none;"></sup></div>
                             headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
                             data: $.param({'data[tumblelog]': name}),
                             onload: (response) => {
-                                if(debug)console.log(response);
                                 if(response.status == 200)
                                 {
                                     r(200);
-                                }else r(201)
+                                }else{
+                                    console.error(response);
+                                    r(201);
+                                }
                             }
                         })
                     }else{
@@ -1102,14 +1098,15 @@ style="display: none;"></sup></div>
                     url: 'https://www.tumblr.com/dashboard/iframe',
                     method: 'GET',
                     onload: (response) => {
-                        if(debug)console.log(response);
                         if(response.status == 200)
                         {
                             let key = response.responseText.match(/id="tumblr_form_key" content="(.+?)">/)
-                            GM_log(key)
                             if(key)r(200, key[1]);
                             else r(666)
-                        }else r(201)
+                        }else{
+                            console.error(response);
+                            r(201);
+                        }
                     }
                 })
             },
@@ -1128,16 +1125,14 @@ style="display: none;"></sup></div>
                         headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
                         data: '[{"operationName":"FollowButton_FollowUser","variables":{"input":{"disableNotifications":false,"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"3efee1acda90efdff9fef6e6b4a29213be3ee490781c5b54469717b6131ffdfe"}}}]',
                         onload: (response) => {
-                            if (debug)console.log(response)
                             if (response.status === 200) {
-                                if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
                                 r(200)
                             } else if(response.status === 401){
                                 twitchAuth.updateTime = 0;
                                 GM_setValue("twitchAuth", null);
                                 r(202)
                             }else{
-                                console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                console.error(response);
                                 r(201)
                             }
                         }
@@ -1158,16 +1153,14 @@ style="display: none;"></sup></div>
                         headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
                         data: '[{"operationName":"FollowButton_UnfollowUser","variables":{"input":{"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"d7fbdb4e9780dcdc0cc1618ec783309471cd05a59584fc3c56ea1c52bb632d41"}}}]',
                         onload: (response) => {
-                            if (debug)console.log(response)
                             if (response.status === 200) {
-                                if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
                                 r(200)
                             } else if(response.status === 401){
                                 twitchAuth.updateTime = 0;
                                 GM_setValue("twitchAuth", null);
                                 r(202)
                             }else{
-                                console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                console.error(response);
                                 r(201)
                             }
                         }
@@ -1181,17 +1174,15 @@ style="display: none;"></sup></div>
                     method: 'GET',
                     onload: (response) => {
                         if (response.status === 200) {
-                            if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
                             let rep = JSON.parse(JSON.parse(response.responseText).token);
                             r(rep.channel_id);
                         } else {
-                            console.log('Error:' + response.statusText + '(' + response.status + ')')
+                            console.error(response);
                             r('error')
                         }
                     },
                     error:(res)=>{
-                        console.log("error");
-                        console.log(res);
+                        console.error(res);
                     },
                     anonymous:true
                 })
@@ -1250,12 +1241,10 @@ style="display: none;"></sup></div>
                             headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
                             data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
                             onload: (response) => {
-                                if (debug)console.log(response)
                                 if (response.status === 200) {
                                     r(200);
                                 } else {
-                                    console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                    console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                    console.error(response);
                                     r(201);
                                 }
                             }
@@ -1279,12 +1268,10 @@ style="display: none;"></sup></div>
                             headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
                             data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
                             onload: (response) => {
-                                if (debug)console.log(response)
                                 if (response.status === 200) {
                                     r(200);
                                 } else {
-                                    console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                    console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                    console.error(response);
                                     r(201);
                                 }
                             }
@@ -1303,13 +1290,10 @@ style="display: none;"></sup></div>
                         headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
                         data: $.param({ tweet_mode: "extended",id: retweetId}),
                         onload: (response) => {
-                            if (debug)console.log(response)
                             if (response.status === 200 || (response.status === 403 && response.responseText == '{"errors":[{"code":327,"message":"You have already retweeted this Tweet."}]}')) {
-                                if(debug)console.log("success");
-                                if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status });
                                 r(200);
                             } else {
-                                console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                console.error(response);
                                 r(201);
                             }
                         }
@@ -1325,10 +1309,9 @@ style="display: none;"></sup></div>
                     headers: { authorization: "Bearer " + twitterAuth.authorization, "content-type": "application/json"},
                     onload: (response) => {
                         if (response.status === 200) {
-                            if(debug)console.log(response)
                             r(JSON.parse(response.responseText).data.user.rest_id);
                         } else {
-                            console.log('Error:' + response.statusText + '(' + response.status + ')')
+                            console.error(response);
                             r('error')
                         }
                     },
@@ -1346,17 +1329,13 @@ style="display: none;"></sup></div>
                     method: 'GET',
                     onload: (response) => {
                         if (response.status === 200) {
-                            if(debug)console.log(response)
-                            if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
                             r(response.responseHeaders)
                         } else {
-                            console.log('Error:' + response.statusText + '(' + response.status + ')')
-                            console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                            console.error(response);
                         }
                     },
                     error:(res)=>{
-                        console.log("error");
-                        console.log(res);
+                        console.error(res);
                     }
                 })
             },
@@ -1372,21 +1351,17 @@ style="display: none;"></sup></div>
                                 headers: { authorization: "Bearer " + twitterAuth.authorization,"x-csrf-token":xcf , "content-type": "application/json"},
                                 data: "category=perftown&log=%5B%7B%22description%22%3A%22rweb%3Aseen_ids%3Apersistence%3Aget%3Asuccess%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A568%7D%2C%7B%22description%22%3A%22rweb%3Aseen_ids%3Apersistence%3Aget%3Asuccess%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A571%7D%2C%7B%22description%22%3A%22rweb%3Ainit%3AstorePrepare%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A581%7D%2C%7B%22description%22%3A%22rweb%3Attft%3AperfSupported%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A1%7D%2C%7B%22description%22%3A%22rweb%3Attft%3Aconnect%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A22%7D%2C%7B%22description%22%3A%22rweb%3Attft%3Aprocess%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A1497%7D%2C%7B%22description%22%3A%22rweb%3Attft%3Aresponse%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A425%7D%2C%7B%22description%22%3A%22rweb%3Attft%3Ainteractivity%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A2217%7D%5D",
                                 onload: (response) => {
-                                    if(debug)console.log(response)
                                     if (response.status === 200) {
-                                        if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
                                         let ct0 = response.responseHeaders.match(/ct0=(.+?);/)[1]
                                         if(ct0)twitterAuth.ct0 = ct0;
                                         resolve({status:"success"})
                                     } else {
-                                        console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                        console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                        console.error(response);
                                         resolve({status:"error"})
                                     }
                                 },
                                 error:(res)=>{
-                                    console.log("error");
-                                    console.log(res);
+                                    console.error(res);
                                     resolve({status:"error"})
                                 }
                             })
@@ -1417,12 +1392,12 @@ style="display: none;"></sup></div>
                         console.log(response)
                     },
                     error:(res)=>{
-                        console.log(res);
+                        console.error(res);
                     }
                 })
             },
             test: function(){
-                this.spotifySaveAuto(console.log, {id:"1R6vbGGXSEZZmTGn7ewwRL",type:"album"}, true)
+                // this.spotifySaveAuto(console.log, {id:"1R6vbGGXSEZZmTGn7ewwRL",type:"album"}, true)
             }
         }
         // ============Start===========
