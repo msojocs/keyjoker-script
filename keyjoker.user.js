@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.7.1
+// @version      0.7.2 
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -65,6 +65,15 @@
         ct0: '',
         updateTime: 0
     }
+    const getAuthStatusEx = {
+        discord: false,
+        spotify: false,
+        steam: false,
+        tumblr: false,
+        twitch: false,
+        twitter: false
+    }
+    let getAuthStatus = getAuthStatusEx;
     const noticeFrame = {
         loadFrame: ()=>{
             if(debug)console.log("loadFrame");
@@ -231,6 +240,8 @@ style="display: none;"></sup></div>
                 }
             },
             next: function (){
+                // 初始化凭证获取状态
+                getAuthStatus = getAuthStatusEx;
                 let time = GM_getValue("time");
                 if(!time){
                     time=60;
@@ -379,7 +390,11 @@ style="display: none;"></sup></div>
                 if (new Date().getTime() - discordAuth.updateTime > 30 * 60 * 1000 || discordAuth.status == 0 || update) {
                     r(203)
                     new Promise((resolve)=>{
-                        GM_openInTab("https://discord.com/channels/@me?keyjokertask=storageAuth", true);
+                        if(false == getAuthStatus.discord)
+                        {
+                            getAuthStatus.discord = true;
+                            GM_openInTab("https://discord.com/channels/@me?keyjokertask=storageAuth", true);
+                        }
                         let i = 0;
                         let check = setInterval(()=>{
                             i++;
@@ -391,7 +406,6 @@ style="display: none;"></sup></div>
                                     resolve(202)
                                     return;
                                 }
-                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">discordAuth updated!</font>"})
                                 discordAuth.authorization = GM_getValue("discordAuth").authorization
                                 discordAuth.updateTime = GM_getValue("discordAuth").updateTime
                                 discordAuth.status = GM_getValue("discordAuth").status;
@@ -578,6 +592,9 @@ style="display: none;"></sup></div>
                         if("success" == status)r();
                         else console.error(status, rep);
                     });
+                }else
+                {
+                    r();
                 }
             },
             reset: function (){
@@ -723,6 +740,18 @@ style="display: none;"></sup></div>
             // steam信息更新（In Progress）[修改自https://greasyfork.org/zh-CN/scripts/370650]
             steamInfoUpdate: function (r, type = 'all', update = false) {
                 if (new Date().getTime() - steamInfo.updateTime > 10 * 60 * 1000 || update) {
+                    if(true == getAuthStatus.steam)
+                    {
+                        let steamCheck = setInterval(()=>{
+                            if(GM_getValue("steamInfo") && new Date().getTime() - GM_getValue("steamInfo").updateTime <= 2 * 1000)
+                            {
+                                clearInterval(steamCheck);
+                                r(1);
+                            }
+                        }, 1000)
+                        return;
+                    }
+                    getAuthStatus.steam = true;
                     const pro = []
                     if (type === 'community' || type === 'all') {
                         pro.push(new Promise((resolve, reject) => {
@@ -1192,7 +1221,11 @@ style="display: none;"></sup></div>
                 if (new Date().getTime() - twitchAuth.updateTime > 30 * 60 * 1000 || update) {
                     r(203)
                     new Promise((resolve)=>{
-                        GM_openInTab("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth", true);
+                        if(false == getAuthStatus.twitch)
+                        {
+                            getAuthStatus.twitch = true;
+                            GM_openInTab("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth", true);
+                        }
                         let i = 0;
                         let check = setInterval(()=>{
                             i++;
@@ -1342,6 +1375,18 @@ style="display: none;"></sup></div>
             // 推特凭证更新（OK）
             twitterAuthUpdate:function(r, update = false){
                 if(new Date().getTime() - twitterAuth.updateTime > 30 * 60 * 1000 || update){
+                    if(true == getAuthStatus.twitter)
+                    {
+                        let twitterCheck = setInterval(()=>{
+                            if(GM_getValue("twitterAuth") && new Date().getTime() - GM_getValue("twitterAuth").updateTime <= 2 * 1000)
+                            {
+                                clearInterval(twitterCheck)
+                                r(1);
+                            }
+                        }, 1000);
+                        return;
+                    }
+                    getAuthStatus.twitter = true;
                     new Promise((resolve, reject) => {
                         this.twitterAP((ret)=>{
                             let xcf = ret.match(/ct0=(.+?);/)[1]
@@ -1402,11 +1447,9 @@ style="display: none;"></sup></div>
         }
         // ============Start===========
         window.onload=()=>{
-            if((document.getElementById("logout-form") && location.search !== "") || ($('.container').innerText == "Whoops, looks like something went wrong."))
+            if(location.pathname == "/entries" && document.getElementById("logout-form"))
             {
-                location.href = location.pathname;
-            }else if(location.href == "https://www.keyjoker.com/entries")
-            {
+                GM_log("main")
                 if(document.getElementsByClassName("nav-item active").length != 0 && document.getElementsByClassName("nav-item active")[0].innerText == "Earn Credits")
                 {
                     noticeFrame.loadFrame();
@@ -1421,6 +1464,13 @@ style="display: none;"></sup></div>
                     checkUpdate();
                 }
             }else{
+                let i = 0;
+                let check = setInterval(()=>{
+                    i++;
+                    if($('.container').innerText == "Whoops, looks like something went wrong.")location.href = location.pathname
+                    if(i >= 3)clearInterval(check)
+                }, 1000)
+                GM_log("App Handle")
                 func.appHandle();
             }
         }
