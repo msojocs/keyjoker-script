@@ -9,9 +9,9 @@
 [ ✔支持 |⭕支持中 |❌不支持 ]
 |功能|登录状态检测|凭证更新|自动做任务|提交任务|
 |----|----------|--------|---------|-------|
-|Join Steam Group|⭕|✔|✔|✔|
-|Rep Steam Account|⭕|✔|✔|✔|
-|Wishlist Steam Game|⭕|✔|✔|✔|
+|Join Steam Group|✔|✔|✔|✔|
+|Rep Steam Account|✔|✔|✔|✔|
+|Wishlist Steam Game|✔|✔|✔|✔|
 |Retweet Twitter Tweet|⭕|✔|✔|✔|
 |Follow Twitter Account|⭕|✔|✔|✔|
 |Follow Twitch Channel|✔|✔|✔|✔|

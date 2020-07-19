@@ -1,75 +1,28 @@
 {
     "actions": [
         {
-            "id": 9619,
-            "clicks": 1,
-            "entries": 0,
-            "text": "Write a \"+rep\" comment for \"jiyecafe1\" on Steam",
-            "redirect_url": "https://www.keyjoker.com/entries/open/9619",
-            "report_url": "https://www.keyjoker.com/reports/new/9619",
+            "id": 9279,
+            "clicks": 484,
+            "entries": 663,
+            "text": "Save \"Alpha Centauri\" to your Spotify library",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/9279",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/9279",
             "data": {
-                "id": "76561199055568575",
-                "url": "https://steamcommunity.com/profiles/76561199055568575",
-                "name": "jiyecafe1"
+                "id": "4I4KGqCwJUlhBTlyfftSV9",
+                "url": "https:\/\/open.spotify.com\/track\/4I4KGqCwJUlhBTlyfftSV9",
+                "name": "Alpha Centauri",
+                "type": "track"
             },
             "redeeming": false,
             "task": {
                 "provider": {
-                    "icon": "steam",
-                    "color": "#171a21"
+                    "icon": "spotify",
+                    "color": "#1ed760"
                 },
                 "identifier": {
-                    "description": "Users of our platform +rep a Steam account of your choice."
+                    "description": "Users of our platform save a Spotify album or track of your choice."
                 },
-                "name": "Rep Steam Account"
-            }
-        },
-        {
-            "id": 9626,
-            "clicks": 0,
-            "entries": 0,
-            "text": "Add \"Grand Theft Auto V\" to your Steam wishlist",
-            "data": {
-                "id": "271590",
-                "name": "Grand Theft Auto V",
-                "url": "https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/"
-            },
-            "redeeming": false,
-            "redirect_url": "https://www.keyjoker.com/entries/open/9626",
-            "report_url": "https://www.keyjoker.com/reports/new/9626",
-            "task": {
-                "provider": {
-                    "color": "#171a21",
-                    "icon": "steam"
-                },
-                "identifier": {
-                    "description": "Users of our platform add a game of your choice to their Steam wishlist."
-                },
-                "name": "Wishlist Steam Game"
-            }
-        },
-        {
-            "id": 2,
-            "clicks": 8147,
-            "entries": 9869,
-            "text": "Join the group \"Idle-Empire\" on Steam",
-            "redirect_url": "https://www.keyjoker.com/entries/open/2",
-            "report_url": "https://www.keyjoker.com/reports/new/2",
-            "data": {
-                "gid": "10011448",
-                "url": "https://steamcommunity.com/groups/idle-empire",
-                "name": "Idle-Empire"
-            },
-            "redeeming": false,
-            "task": {
-                "provider": {
-                    "icon": "steam",
-                    "color": "#171a21"
-                },
-                "identifier": {
-                    "description": "Users of our platform join a Steam group of your choice."
-                },
-                "name": "Join Steam Group"
+                "name": "Save Spotify Album"
             }
         }
     ],

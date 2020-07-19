@@ -1,4 +1,3 @@
-[
     {
         "actions": [
             {
@@ -171,6 +170,31 @@
                 }
             },
             {
+                "id": 9279,
+                "clicks": 484,
+                "entries": 663,
+                "text": "Save \"Alpha Centauri\" to your Spotify library",
+                "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/9279",
+                "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/9279",
+                "data": {
+                    "id": "4I4KGqCwJUlhBTlyfftSV9",
+                    "url": "https:\/\/open.spotify.com\/track\/4I4KGqCwJUlhBTlyfftSV9",
+                    "name": "Alpha Centauri",
+                    "type": "track"
+                },
+                "redeeming": false,
+                "task": {
+                    "provider": {
+                        "icon": "spotify",
+                        "color": "#1ed760"
+                    },
+                    "identifier": {
+                        "description": "Users of our platform save a Spotify album or track of your choice."
+                    },
+                    "name": "Save Spotify Album"
+                }
+            },
+            {
                 "id": 9582,
                 "clicks": 117,
                 "entries": 114,
@@ -246,4 +270,3 @@
         ],
         "reward": 100
     }
-]

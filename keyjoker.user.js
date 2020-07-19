@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.7.6
+// @version      0.7.7
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -283,6 +283,7 @@ style="display: none;"></sup></div>
                                 twitchAuth.status = 1;
                             }else twitchAuth.status = 0;
                             GM_setValue("twitchAuth", twitchAuth)
+                            console.log(twitchAuth)
                             window.close();
                         }
                         break;
@@ -294,6 +295,7 @@ style="display: none;"></sup></div>
                             else discordAuth.status = 1;
                             discordAuth.updateTime = new Date().getTime();
                             GM_setValue("discordAuth", discordAuth);
+                            console.log(discordAuth)
                             window.close();
                         }
                         break;
@@ -641,31 +643,59 @@ style="display: none;"></sup></div>
                         return;
                     }
                     let putUrl = ""
-                    switch(data.type)
-                    {
-                        case "album":
-                            putUrl = "https://spclient.wg.spotify.com/collection-view/v1/collection/albums/" + userId + "?base62ids=" + data.id + "&model=bookmark";
-                            break;
-                        default:
-                            GM_log(data)
-                            r(601)
-                            return;
-                            break;
-                    }
-                    $.ajax({
-                        type: !del?'PUT':"DELETE",
-                        url: putUrl,
-                        headers: {authorization: "Bearer " + accessToken},
-                        success: function(data){
-                            console.log(data);
-                            r(200);
-                        },
-                        error: function(data){
-                            console.error(data);
-                            r(601)
-                        },
-                        anonymous:true
-                    });
+                    new Promise((resolve, reject)=>{
+                        switch(data.type)
+                        {
+                            case "album":
+                                putUrl = "https://spclient.wg.spotify.com/collection-view/v1/collection/albums/" + userId + "?base62ids=" + data.id + "&model=bookmark";
+                                resolve(putUrl)
+                                break;
+                            case "track":
+                                this.httpRequest({
+                                    url: 'https://api.spotify.com/v1/tracks?ids=' + data.id + '&market=from_token',
+                                    method: 'GET',
+                                    headers:{authorization: "Bearer " + accessToken},
+                                    onload: (response) => {
+                                        if(response.status == 200)
+                                        {
+                                            let temp = JSON.parse(response.response);
+                                            putUrl = "https://spclient.wg.spotify.com/collection-view/v1/collection/albums/" + userId + "?base62ids=" + temp.tracks[0].album.id + "&model=bookmark";
+                                            resolve(putUrl);
+                                        }else
+                                        {
+                                            reject(601)
+                                        }
+                                    },
+                                    error:(res)=>{
+                                        console.log("error");
+                                        reject(601)
+                                    },
+                                    anonymous:true
+                                })
+                                break;
+                            default:
+                                GM_log(data)
+                                r(601)
+                                return;
+                                break;
+                        }
+                    }).then((putUrl)=>{
+                        if(debug)console.log(putUrl)
+                        $.ajax({
+                            type: !del?'PUT':"DELETE",
+                            url: putUrl,
+                            headers: {authorization: "Bearer " + accessToken},
+                            success: function(data){
+                                console.log(data);
+                                r(200);
+                            },
+                            error: function(data){
+                                console.error(data);
+                                r(601)
+                            },
+                            anonymous:true
+                        });
+                    })
                 });
             },
             // OK
