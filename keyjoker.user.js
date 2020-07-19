@@ -1568,24 +1568,24 @@ style="display: none;"></sup></div>
             }
         }
         // ============Start===========
-        window.onload=()=>{
-            if(location.pathname == "/entries" && document.getElementById("logout-form"))
+        if(location.pathname == "/entries" && document.getElementById("logout-form"))
+        {
+            GM_log("main")
+            if(document.getElementsByClassName("nav-item active").length != 0 && document.getElementsByClassName("nav-item active")[0].innerText == "Earn Credits")
             {
-                GM_log("main")
-                if(document.getElementsByClassName("nav-item active").length != 0 && document.getElementsByClassName("nav-item active")[0].innerText == "Earn Credits")
-                {
-                    noticeFrame.loadFrame();
-                    // 事件绑定
-                    eventBind();
-                    //let isStart=setInterval(()=>{
-                    if(GM_getValue("start")==1){
-                        //clearInterval(isStart);
-                        checkTask.next();
-                    }
-                    //},1000);
-                    checkUpdate();
+                noticeFrame.loadFrame();
+                // 事件绑定
+                eventBind();
+                //let isStart=setInterval(()=>{
+                if(GM_getValue("start")==1){
+                    //clearInterval(isStart);
+                    checkTask.next();
                 }
-            }else{
+                //},1000);
+                checkUpdate();
+            }
+        }else{
+            window.onload=()=>{
                 if($('.container').length > 0)
                 {
                     let i = 0;
@@ -1595,8 +1595,8 @@ style="display: none;"></sup></div>
                         if(i >= 10)clearInterval(check)
                     }, 1000);
                 }
-                func.appHandle();
             }
+            func.appHandle();
         }
         function checkUpdate(){
             // 隔一段时间检测新版本
