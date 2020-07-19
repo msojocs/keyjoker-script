@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.7.5
+// @version      0.7.6
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -37,7 +37,7 @@
 // @connect      jysafe.cn
 // @require      https://greasyfork.org/scripts/379868-jquery-not/code/jQuery%20not%20$.js?version=700787
 // @require      https://cdn.staticfile.org/jquery/3.3.1/jquery.min.js
-// @require      https://task.jysafe.cn/keyjoker/script/keyjoker.ext.js
+// @require      https://task.jysafe.cn/keyjoker/script/keyjoker.ext.js?ver=1
 // ==/UserScript==
 
 (function() {
@@ -54,7 +54,8 @@
         steam64Id: '',
         communitySessionID: '',
         storeSessionID: '',
-        updateTime: 0
+        comUpdateTime: 0,
+        storeUpdateTime: 0
     }
     const twitchAuth = GM_getValue('twitchAuth') || {
         "auth-token": "",
@@ -66,10 +67,12 @@
         ct0: '',
         updateTime: 0
     }
+    // 0-未动作|200-成功取得|401未登录|603正在取得
     const getAuthStatus = {
         discord: false,
         spotify: false,
-        steam: false,
+        steamStore: 0,
+        steamCom: 0,
         tumblr: false,
         twitch: false,
         twitter: false
@@ -247,7 +250,8 @@ style="display: none;"></sup></div>
                 // 初始化凭证获取状态
                 getAuthStatus.discord = false;
                 getAuthStatus.spotify = false;
-                getAuthStatus.steam = false;
+                getAuthStatus.steamStore = 0;
+                getAuthStatus.steamCom = 0;
                 getAuthStatus.tumblr = false;
                 getAuthStatus.twitch = false;
                 getAuthStatus.twitter = false;
@@ -352,12 +356,12 @@ style="display: none;"></sup></div>
                             } else {
                                 console.log('Error:' + response.statusText + '(' + response.status + ')')
                                 console.log({ result: 'error', statusText: response.statusText, status: response.status })
-                                r(201);
+                                r(601);
                             }
                         },
                         error:(res)=>{
                             console.error(res);
-                            r(201);
+                            r(601);
                         },
                         anonymous:true
                     })
@@ -377,18 +381,18 @@ style="display: none;"></sup></div>
                         headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
                         onload: (response) => {
                             if(debug)console.log(response)
-                            if (response.status === 204) {
+                            if (response.status === 604) {
                                 if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                                r(204);
+                                r(604);
                             } else {
                                 console.log('Error:' + response.statusText + '(' + response.status + ')')
                                 console.log({ result: 'error', statusText: response.statusText, status: response.status })
-                                r(201);
+                                r(601);
                             }
                         },
                         error:(res)=>{
                             console.error(res);
-                            r(201);
+                            r(601);
                         },
                         anonymous:true
                     })
@@ -397,7 +401,7 @@ style="display: none;"></sup></div>
             // discord凭证更新（OK）
             discordAuthUpdate:function(r, update = false){
                 if (new Date().getTime() - discordAuth.updateTime > 30 * 60 * 1000 || discordAuth.status == 0 || update) {
-                    r(203)
+                    r(603)
                     new Promise((resolve)=>{
                         if(false == getAuthStatus.discord)
                         {
@@ -412,7 +416,7 @@ style="display: none;"></sup></div>
                                 if(GM_getValue("discordAuth").status == 0)
                                 {
                                     clearInterval(check);
-                                    resolve(202)
+                                    resolve(401)
                                     return;
                                 }
                                 discordAuth.authorization = GM_getValue("discordAuth").authorization
@@ -450,16 +454,16 @@ style="display: none;"></sup></div>
                                 this.redeemAuto(task.redirect_url);
                                 noticeFrame.updateNotice(task.id, 'success')
                                 break;
-                            case 201:
+                            case 601:
                                 noticeFrame.updateNotice(task.id, 'error')
                                 break;
-                            case 202:
+                            case 401:
                                 noticeFrame.updateNotice1({id:task.id, class:"error", text:"Not Login"})
                                 break;
-                            case 203:
+                            case 603:
                                 noticeFrame.updateNotice1({id:task.id, class:"wait", text:"Getting Auth"})
                                 break;
-                            case 204:
+                            case 604:
                                 noticeFrame.updateNotice1({id:task.id, class:"error", text:"Network Error"})
                                 break;
                             default:
@@ -644,7 +648,7 @@ style="display: none;"></sup></div>
                             break;
                         default:
                             GM_log(data)
-                            r(201)
+                            r(601)
                             return;
                             break;
                     }
@@ -658,7 +662,7 @@ style="display: none;"></sup></div>
                         },
                         error: function(data){
                             console.error(data);
-                            r(201)
+                            r(601)
                         },
                         anonymous:true
                     });
@@ -686,7 +690,7 @@ style="display: none;"></sup></div>
                             break;
                         default:
                             if(debug)GM_log(data)
-                            r(201)
+                            r(601)
                             return;
                             break;
                     }
@@ -700,7 +704,7 @@ style="display: none;"></sup></div>
                         },
                         error: function(data){
                             console.error(data);
-                            r(201)
+                            r(601)
                         },
                         anonymous:true
                     });
@@ -708,7 +712,7 @@ style="display: none;"></sup></div>
             },
             // OK
             spotifyGetUserInfo: function(r){
-                r(203)
+                r(603)
                 this.spotifyGetAccessToken(
                     (status, accessToken)=>{
                         if(status != 200)
@@ -726,12 +730,12 @@ style="display: none;"></sup></div>
                                     r(200, accessToken, JSON.parse(response.responseText).id);
                                 } else {
                                     console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                    r(202)
+                                    r(401)
                                 }
                             },
                             error:(res)=>{
                                 console.log("error");
-                                r(202)
+                                r(601)
                             },
                             anonymous:true
                         })
@@ -748,49 +752,49 @@ style="display: none;"></sup></div>
                             r(200, JSON.parse(response.responseText).accessToken);
                         } else {
                             console.log(response)
-                            r(202);
+                            r(401);
                         }
                     },
                     error:(res)=>{
                         if(debug)console.log(res);
-                        r(202);
+                        r(601);
                     }
                 })
             },
             // =====================Steam Start======================
             // steam信息更新（In Progress）[修改自https://greasyfork.org/zh-CN/scripts/370650]
             steamInfoUpdate: function (r, type = 'all', update = false) {
-                if (new Date().getTime() - steamInfo.updateTime > 10 * 60 * 1000 || update) {
-                    r(203);
-                    if(true == getAuthStatus.steam)
-                    {
-                        let i = 0;
-                        let steamCheck = setInterval(()=>{
-                            i++;
-                            if(i >= 10)
-                            {
-                                clearInterval(steamCheck);
-                                r(201)
-                            }
-                            if(GM_getValue("steamInfo") && new Date().getTime() - GM_getValue("steamInfo").updateTime <= 2 * 1000)
-                            {
-                                clearInterval(steamCheck);
-                                r(200);
-                            }
-                        }, 1000)
-                        return;
-                    }
-                    getAuthStatus.steam = true;
-                    const pro = []
-                    if (type === 'community' || type === 'all') {
-                        pro.push(new Promise((resolve, reject) => {
+                r(603);
+                if (type === 'community' || type === 'all') {
+                    if (new Date().getTime() - steamInfo.comUpdateTime > 10 * 60 * 1000 || update) {
+                        if(603 == getAuthStatus.steamCom)
+                        {
+                            let i = 0;
+                            let steamCheck = setInterval(()=>{
+                                i++;
+                                if(603 != getAuthStatus.steamCom)
+                                {
+                                    clearInterval(steamCheck);
+                                    r(getAuthStatus.steamCom)
+                                }
+                                if(i >= 10)
+                                {
+                                    clearInterval(steamCheck);
+                                    r(601)
+                                }
+                            }, 1000)
+                            return;
+                        }
+                        getAuthStatus.steamCom = 603;
+                        new Promise((resolve, reject) => {
                             this.httpRequest({
                                 url: 'https://steamcommunity.com/my',
                                 method: 'GET',
                                 onload: (response) => {
                                     if (response.status === 200) {
                                         if ($(response.responseText).find('a[href*="/login/home"]').length > 0) {
-                                            reject(202)
+                                            getAuthStatus.steamCom = 401;
+                                            reject(401)
                                         } else {
                                             const steam64Id = response.responseText.match(/g_steamID = "(.+?)";/)
                                             const communitySessionID = response.responseText.match(/g_sessionID = "(.+?)";/)
@@ -798,19 +802,54 @@ style="display: none;"></sup></div>
                                             if (steam64Id) steamInfo.steam64Id = steam64Id[1]
                                             if (communitySessionID) steamInfo.communitySessionID = communitySessionID[1]
                                             if (userName) steamInfo.userName = userName[1]
+                                            getAuthStatus.steamCom = 200;
                                             resolve(200)
                                         }
                                     } else {
                                         console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                        reject(201)
+                                        getAuthStatus.steamCom = 601;
+                                        reject(601)
                                     }
                                 },
                                 r: resolve
                             })
-                        }))
+                        }).then((ret) => {
+                            if(ret == 200)
+                            {
+                                steamInfo.comUpdateTime = new Date().getTime();
+                                GM_setValue('steamInfo', steamInfo);
+                            }
+                            r(ret)
+                        }).catch(err => {
+                            console.error(err)
+                            r(err)
+                        })
+                    } else {
+                        r(200)
                     }
-                    if (type === 'store' || type === 'all') {
-                        pro.push(new Promise((resolve, reject) => {
+                }
+                if (type === 'store' || type === 'all') {
+                    if (new Date().getTime() - steamInfo.storeUpdateTime > 10 * 60 * 1000 || update) {
+                        if(603 == getAuthStatus.steamStore)
+                        {
+                            let i = 0;
+                            let steamCheck = setInterval(()=>{
+                                i++;
+                                if(603 != getAuthStatus.steamStore)
+                                {
+                                    clearInterval(steamCheck);
+                                    r(getAuthStatus.steamStore)
+                                }
+                                if(i >= 10)
+                                {
+                                    clearInterval(steamCheck);
+                                    r(601)
+                                }
+                            }, 1000)
+                            return;
+                        }
+                        getAuthStatus.steamStore = 603;
+                        new Promise((resolve, reject) => {
                             this.httpRequest({
                                 url: 'https://store.steampowered.com/stats/',
                                 method: 'GET',
@@ -818,34 +857,36 @@ style="display: none;"></sup></div>
                                     if (response.status === 200) {
                                         if ($(response.responseText).find('a[href*="/login/"]').length > 0) {
                                             if (debug) console.log(response)
-                                            reject(202)
+                                            getAuthStatus.steamStore = 401;
+                                            reject(401)
                                         } else {
                                             const storeSessionID = response.responseText.match(/g_sessionID = "(.+?)";/)
                                             if (storeSessionID) steamInfo.storeSessionID = storeSessionID[1]
+                                            getAuthStatus.steamStore = 200;
                                             resolve(200);
                                         }
                                     } else {
                                         console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                        reject(201)
+                                        getAuthStatus.steamStore = 601;
+                                        reject(601)
                                     }
                                 },
                                 r: resolve
                             })
-                        }))
+                        }).then((ret) => {
+                            if(ret == 200)
+                            {
+                                steamInfo.storeUpdateTime = new Date().getTime();
+                                GM_setValue('steamInfo', steamInfo);
+                            }
+                            r(ret)
+                        }).catch(err => {
+                            console.error(err)
+                            r(err)
+                        })
+                    } else {
+                        r(200)
                     }
-                    Promise.all(pro).then((ret) => {
-                        if(ret == 200)
-                        {
-                            steamInfo.updateTime = new Date().getTime();
-                            GM_setValue('steamInfo', steamInfo);
-                        }
-                        r(ret)
-                    }).catch(err => {
-                        console.error(err)
-                        r(err)
-                    })
-                } else {
-                    r(200)
                 }
             },
             // steam个人资料回复"+rep"（OK）
@@ -867,8 +908,8 @@ style="display: none;"></sup></div>
                                 if(response.status == 200)
                                 {
                                     let ret = JSON.parse(response.response)
-                                    if(ret.success == true)GM_log(200);else GM_log(201);
-                                }else r(201)
+                                    if(ret.success == true)GM_log(200);else GM_log(601);
+                                }else r(601)
                             }
                         })
                     }else{
@@ -878,6 +919,7 @@ style="display: none;"></sup></div>
             },
             steamRepHisCheck: function (r, id){
                 this.steamInfoUpdate((ret) => {
+                    console.log("更新请求完毕，状态码：" + ret)
                     if(ret != 200)
                     {
                         r(ret);
@@ -917,11 +959,11 @@ style="display: none;"></sup></div>
                         data: $.param({ action: 'join', sessionID: steamInfo.communitySessionID }),
                         onload: (response) => {
                             if (response.status === 200 && !response.responseText.includes('grouppage_join_area')) {
-                                if(response.responseText.match(/<h3>(.+?)<\/h3>/) && response.responseText.match(/<h3>(.+?)<\/h3>/)[1] != "您已经是该组的成员了。")r(201);
+                                if(response.responseText.match(/<h3>(.+?)<\/h3>/) && response.responseText.match(/<h3>(.+?)<\/h3>/)[1] != "您已经是该组的成员了。")r(601);
                                 else r(200)
                             } else {
                                 console.error(response)
-                                r(201);
+                                r(601);
                             }
                         }
                     })
@@ -943,7 +985,7 @@ style="display: none;"></sup></div>
                                 r(200)
                             } else {
                                 console.error(response)
-                                r(201)
+                                r(601)
                             }
                         },
                         r
@@ -1031,14 +1073,14 @@ style="display: none;"></sup></div>
                                         } else if ((response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('添加至您的愿望单')) || !response.responseText.includes('class="queue_actions_ctn"')) {
                                             console.error(response)
                                             GM_log({ result: 'error', statusText: response.statusText, status: response.status })
-                                            r(201)
+                                            r(601)
                                         } else {
                                             GM_log({ result: 'success', statusText: response.statusText, status: response.status })
                                             r(200)
                                         }
                                     } else {
                                         console.error(response)
-                                        r(201)
+                                        r(601)
                                     }
                                 },
                                 r
@@ -1046,7 +1088,7 @@ style="display: none;"></sup></div>
                         }
                     }).catch(err => {
                         console.error(err)
-                        r(201)
+                        r(601)
                     })
                 },'store')
             },
@@ -1086,11 +1128,11 @@ style="display: none;"></sup></div>
                                             r(200)
                                         } else {
                                             console.error('Error:' + result.statusText + '(' + result.status + ')')
-                                            r(201)
+                                            r(601)
                                         }
                                     } else {
                                         console.error(response)
-                                        r(201)
+                                        r(601)
                                     }
                                 },
                                 r
@@ -1098,7 +1140,7 @@ style="display: none;"></sup></div>
                         }
                     }).catch(err => {
                         console.error(err)
-                        r(201)
+                        r(601)
                     })
                 })
             },
@@ -1114,7 +1156,7 @@ style="display: none;"></sup></div>
                     if(false != key){
                         if(-1 != key.indexOf("!123") && -1 !=key.indexOf("|") )
                         {
-                            r(202)
+                            r(401)
                             return;
                         }
                         this.httpRequest({
@@ -1129,12 +1171,12 @@ style="display: none;"></sup></div>
                                 }else
                                 {
                                     console.error(response);
-                                    r(201);
+                                    r(601);
                                 }
                             }
                         })
                     }else{
-                        r(201)
+                        r(601)
                     }
                 })
             },
@@ -1149,7 +1191,7 @@ style="display: none;"></sup></div>
                     if(false != key){
                         if(-1 != key.indexOf("!123") && -1 !=key.indexOf("|") )
                         {
-                            r(202)
+                            r(401)
                             return;
                         }
                         this.httpRequest({
@@ -1163,18 +1205,18 @@ style="display: none;"></sup></div>
                                     r(200);
                                 }else{
                                     console.error(response);
-                                    r(201);
+                                    r(601);
                                 }
                             }
                         })
                     }else{
-                        r(201)
+                        r(601)
                     }
                 })
             },
             // tumblr获取请求头key（OK）
             tumblrGetKey:function(r){
-                r(203)
+                r(603)
                 this.httpRequest({
                     url: 'https://www.tumblr.com/dashboard/iframe',
                     method: 'GET',
@@ -1186,7 +1228,7 @@ style="display: none;"></sup></div>
                             else r(666)
                         }else{
                             console.error(response);
-                            r(201);
+                            r(601);
                         }
                     }
                 })
@@ -1211,10 +1253,10 @@ style="display: none;"></sup></div>
                             } else if(response.status === 401){
                                 twitchAuth.updateTime = 0;
                                 GM_setValue("twitchAuth", null);
-                                r(202)
+                                r(401)
                             }else{
                                 console.error(response);
-                                r(201)
+                                r(601)
                             }
                         }
                     })
@@ -1239,10 +1281,10 @@ style="display: none;"></sup></div>
                             } else if(response.status === 401){
                                 twitchAuth.updateTime = 0;
                                 GM_setValue("twitchAuth", null);
-                                r(202)
+                                r(401)
                             }else{
                                 console.error(response);
-                                r(201)
+                                r(601)
                             }
                         }
                     })
@@ -1271,7 +1313,7 @@ style="display: none;"></sup></div>
             // twitch凭证更新（OK）
             twitchAuthUpdate:function(r, update = false){
                 if (new Date().getTime() - twitchAuth.updateTime > 30 * 60 * 1000 || update) {
-                    r(203)
+                    r(603)
                     new Promise((resolve)=>{
                         if(false == getAuthStatus.twitch)
                         {
@@ -1286,7 +1328,7 @@ style="display: none;"></sup></div>
                                 if(GM_getValue("twitchAuth").status == 0)
                                 {
                                     clearInterval(check);
-                                    resolve(202)
+                                    resolve(401)
                                     return;
                                 }
                                 twitchAuth["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
@@ -1299,7 +1341,7 @@ style="display: none;"></sup></div>
                             {
                                 noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">twitchAuth获取超时</font>"})
                                 clearInterval(check);
-                                resolve(201)
+                                resolve(601)
                             }
                         }, 1000)
                     }).then((ret)=>{
@@ -1317,7 +1359,7 @@ style="display: none;"></sup></div>
                         if(debug)console.log(userId)
                         if("error" == userId)
                         {
-                            r(201);
+                            r(601);
                             return;
                         }
                         this.httpRequest({
@@ -1330,7 +1372,7 @@ style="display: none;"></sup></div>
                                     r(200);
                                 } else {
                                     console.error(response);
-                                    r(201);
+                                    r(601);
                                 }
                             }
                         })
@@ -1344,7 +1386,7 @@ style="display: none;"></sup></div>
                         if(debug)console.log(userId)
                         if("error" == userId)
                         {
-                            r(201);
+                            r(601);
                             return;
                         }
                         this.httpRequest({
@@ -1357,7 +1399,7 @@ style="display: none;"></sup></div>
                                     r(200);
                                 } else {
                                     console.error(response);
-                                    r(201);
+                                    r(601);
                                 }
                             }
                         })
@@ -1379,7 +1421,7 @@ style="display: none;"></sup></div>
                                 r(200);
                             } else {
                                 console.error(response);
-                                r(201);
+                                r(601);
                             }
                         }
                     })
@@ -1569,7 +1611,7 @@ style="display: none;"></sup></div>
                 noticeFrame.addNotice({type:"msg",msg:"目前提供以下反馈渠道："})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/jiyeme/keyjokerScript/issues/new/choose\" target=\"_blank\">GitHub</a>"})
-                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://keylol.com/t620181-1-1\" target=\"_blank\">其乐社区</a>"})
+                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://keylol.com/t660181-1-1\" target=\"_blank\">其乐社区</a>"})
             })
             // 版本升级后显示一次更新日志
             if(GM_getValue("currentVer") != GM_info.script.version)

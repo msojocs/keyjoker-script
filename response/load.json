@@ -47,6 +47,30 @@
                 },
                 "name": "Wishlist Steam Game"
             }
+        },
+        {
+            "id": 2,
+            "clicks": 8147,
+            "entries": 9869,
+            "text": "Join the group \"Idle-Empire\" on Steam",
+            "redirect_url": "https://www.keyjoker.com/entries/open/2",
+            "report_url": "https://www.keyjoker.com/reports/new/2",
+            "data": {
+                "gid": "10011448",
+                "url": "https://steamcommunity.com/groups/idle-empire",
+                "name": "Idle-Empire"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "steam",
+                    "color": "#171a21"
+                },
+                "identifier": {
+                    "description": "Users of our platform join a Steam group of your choice."
+                },
+                "name": "Join Steam Group"
+            }
         }
     ],
     "reward": 100
