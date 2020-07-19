@@ -98,6 +98,54 @@
                 }
             },
             {
+                "id": 9619,
+                "clicks": 1,
+                "entries": 0,
+                "text": "Write a \"+rep\" comment for \"jiyecafe1\" on Steam",
+                "redirect_url": "https://www.keyjoker.com/entries/open/9619",
+                "report_url": "https://www.keyjoker.com/reports/new/9619",
+                "data": {
+                    "id": "76561199055568575",
+                    "url": "https://steamcommunity.com/profiles/76561199055568575",
+                    "name": "jiyecafe1"
+                },
+                "redeeming": false,
+                "task": {
+                    "provider": {
+                        "icon": "steam",
+                        "color": "#171a21"
+                    },
+                    "identifier": {
+                        "description": "Users of our platform +rep a Steam account of your choice."
+                    },
+                    "name": "Rep Steam Account"
+                }
+            },
+            {
+                "id": 9626,
+                "clicks": 0,
+                "entries": 0,
+                "text": "Add \"Grand Theft Auto V\" to your Steam wishlist",
+                "data": {
+                    "id": "271590",
+                    "name": "Grand Theft Auto V",
+                    "url": "https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/"
+                },
+                "redeeming": false,
+                "redirect_url": "https://www.keyjoker.com/entries/open/9626",
+                "report_url": "https://www.keyjoker.com/reports/new/9626",
+                "task": {
+                    "provider": {
+                        "color": "#171a21",
+                        "icon": "steam"
+                    },
+                    "identifier": {
+                        "description": "Users of our platform add a game of your choice to their Steam wishlist."
+                    },
+                    "name": "Wishlist Steam Game"
+                }
+            },
+            {
                 "id": 9581,
                 "clicks": 52,
                 "entries": 97,
@@ -147,30 +195,6 @@
                 }
             },
             {
-                "id": 9619,
-                "clicks": 1,
-                "entries": 0,
-                "text": "Write a \"+rep\" comment for \"jiyecafe1\" on Steam",
-                "redirect_url": "https://www.keyjoker.com/entries/open/9619",
-                "report_url": "https://www.keyjoker.com/reports/new/9619",
-                "data": {
-                    "id": "76561199055568575",
-                    "url": "https://steamcommunity.com/profiles/76561199055568575",
-                    "name": "jiyecafe1"
-                },
-                "redeeming": false,
-                "task": {
-                    "provider": {
-                        "icon": "steam",
-                        "color": "#171a21"
-                    },
-                    "identifier": {
-                        "description": "Users of our platform +rep a Steam account of your choice."
-                    },
-                    "name": "Rep Steam Account"
-                }
-            },
-            {
                 "id": 9624,
                 "clicks": 0,
                 "entries": 0,
@@ -217,30 +241,6 @@
                         "description": "Users of our platform follow a Spotify user, artist, or playlist of your choice."
                     },
                     "name": "Follow Spotify Account"
-                }
-            },
-            {
-                "id": 9626,
-                "clicks": 0,
-                "entries": 0,
-                "text": "Add \"Grand Theft Auto V\" to your Steam wishlist",
-                "data": {
-                    "id": "271590",
-                    "name": "Grand Theft Auto V",
-                    "url": "https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/"
-                },
-                "redeeming": false,
-                "redirect_url": "https://www.keyjoker.com/entries/open/9626",
-                "report_url": "https://www.keyjoker.com/reports/new/9626",
-                "task": {
-                    "provider": {
-                        "color": "#171a21",
-                        "icon": "steam"
-                    },
-                    "identifier": {
-                        "description": "Users of our platform add a game of your choice to their Steam wishlist."
-                    },
-                    "name": "Wishlist Steam Game"
                 }
             }
         ],
