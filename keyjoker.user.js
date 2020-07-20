@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.7.7
+// @version      0.7.8
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -280,8 +280,8 @@ style="display: none;"></sup></div>
                             if(cookie.match(/auth-token=(.+?);/) != null)
                             {
                                 twitchAuth["auth-token"] = cookie.match(/auth-token=(.+?);/)[1]
-                                twitchAuth.status = 1;
-                            }else twitchAuth.status = 0;
+                                twitchAuth.status = 200;
+                            }else twitchAuth.status = 401;
                             GM_setValue("twitchAuth", twitchAuth)
                             console.log(twitchAuth)
                             window.close();
@@ -291,8 +291,8 @@ style="display: none;"></sup></div>
                         if(location.search == "?keyjokertask=storageAuth")
                         {
                             discordAuth.authorization = JSON.parse(localStorage.getItem("token"));
-                            if(discordAuth.authorization == null)discordAuth.status = 0;
-                            else discordAuth.status = 1;
+                            if(discordAuth.authorization == null)discordAuth.status = 401;
+                            else discordAuth.status = 200;
                             discordAuth.updateTime = new Date().getTime();
                             GM_setValue("discordAuth", discordAuth);
                             console.log(discordAuth)
@@ -402,9 +402,9 @@ style="display: none;"></sup></div>
             },
             // discord凭证更新（OK）
             discordAuthUpdate:function(r, update = false){
-                if (new Date().getTime() - discordAuth.updateTime > 30 * 60 * 1000 || discordAuth.status == 0 || update) {
+                if (new Date().getTime() - discordAuth.updateTime > 30 * 60 * 1000 || discordAuth.status != 200 || update) {
                     r(603)
-                    new Promise((resolve)=>{
+                    new Promise((resolve, reject)=>{
                         if(false == getAuthStatus.discord)
                         {
                             getAuthStatus.discord = true;
@@ -413,31 +413,30 @@ style="display: none;"></sup></div>
                         let i = 0;
                         let check = setInterval(()=>{
                             i++;
-                            if(GM_getValue("discordAuth") && new Date().getTime() - GM_getValue("discordAuth").updateTime <= 2 * 1000)
+                            if(GM_getValue("discordAuth") && new Date().getTime() - GM_getValue("discordAuth").updateTime <= 5 * 1000)
                             {
-                                if(GM_getValue("discordAuth").status == 0)
+                                if(GM_getValue("discordAuth").status != 200)
                                 {
                                     clearInterval(check);
-                                    resolve(401)
+                                    reject(GM_getValue("discordAuth").status)
                                     return;
                                 }
                                 discordAuth.authorization = GM_getValue("discordAuth").authorization
                                 discordAuth.updateTime = GM_getValue("discordAuth").updateTime
                                 discordAuth.status = GM_getValue("discordAuth").status;
                                 clearInterval(check);
-                                resolve("success")
+                                resolve(discordAuth.status)
                             }
                             if(i >= 10)
                             {
-                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">discordAuth获取超时</font>"})
                                 clearInterval(check);
-                                resolve("error")
+                                reject(408)
                             }
                         }, 1000)
                     }).then((ret)=>{
-                        if(ret == "success"){
-                            r(200)
-                        }else r(ret)
+                        r(ret)
+                    }).catch((err)=>{
+                        r(err)
                     })
                 }else{
                     r(200)
@@ -461,6 +460,9 @@ style="display: none;"></sup></div>
                                 break;
                             case 401:
                                 noticeFrame.updateNotice1({id:task.id, class:"error", text:"Not Login"})
+                                break;
+                            case 408:
+                                noticeFrame.updateNotice1({id:task.id, class:"error", text:"Time Out"})
                                 break;
                             case 603:
                                 noticeFrame.updateNotice1({id:task.id, class:"wait", text:"Getting Auth"})
@@ -1342,9 +1344,9 @@ style="display: none;"></sup></div>
             },
             // twitch凭证更新（OK）
             twitchAuthUpdate:function(r, update = false){
-                if (new Date().getTime() - twitchAuth.updateTime > 30 * 60 * 1000 || update) {
+                if (new Date().getTime() - twitchAuth.updateTime > 30 * 60 * 1000 || twitchAuth.status != 200 || update) {
                     r(603)
-                    new Promise((resolve)=>{
+                    new Promise((resolve, reject)=>{
                         if(false == getAuthStatus.twitch)
                         {
                             getAuthStatus.twitch = true;
@@ -1355,10 +1357,10 @@ style="display: none;"></sup></div>
                             i++;
                             if(GM_getValue("twitchAuth") && new Date().getTime() - GM_getValue("twitchAuth").updateTime <= 2 * 1000)
                             {
-                                if(GM_getValue("twitchAuth").status == 0)
+                                if(GM_getValue("twitchAuth").status != 200)
                                 {
                                     clearInterval(check);
-                                    resolve(401)
+                                    reject(GM_getValue("twitchAuth").status);
                                     return;
                                 }
                                 twitchAuth["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
@@ -1369,13 +1371,14 @@ style="display: none;"></sup></div>
                             }
                             if(i >= 10)
                             {
-                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">twitchAuth获取超时</font>"})
                                 clearInterval(check);
-                                resolve(601)
+                                reject(408)
                             }
                         }, 1000)
                     }).then((ret)=>{
                         r(ret);
+                    }).catch((err)=>{
+                        r(err);
                     })
                 }else{
                     r(200)

@@ -1,28 +1,51 @@
 {
     "actions": [
         {
-            "id": 9279,
-            "clicks": 484,
-            "entries": 663,
-            "text": "Save \"Alpha Centauri\" to your Spotify library",
-            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/9279",
-            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/9279",
+            "id": 9413,
+            "clicks": 606,
+            "entries": 495,
+            "text": "Join the server \"Trademart\" on Discord",
+            "redirect_url": "https://www.keyjoker.com/entries/open/9413",
+            "report_url": "https://www.keyjoker.com/reports/new/9413",
             "data": {
-                "id": "4I4KGqCwJUlhBTlyfftSV9",
-                "url": "https:\/\/open.spotify.com\/track\/4I4KGqCwJUlhBTlyfftSV9",
-                "name": "Alpha Centauri",
-                "type": "track"
+                "id": "530817290418126869",
+                "url": "https://discord.gg/9MdpuN7",
+                "name": "Trademart"
             },
             "redeeming": false,
             "task": {
                 "provider": {
-                    "icon": "spotify",
-                    "color": "#1ed760"
+                    "icon": "discord",
+                    "color": "#7289da"
                 },
                 "identifier": {
-                    "description": "Users of our platform save a Spotify album or track of your choice."
+                    "description": "Users of our platform join a Discord server of your choice."
                 },
-                "name": "Save Spotify Album"
+                "name": "Join Discord Server"
+            }
+        },
+        {
+            "id": 9414,
+            "clicks": 606,
+            "entries": 495,
+            "text": "Join the server \"Trademart\" on Discord",
+            "redirect_url": "https://www.keyjoker.com/entries/open/9413",
+            "report_url": "https://www.keyjoker.com/reports/new/9413",
+            "data": {
+                "id": "530817290418126869",
+                "url": "https://discord.gg/9MdpuN7",
+                "name": "Trademart"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "discord",
+                    "color": "#7289da"
+                },
+                "identifier": {
+                    "description": "Users of our platform join a Discord server of your choice."
+                },
+                "name": "Join Discord Server"
             }
         }
     ],
