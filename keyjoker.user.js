@@ -37,7 +37,7 @@
 // @connect      jysafe.cn
 // @require      https://greasyfork.org/scripts/379868-jquery-not/code/jQuery%20not%20$.js?version=700787
 // @require      https://cdn.staticfile.org/jquery/3.3.1/jquery.min.js
-// @require      https://task.jysafe.cn/keyjoker/script/keyjoker.ext.js?ver=1
+// @require      https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript/keyjoker.ext.js
 // ==/UserScript==
 
 (function() {
