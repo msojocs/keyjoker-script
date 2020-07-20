@@ -12,13 +12,13 @@
 |Join Steam Group|✔|✔|✔|✔|
 |Rep Steam Account|✔|✔|✔|✔|
 |Wishlist Steam Game|✔|✔|✔|✔|
-|Retweet Twitter Tweet|⭕|✔|✔|✔|
-|Follow Twitter Account|⭕|✔|✔|✔|
+|Retweet Twitter Tweet|✔|✔|✔|✔|
+|Follow Twitter Account|✔|✔|✔|✔|
 |Follow Twitch Channel|✔|✔|✔|✔|
 |Join Discord Server|✔|✔|✔|✔|
 |Save Spotify Album|✔|✔|✔|✔|
 |Follow Tumblr Blog|✔|✔|✔|✔|
-|Follow Spotify Account|✔|✔|✔|✔|
+|Follow Spotify Account|✔|✔|⭕|✔|
 |Get hCaptcha Access Cookie|✔|✔|✔|❌|
 
 # 安装

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.7.8
+// @version      0.7.9
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -37,11 +37,7 @@
 // @connect      jysafe.cn
 // @require      https://greasyfork.org/scripts/379868-jquery-not/code/jQuery%20not%20$.js?version=700787
 // @require      https://cdn.staticfile.org/jquery/3.3.1/jquery.min.js
-<<<<<<< HEAD
 // @require      https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@e1f9bc6ca24cf7e8f734bd910306737449a26830/keyjoker.ext.js
-=======
-// @require      https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript/keyjoker.ext.js
->>>>>>> e1f9bc6ca24cf7e8f734bd910306737449a26830
 // ==/UserScript==
 
 (function() {
@@ -79,7 +75,7 @@
         steamCom: 0,
         tumblr: false,
         twitch: false,
-        twitter: false
+        twitter: 0
     }
     var checkSwitchId = null;
     const noticeFrame = {
@@ -1359,12 +1355,12 @@ style="display: none;"></sup></div>
                         let i = 0;
                         let check = setInterval(()=>{
                             i++;
-                            if(GM_getValue("twitchAuth") && new Date().getTime() - GM_getValue("twitchAuth").updateTime <= 2 * 1000)
+                            if(GM_getValue("twitchAuth") && new Date().getTime() - GM_getValue("twitchAuth").updateTime <= 5 * 1000)
                             {
                                 if(GM_getValue("twitchAuth").status != 200)
                                 {
                                     clearInterval(check);
-                                    reject(GM_getValue("twitchAuth").status);
+                                    reject(401);
                                     return;
                                 }
                                 twitchAuth["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
@@ -1391,7 +1387,12 @@ style="display: none;"></sup></div>
             // ==========Twitter Start========
             // 推特关注用户（OK）
             twitterFollowAuto: function(r, data){
-                this.twitterAuthUpdate(()=>{
+                this.twitterAuthUpdate((status)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
                     this.twitterGetUserInfo((userId)=>{
                         if(debug)console.log(userId)
                         if("error" == userId)
@@ -1409,6 +1410,8 @@ style="display: none;"></sup></div>
                                     r(200);
                                 } else {
                                     console.error(response);
+                                    twitterAuth.updateTime = 0;
+                                    GM_setValue("twitterAuth", twitterAuth);
                                     r(601);
                                 }
                             }
@@ -1418,7 +1421,12 @@ style="display: none;"></sup></div>
             },
             // 推特取消关注用户（OK）
             twitterUnfollowAuto: function(r, data){
-                this.twitterAuthUpdate(()=>{
+                this.twitterAuthUpdate((status)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
                     this.twitterGetUserInfo((userId)=>{
                         if(debug)console.log(userId)
                         if("error" == userId)
@@ -1436,6 +1444,8 @@ style="display: none;"></sup></div>
                                     r(200);
                                 } else {
                                     console.error(response);
+                                    twitterAuth.updateTime = 0;
+                                    GM_setValue("twitterAuth", twitterAuth);
                                     r(601);
                                 }
                             }
@@ -1447,7 +1457,12 @@ style="display: none;"></sup></div>
             twitterRetweetAuto: function(r, url){
                 if(debug)console.log("====twitterRetweetAuto====");
                 let retweetId = url.split("status/")[1];
-                this.twitterAuthUpdate(()=>{
+                this.twitterAuthUpdate((status)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
                     this.httpRequest({
                         url: 'https://api.twitter.com/1.1/statuses/retweet.json',
                         method: 'POST',
@@ -1458,6 +1473,8 @@ style="display: none;"></sup></div>
                                 r(200);
                             } else {
                                 console.error(response);
+                                twitterAuth.updateTime = 0;
+                                GM_setValue("twitterAuth", twitterAuth);
                                 r(601);
                             }
                         }
@@ -1506,21 +1523,35 @@ style="display: none;"></sup></div>
             // 推特凭证更新（OK）
             twitterAuthUpdate:function(r, update = false){
                 if(new Date().getTime() - twitterAuth.updateTime > 30 * 60 * 1000 || update){
-                    if(true == getAuthStatus.twitter)
+                    if(603 == getAuthStatus.twitter)
                     {
+                        let i = 0;
                         let twitterCheck = setInterval(()=>{
-                            if(GM_getValue("twitterAuth") && new Date().getTime() - GM_getValue("twitterAuth").updateTime <= 2 * 1000)
+                            i++;
+                            if(GM_getValue("twitterAuth") && new Date().getTime() - GM_getValue("twitterAuth").updateTime <= 5 * 1000 || getAuthStatus.twitter != 603)
                             {
-                                clearInterval(twitterCheck)
-                                r(1);
+                                clearInterval(twitterCheck);
+                                r(getAuthStatus.twitter);
+                            }
+                            if(i >= 10)
+                            {
+                                clearInterval(twitterCheck);
+                                r(408);
                             }
                         }, 1000);
                         return;
                     }
-                    getAuthStatus.twitter = true;
+                    getAuthStatus.twitter = 603;
                     new Promise((resolve, reject) => {
                         this.twitterAP((ret)=>{
-                            let xcf = ret.match(/ct0=(.+?);/)[1]
+                            let t = ret.match(/ct0=(.+?);/);
+                            if(t == null)
+                            {
+                                getAuthStatus.twitter = 401;
+                                reject(401);
+                                return;
+                            }
+                            let xcf = t[1];
                             this.httpRequest({
                                 url: 'https://api.twitter.com/1.1/jot/client_event.json',
                                 method: 'POST',
@@ -1529,29 +1560,38 @@ style="display: none;"></sup></div>
                                 onload: (response) => {
                                     if (response.status === 200) {
                                         let ct0 = response.responseHeaders.match(/ct0=(.+?);/)[1]
-                                        if(ct0)twitterAuth.ct0 = ct0;
-                                        resolve({status:"success"})
+                                        if(ct0)
+                                        {
+                                            twitterAuth.ct0 = ct0;
+                                            getAuthStatus.twitter = 200;
+                                            resolve(200)
+                                        }else{
+                                            getAuthStatus.twitter = 401;
+                                            reject(401)
+                                        }
                                     } else {
                                         console.error(response);
-                                        resolve({status:"error"})
+                                        getAuthStatus.twitter = 401;
+                                        resolve(401)
                                     }
                                 },
                                 error:(res)=>{
                                     console.error(res);
-                                    resolve({status:"error"})
+                                    resolve(601)
                                 }
                             })
                         })
-                    }).then((ret)=>{
-                        if(debug)console.log(ret);
-                        if(ret.status == "success")
+                    }).then((status)=>{
+                        if(status == 200)
                         {
                             twitterAuth.updateTime = new Date().getTime()
                             GM_setValue("twitterAuth", twitterAuth)
-                            r(1);
+                            r(status);
                         }else{
                             noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">twitter token获取失败</font>"})
                         }
+                    }).catch((err)=>{
+                        r(err);
                     })
                 }else{
                     r(1)
