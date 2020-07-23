@@ -1,195 +1,27 @@
 {
     "actions": [
         {
-            "id": 8893,
-            "clicks": 974,
-            "entries": 1179,
-            "text": "Follow \"keyjoker_com\" on Twitter",
-            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/8893",
-            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/8893",
+            "id": 9675,
+            "clicks": 10,
+            "entries": 5,
+            "text": "Write a \"+rep\" comment for \"I Do Believe\" on Steam",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/9675",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/9675",
             "data": {
-                "id": 1100161851231518720,
-                "url": "https:\/\/twitter.com\/keyjoker_com",
-                "username": "keyjoker_com"
+                "id": "76561198959111435",
+                "url": "https:\/\/steamcommunity.com\/profiles\/76561198959111435",
+                "name": "I Do Believe"
             },
             "redeeming": false,
             "task": {
                 "provider": {
-                    "icon": "twitter",
-                    "color": "#1da1f2"
+                    "icon": "steam",
+                    "color": "#171a21"
                 },
                 "identifier": {
-                    "description": "Users of our platform follow a Twitter account of your choice."
+                    "description": "Users of our platform +rep a Steam account of your choice."
                 },
-                "name": "Follow Twitter Account"
-            }
-        },
-        {
-            "id": 8808,
-            "clicks": 1508,
-            "entries": 1517,
-            "text": "Retweet the tweet of \"HamstersOnline\" on Twitter",
-            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/8808",
-            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/8808",
-            "data": {
-                "id": 1255276427685093381,
-                "url": "https:\/\/twitter.com\/HamstersOnline\/status\/1255276427685093381",
-                "name": "HamstersOnline"
-            },
-            "redeeming": false,
-            "task": {
-                "provider": {
-                    "icon": "twitter",
-                    "color": "#1da1f2"
-                },
-                "identifier": {
-                    "description": "Users of our platform retweet a Tweet of your choice."
-                },
-                "name": "Retweet Twitter Tweet"
-            }
-        },
-        {
-            "id": 8897,
-            "clicks": 984,
-            "entries": 1172,
-            "text": "Follow \"TheAtiBoy\" on Twitter",
-            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/8897",
-            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/8897",
-            "data": {
-                "id": 82982153,
-                "url": "https:\/\/twitter.com\/TheAtiBoy",
-                "username": "TheAtiBoy"
-            },
-            "redeeming": false,
-            "task": {
-                "provider": {
-                    "icon": "twitter",
-                    "color": "#1da1f2"
-                },
-                "identifier": {
-                    "description": "Users of our platform follow a Twitter account of your choice."
-                },
-                "name": "Follow Twitter Account"
-            }
-        },
-        {
-            "id": 1,
-            "clicks": 6133,
-            "entries": 7657,
-            "text": "Follow \"CSGOIdleEmpire\" on Twitter",
-            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/1",
-            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/1",
-            "data": {
-                "id": 769356077758607360,
-                "url": "https:\/\/twitter.com\/CSGOIdleEmpire",
-                "username": "CSGOIdleEmpire"
-            },
-            "redeeming": false,
-            "task": {
-                "provider": {
-                    "icon": "twitter",
-                    "color": "#1da1f2"
-                },
-                "identifier": {
-                    "description": "Users of our platform follow a Twitter account of your choice."
-                },
-                "name": "Follow Twitter Account"
-            }
-        },
-        {
-            "id": 8811,
-            "clicks": 1513,
-            "entries": 1509,
-            "text": "Retweet the tweet of \"HamstersOnline\" on Twitter",
-            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/8811",
-            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/8811",
-            "data": {
-                "id": 1255378176852856832,
-                "url": "https:\/\/twitter.com\/HamstersOnline\/status\/1255378176852856832",
-                "name": "HamstersOnline"
-            },
-            "redeeming": false,
-            "task": {
-                "provider": {
-                    "icon": "twitter",
-                    "color": "#1da1f2"
-                },
-                "identifier": {
-                    "description": "Users of our platform retweet a Tweet of your choice."
-                },
-                "name": "Retweet Twitter Tweet"
-            }
-        },
-        {
-            "id": 9117,
-            "clicks": 833,
-            "entries": 1043,
-            "text": "Follow \"skinportcom\" on Twitter",
-            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/9117",
-            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/9117",
-            "data": {
-                "id": 973912423295078400,
-                "url": "https:\/\/twitter.com\/skinportcom",
-                "username": "skinportcom"
-            },
-            "redeeming": false,
-            "task": {
-                "provider": {
-                    "icon": "twitter",
-                    "color": "#1da1f2"
-                },
-                "identifier": {
-                    "description": "Users of our platform follow a Twitter account of your choice."
-                },
-                "name": "Follow Twitter Account"
-            }
-        },
-        {
-            "id": 8899,
-            "clicks": 1106,
-            "entries": 1175,
-            "text": "Follow \"swagspec\" on Twitter",
-            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/8899",
-            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/8899",
-            "data": {
-                "id": 1151078656934055937,
-                "url": "https:\/\/twitter.com\/swagspec",
-                "username": "swagspec"
-            },
-            "redeeming": false,
-            "task": {
-                "provider": {
-                    "icon": "twitter",
-                    "color": "#1da1f2"
-                },
-                "identifier": {
-                    "description": "Users of our platform follow a Twitter account of your choice."
-                },
-                "name": "Follow Twitter Account"
-            }
-        },
-        {
-            "id": 8851,
-            "clicks": 1425,
-            "entries": 1431,
-            "text": "Retweet the tweet of \"HamstersOnline\" on Twitter",
-            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/8851",
-            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/8851",
-            "data": {
-                "id": 1258503727520104454,
-                "url": "https:\/\/twitter.com\/HamstersOnline\/status\/1258503727520104454",
-                "name": "HamstersOnline"
-            },
-            "redeeming": false,
-            "task": {
-                "provider": {
-                    "icon": "twitter",
-                    "color": "#1da1f2"
-                },
-                "identifier": {
-                    "description": "Users of our platform retweet a Tweet of your choice."
-                },
-                "name": "Retweet Twitter Tweet"
+                "name": "Rep Steam Account"
             }
         }
     ],

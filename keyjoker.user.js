@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.7.9
+// @version      0.8.0
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -254,7 +254,7 @@ style="display: none;"></sup></div>
                 getAuthStatus.steamCom = 0;
                 getAuthStatus.tumblr = false;
                 getAuthStatus.twitch = false;
-                getAuthStatus.twitter = false;
+                getAuthStatus.twitter = 0;
                 let time = GM_getValue("time");
                 if(!time){
                     time=60;
@@ -447,13 +447,14 @@ style="display: none;"></sup></div>
                 for(const task of data.actions)
                 {
                     noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
-                    this.runDirectUrl(task.redirect_url)
+                    this.runDirectUrl(task.redirect_url);
                     let react = (code)=>{
+                        if(debug)console.log("react code--->" + code)
                         switch(code)
                         {
                             case 200:
-                                this.redeemAuto(task.redirect_url);
                                 noticeFrame.updateNotice(task.id, 'success')
+                                this.redeemAuto(task.redirect_url);
                                 break;
                             case 601:
                                 noticeFrame.updateNotice(task.id, 'error')
@@ -470,8 +471,12 @@ style="display: none;"></sup></div>
                             case 604:
                                 noticeFrame.updateNotice1({id:task.id, class:"error", text:"Network Error"})
                                 break;
+                            case 605:
+                                noticeFrame.updateNotice1({id:task.id, class:"error", text:"评论区未找到"})
+                                break;
                             default:
-                                noticeFrame.updateNotice(task.id, 'Unknown Error')
+                                noticeFrame.updateNotice1({id:task.id, class:"error", text:"Unknown Error"})
+                                console.error("React Unknown Error--->" + code)
                                 break;
                         }
                     }
@@ -644,13 +649,13 @@ style="display: none;"></sup></div>
                         r(status);
                         return;
                     }
-                    let putUrl = ""
+                    let putUrl = "";
                     new Promise((resolve, reject)=>{
                         switch(data.type)
                         {
                             case "album":
                                 putUrl = "https://spclient.wg.spotify.com/collection-view/v1/collection/albums/" + userId + "?base62ids=" + data.id + "&model=bookmark";
-                                resolve(putUrl)
+                                resolve(putUrl);
                                 break;
                             case "track":
                                 this.httpRequest({
@@ -676,8 +681,8 @@ style="display: none;"></sup></div>
                                 })
                                 break;
                             default:
-                                GM_log(data)
-                                r(601)
+                                GM_log(data);
+                                r(601);
                                 return;
                                 break;
                         }
@@ -693,7 +698,7 @@ style="display: none;"></sup></div>
                             },
                             error: function(data){
                                 console.error(data);
-                                r(601)
+                                r(601);
                             },
                             anonymous:true
                         });
@@ -721,8 +726,8 @@ style="display: none;"></sup></div>
                             putUrl = "https://api.spotify.com/v1/me/following?type=user&ids=" + data.id;
                             break;
                         default:
-                            if(debug)GM_log(data)
-                            r(601)
+                            if(debug)GM_log(data);
+                            r(601);
                             return;
                             break;
                     }
@@ -731,12 +736,11 @@ style="display: none;"></sup></div>
                         url: putUrl,
                         headers: {authorization: "Bearer " + accessToken},
                         success: function(data){
-                            if(debug)console.log(data);
                             r(200);
                         },
                         error: function(data){
                             console.error(data);
-                            r(601)
+                            r(604);
                         },
                         anonymous:true
                     });
@@ -757,17 +761,18 @@ style="display: none;"></sup></div>
                             method: 'GET',
                             headers:{authorization: "Bearer " + accessToken},
                             onload: (response) => {
+                                if(debug)console.log("spotifyGetUserInfo")
                                 if (response.status === 200) {
                                     if(debug)console.log(response)
                                     r(200, accessToken, JSON.parse(response.responseText).id);
                                 } else {
                                     console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                    r(401)
+                                    r(401);
                                 }
                             },
                             error:(res)=>{
                                 console.log("error");
-                                r(601)
+                                r(604);
                             },
                             anonymous:true
                         })
@@ -780,16 +785,17 @@ style="display: none;"></sup></div>
                     url: 'https://open.spotify.com/get_access_token?reason=transport&productType=web_player',
                     method: 'GET',
                     onload: (response) => {
+                        if(debug)console.log("spotifyGetAccessToken")
                         if (response.status === 200) {
                             r(200, JSON.parse(response.responseText).accessToken);
                         } else {
-                            console.log(response)
+                            console.log(response);
                             r(401);
                         }
                     },
                     error:(res)=>{
                         if(debug)console.log(res);
-                        r(601);
+                        r(604);
                     }
                 })
             },
@@ -807,12 +813,12 @@ style="display: none;"></sup></div>
                                 if(603 != getAuthStatus.steamCom)
                                 {
                                     clearInterval(steamCheck);
-                                    r(getAuthStatus.steamCom)
+                                    r(getAuthStatus.steamCom);
                                 }
                                 if(i >= 10)
                                 {
                                     clearInterval(steamCheck);
-                                    r(601)
+                                    r(601);
                                 }
                             }, 1000)
                             return;
@@ -826,21 +832,21 @@ style="display: none;"></sup></div>
                                     if (response.status === 200) {
                                         if ($(response.responseText).find('a[href*="/login/home"]').length > 0) {
                                             getAuthStatus.steamCom = 401;
-                                            reject(401)
+                                            reject(401);
                                         } else {
-                                            const steam64Id = response.responseText.match(/g_steamID = "(.+?)";/)
-                                            const communitySessionID = response.responseText.match(/g_sessionID = "(.+?)";/)
-                                            const userName = response.responseText.match(/steamcommunity.com\/id\/(.+?)\/friends\//)
-                                            if (steam64Id) steamInfo.steam64Id = steam64Id[1]
-                                            if (communitySessionID) steamInfo.communitySessionID = communitySessionID[1]
-                                            if (userName) steamInfo.userName = userName[1]
+                                            const steam64Id = response.responseText.match(/g_steamID = "(.+?)";/);
+                                            const communitySessionID = response.responseText.match(/g_sessionID = "(.+?)";/);
+                                            const userName = response.responseText.match(/steamcommunity.com\/id\/(.+?)\/friends\//);
+                                            if (steam64Id) steamInfo.steam64Id = steam64Id[1];
+                                            if (communitySessionID) steamInfo.communitySessionID = communitySessionID[1];
+                                            if (userName) steamInfo.userName = userName[1];
                                             getAuthStatus.steamCom = 200;
-                                            resolve(200)
+                                            resolve(200);
                                         }
                                     } else {
-                                        console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                        console.log('Error:' + response.statusText + '(' + response.status + ')');
                                         getAuthStatus.steamCom = 601;
-                                        reject(601)
+                                        reject(601);
                                     }
                                 },
                                 r: resolve
@@ -851,13 +857,13 @@ style="display: none;"></sup></div>
                                 steamInfo.comUpdateTime = new Date().getTime();
                                 GM_setValue('steamInfo', steamInfo);
                             }
-                            r(ret)
+                            r(ret);
                         }).catch(err => {
-                            console.error(err)
-                            r(err)
+                            console.error(err);
+                            r(err);
                         })
                     } else {
-                        r(200)
+                        r(200);
                     }
                 }
                 if (type === 'store' || type === 'all') {
@@ -923,10 +929,10 @@ style="display: none;"></sup></div>
             },
             // steam个人资料回复"+rep"（OK）
             steamRepAuto: function(r, id){
-                this.steamRepHisCheck((ret) => {
-                    if(ret != 200)
+                this.steamRepHisCheck((status, ret = null) => {
+                    if(status != 200)
                     {
-                        r(ret);
+                        r(status);
                         return;
                     }
                     if(!ret){
@@ -936,12 +942,12 @@ style="display: none;"></sup></div>
                             data: $.param({comment:'+rep',count:6,sessionid:steamInfo.communitySessionID,feature2:-1}),
                             headers:{'content-type': 'application/x-www-form-urlencoded'},
                             onload: (response) => {
-                                console.log(response);
+                                if(debug)console.log("发送评论", response);
                                 if(response.status == 200)
                                 {
                                     let ret = JSON.parse(response.response)
-                                    if(ret.success == true)GM_log(200);else GM_log(601);
-                                }else r(601)
+                                    if(ret.success == true)r(200);else r(601);
+                                }else r(601);
                             }
                         })
                     }else{
@@ -964,12 +970,11 @@ style="display: none;"></sup></div>
                             if(response.status == 200)
                             {
                                 let comments = response.responseText.match(/commentthread_comments([\s\S]*)commentthread_footer/);
-                                console.log(comments)
-                                if(comments != null)r(comments[1].includes(steamInfo.steam64Id));
-                                else noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">steam评论区未找到</font>"})
+                                if(comments != null)r(200, comments[1].includes(steamInfo.steam64Id));
+                                else r(605)
                             }else{
                                 console.log(response)
-                                noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">出现异常</font>"})
+                                r(601)
                             }
                         }
                         //,anonymous:true
@@ -1257,7 +1262,7 @@ style="display: none;"></sup></div>
                         {
                             let key = response.responseText.match(/id="tumblr_form_key" content="(.+?)">/)
                             if(key)r(200, key[1]);
-                            else r(666)
+                            else r(601)
                         }else{
                             console.error(response);
                             r(601);
@@ -1615,34 +1620,35 @@ style="display: none;"></sup></div>
             }
         }
         // ============Start===========
-        if(location.pathname == "/entries" && document.getElementById("logout-form"))
+        if(location.pathname == "/entries")
         {
-            GM_log("main")
-            if(document.getElementsByClassName("nav-item active").length != 0 && document.getElementsByClassName("nav-item active")[0].innerText == "Earn Credits")
-            {
-                noticeFrame.loadFrame();
-                // 事件绑定
-                eventBind();
-                //let isStart=setInterval(()=>{
-                if(GM_getValue("start")==1){
-                    //clearInterval(isStart);
-                    checkTask.next();
+            window.onload=()=>{
+                GM_log("main")
+                if(document.getElementsByClassName("nav-item active").length != 0 && document.getElementsByClassName("nav-item active")[0].innerText == "Earn Credits" && document.getElementById("logout-form"))
+                {
+                    noticeFrame.loadFrame();
+                    // 事件绑定
+                    eventBind();
+                    //let isStart=setInterval(()=>{
+                    if(GM_getValue("start")==1){
+                        //clearInterval(isStart);
+                        checkTask.next();
+                    }
+                    //},1000);
+                    checkUpdate();
+                }else{
+                    if($('.container').length > 0)
+                    {
+                        let i = 0;
+                        let check = setInterval(()=>{
+                            i++;
+                            if($('.container')[0].innerText == "Whoops, looks like something went wrong.")location.href = location.pathname
+                            if(i >= 10)clearInterval(check)
+                        }, 1000);
+                    }
                 }
-                //},1000);
-                checkUpdate();
             }
         }else{
-            window.onload=()=>{
-                if($('.container').length > 0)
-                {
-                    let i = 0;
-                    let check = setInterval(()=>{
-                        i++;
-                        if($('.container')[0].innerText == "Whoops, looks like something went wrong.")location.href = location.pathname
-                        if(i >= 10)clearInterval(check)
-                    }, 1000);
-                }
-            }
             func.appHandle();
         }
         function checkUpdate(){
@@ -1726,7 +1732,7 @@ style="display: none;"></sup></div>
                     offlineSwitch(id);
                 });
             }else{
-                let id = GM_registerMenuCommand("进入急速模式",()=>{
+                let id = GM_registerMenuCommand("进入极速模式",()=>{
                     GM_setValue("offlineMode", true);
                     offlineSwitch(id);
                 });
