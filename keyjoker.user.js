@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.8.1
+// @version      0.8.2
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -314,12 +314,12 @@ style="display: none;"></sup></div>
             authVerify:function(){
                 // noticeFrame.loadFrame();
                 noticeFrame.addNotice("检查各项凭证");
-                noticeFrame.addNotice({type: "authVerify", name: "Discord Auth", status:{id: "discord", class: "wait", text:"ready"}});
-                noticeFrame.addNotice({type: "authVerify", name: "Spotify Auth&nbsp;", status:{id: "spotify", class: "wait", text:"ready"}});
-                noticeFrame.addNotice({type: "authVerify", name: "Steam Auth&nbsp;&nbsp;", status:{id: "steam", class: "wait", text:"ready"}});
-                noticeFrame.addNotice({type: "authVerify", name: "Tumblr Auth", status:{id: "tumblr", class: "wait", text:"ready"}});
-                noticeFrame.addNotice({type: "authVerify", name: "Twitch Auth&nbsp;", status:{id: "twitch", class: "wait", text:"ready"}});
-                noticeFrame.addNotice({type: "authVerify", name: "Twitter Auth", status:{id: "twitter", class: "wait", text:"ready"}});
+                noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://discord.com/login/\" target=\"_blank\">Discord</a> Auth", status:{id: "discord", class: "wait", text:"ready"}});
+                noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://accounts.spotify.com/login/\" target=\"_blank\">Spotify</a> Auth&nbsp;", status:{id: "spotify", class: "wait", text:"ready"}});
+                noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://steamcommunity.com/login/\" target=\"_blank\">Steam</a> Auth&nbsp;&nbsp;", status:{id: "steam", class: "wait", text:"ready"}});
+                noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.tumblr.com/login\" target=\"_blank\">Tumblr</a> Auth", status:{id: "tumblr", class: "wait", text:"ready"}});
+                noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.twitch.tv/login\" target=\"_blank\">Twitch</a> Auth&nbsp;", status:{id: "twitch", class: "wait", text:"ready"}});
+                noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://twitter.com/login/\" target=\"_blank\">Twitter</a> Auth", status:{id: "twitter", class: "wait", text:"ready"}});
                 this.discordAuthUpdate((status)=>{
                     this.statusReact(status, "discord");
                 }, true);
