@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         keyjoker自动任务
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.8.0
+// @version      0.8.1
 // @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -164,7 +164,11 @@ style="display: none;"></sup></div>
                 case "msg":
                     $('.el-notification__content').append("<li>" + data.msg + "</li>");
                     break;
+                case "authVerify":
+                    $('.el-notification__content').append('<li>' + data.name + ' |<font id="' + data.status.id + '" class="' + data.status.class +'">' + data.status.text + '</font></li>');
+                    break;
                 default:
+                    $('.el-notification__content').append("<li>" + data + "</li>");
                     break;
             }
         },
@@ -307,6 +311,64 @@ style="display: none;"></sup></div>
                         break;
                 }
             },
+            authVerify:function(){
+                noticeFrame.loadFrame();
+                noticeFrame.addNotice("检查各项凭证");
+                noticeFrame.addNotice({type: "authVerify", name: "Discord Auth", status:{id: "discord", class: "wait", text:"ready"}});
+                noticeFrame.addNotice({type: "authVerify", name: "Spotify Auth&nbsp;", status:{id: "spotify", class: "wait", text:"ready"}});
+                noticeFrame.addNotice({type: "authVerify", name: "Steam Auth&nbsp;&nbsp;", status:{id: "steam", class: "wait", text:"ready"}});
+                noticeFrame.addNotice({type: "authVerify", name: "Tumblr Auth", status:{id: "tumblr", class: "wait", text:"ready"}});
+                noticeFrame.addNotice({type: "authVerify", name: "Twitch Auth&nbsp;", status:{id: "twitch", class: "wait", text:"ready"}});
+                noticeFrame.addNotice({type: "authVerify", name: "Twitter Auth", status:{id: "twitter", class: "wait", text:"ready"}});
+                this.discordAuthUpdate((status)=>{
+                    this.statusReact(status, "discord");
+                }, true);
+                this.spotifyGetAccessToken((status, ret = null)=>{
+                    this.statusReact(status, "spotify");
+                });
+                this.steamInfoUpdate((status)=>{
+                    this.statusReact(status, "steam");
+                }, "all", true);
+                this.tumblrAuthUpdate((status, key = null)=>{
+                    this.statusReact(status, "tumblr");
+                }, true);
+                this.twitchAuthUpdate((status)=>{
+                    this.statusReact(status, "twitch");
+                }, true);
+                this.twitterAuthUpdate((status)=>{
+                    this.statusReact(status, "twitter");
+                }, true);
+            },
+            statusReact: (code, id)=>{
+                switch(code)
+                {
+                    case 200:
+                        noticeFrame.updateNotice(id, 'success');
+                        break;
+                    case 601:
+                        noticeFrame.updateNotice(id, 'error')
+                        break;
+                    case 401:
+                        noticeFrame.updateNotice1({id:id, class:"error", text:"Not Login"})
+                        break;
+                    case 408:
+                        noticeFrame.updateNotice1({id:id, class:"error", text:"Time Out"})
+                        break;
+                    case 603:
+                        noticeFrame.updateNotice1({id:id, class:"wait", text:"Getting Auth"})
+                        break;
+                    case 604:
+                        noticeFrame.updateNotice1({id:id, class:"error", text:"Network Error"})
+                        break;
+                    case 605:
+                        noticeFrame.updateNotice1({id:id, class:"error", text:"评论区未找到"})
+                        break;
+                    default:
+                        noticeFrame.updateNotice1({id:id, class:"error", text:"Unknown Error"})
+                        console.error("React Unknown Error--->" + code)
+                        break;
+                }
+            },
             checkUpdate: function(){
                 noticeFrame.addNotice({type:"msg",msg:"正在检查版本信息...(当前版本：" + GM_info.script.version + ")"})
                 func.httpRequest({
@@ -351,13 +413,11 @@ style="display: none;"></sup></div>
                         method: 'POST',
                         headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
                         onload: (response) => {
-                            if(debug)console.log(response)
                             if (response.status === 200) {
                                 if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
                                 r(200);
                             } else {
-                                console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                console.error(response);
                                 r(601);
                             }
                         },
@@ -382,13 +442,11 @@ style="display: none;"></sup></div>
                         method: 'DELETE',
                         headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
                         onload: (response) => {
-                            if(debug)console.log(response)
                             if (response.status === 604) {
                                 if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
                                 r(604);
                             } else {
-                                console.log('Error:' + response.statusText + '(' + response.status + ')')
-                                console.log({ result: 'error', statusText: response.statusText, status: response.status })
+                                console.error(response);
                                 r(601);
                             }
                         },
@@ -405,7 +463,7 @@ style="display: none;"></sup></div>
                 if (new Date().getTime() - discordAuth.updateTime > 30 * 60 * 1000 || discordAuth.status != 200 || update) {
                     r(603)
                     new Promise((resolve, reject)=>{
-                        if(false == getAuthStatus.discord)
+                        if(false == getAuthStatus.discord || true === update)
                         {
                             getAuthStatus.discord = true;
                             GM_openInTab("https://discord.com/channels/@me?keyjokertask=storageAuth", true);
@@ -413,7 +471,7 @@ style="display: none;"></sup></div>
                         let i = 0;
                         let check = setInterval(()=>{
                             i++;
-                            if(GM_getValue("discordAuth") && new Date().getTime() - GM_getValue("discordAuth").updateTime <= 5 * 1000)
+                            if(GM_getValue("discordAuth") && new Date().getTime() - GM_getValue("discordAuth").updateTime <= 10 * 1000)
                             {
                                 if(GM_getValue("discordAuth").status != 200)
                                 {
@@ -449,7 +507,6 @@ style="display: none;"></sup></div>
                     noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
                     this.runDirectUrl(task.redirect_url);
                     let react = (code)=>{
-                        if(debug)console.log("react code--->" + code)
                         switch(code)
                         {
                             case 200:
@@ -563,7 +620,7 @@ style="display: none;"></sup></div>
                     if (e.r) e.r({ result: 'error', statusText: 'Error', status: 0, option: e })
                 }
                 if (debug) console.log('发送请求:', requestObj)
-                GM_xmlhttpRequest(requestObj)
+                GM_xmlhttpRequest(requestObj);
             },
             // 人机验证出现图片时的处理
             hcaptcha2: function () {
@@ -591,15 +648,15 @@ style="display: none;"></sup></div>
                                     // setTimeout(()=>{window.open("https://dashboard.hcaptcha.com/welcome_accessibility")}, 3000);
                                 }else if(response.status == 500)
                                 {
-                                    document.getElementsByClassName("prompt-text")[0].innerText = text + "\n未登录hCaptcha，将在3秒后打开至登录页面";
-                                    setTimeout(()=>{window.open("https://dashboard.hcaptcha.com/welcome_accessibility")}, 3000);
+                                    document.getElementsByClassName("prompt-text")[0].innerText = text + "\n未登录hCaptcha";
+                                    // setTimeout(()=>{window.open("https://dashboard.hcaptcha.com/welcome_accessibility")}, 3000);
                                 }else{
                                     console.error(response);
                                     document.getElementsByClassName("prompt-text")[0].innerText = text + "\n发生未知错误,已将数据记录至控制台";
                                 }
                             },
                             error: () =>{
-                                if(debug)console.error("error")
+                                if(debug)console.error("error");
                             }
                         })
                     }
@@ -670,18 +727,19 @@ style="display: none;"></sup></div>
                                             resolve(putUrl);
                                         }else
                                         {
-                                            reject(601)
+                                            console.error(response);
+                                            reject(601);
                                         }
                                     },
                                     error:(res)=>{
-                                        console.log("error");
-                                        reject(601)
+                                        console.error(res);
+                                        reject(601);
                                     },
                                     anonymous:true
                                 })
                                 break;
                             default:
-                                GM_log(data);
+                                console.error("spotifySaveAuto未知类型：", data);
                                 r(601);
                                 return;
                                 break;
@@ -726,7 +784,7 @@ style="display: none;"></sup></div>
                             putUrl = "https://api.spotify.com/v1/me/following?type=user&ids=" + data.id;
                             break;
                         default:
-                            if(debug)GM_log(data);
+                            console.error(data);
                             r(601);
                             return;
                             break;
@@ -761,17 +819,15 @@ style="display: none;"></sup></div>
                             method: 'GET',
                             headers:{authorization: "Bearer " + accessToken},
                             onload: (response) => {
-                                if(debug)console.log("spotifyGetUserInfo")
                                 if (response.status === 200) {
-                                    if(debug)console.log(response)
                                     r(200, accessToken, JSON.parse(response.responseText).id);
                                 } else {
-                                    console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                    console.error(response)
                                     r(401);
                                 }
                             },
                             error:(res)=>{
-                                console.log("error");
+                                console.error("error");
                                 r(604);
                             },
                             anonymous:true
@@ -781,11 +837,11 @@ style="display: none;"></sup></div>
             },
             // OK
             spotifyGetAccessToken: function(r){
+                r(603);
                 this.httpRequest({
                     url: 'https://open.spotify.com/get_access_token?reason=transport&productType=web_player',
                     method: 'GET',
                     onload: (response) => {
-                        if(debug)console.log("spotifyGetAccessToken")
                         if (response.status === 200) {
                             r(200, JSON.parse(response.responseText).accessToken);
                         } else {
@@ -818,7 +874,7 @@ style="display: none;"></sup></div>
                                 if(i >= 10)
                                 {
                                     clearInterval(steamCheck);
-                                    r(601);
+                                    r(408);
                                 }
                             }, 1000)
                             return;
@@ -844,7 +900,7 @@ style="display: none;"></sup></div>
                                             resolve(200);
                                         }
                                     } else {
-                                        console.log('Error:' + response.statusText + '(' + response.status + ')');
+                                        console.error(response);
                                         getAuthStatus.steamCom = 601;
                                         reject(601);
                                     }
@@ -876,12 +932,12 @@ style="display: none;"></sup></div>
                                 if(603 != getAuthStatus.steamStore)
                                 {
                                     clearInterval(steamCheck);
-                                    r(getAuthStatus.steamStore)
+                                    r(getAuthStatus.steamStore);
                                 }
                                 if(i >= 10)
                                 {
                                     clearInterval(steamCheck);
-                                    r(601)
+                                    r(408);
                                 }
                             }, 1000)
                             return;
@@ -904,9 +960,9 @@ style="display: none;"></sup></div>
                                             resolve(200);
                                         }
                                     } else {
-                                        console.log('Error:' + response.statusText + '(' + response.status + ')')
+                                        console.error(response);
                                         getAuthStatus.steamStore = 601;
-                                        reject(601)
+                                        reject(601);
                                     }
                                 },
                                 r: resolve
@@ -919,8 +975,8 @@ style="display: none;"></sup></div>
                             }
                             r(ret)
                         }).catch(err => {
-                            console.error(err)
-                            r(err)
+                            console.error(err);
+                            r(err);
                         })
                     } else {
                         r(200)
@@ -942,12 +998,22 @@ style="display: none;"></sup></div>
                             data: $.param({comment:'+rep',count:6,sessionid:steamInfo.communitySessionID,feature2:-1}),
                             headers:{'content-type': 'application/x-www-form-urlencoded'},
                             onload: (response) => {
-                                if(debug)console.log("发送评论", response);
                                 if(response.status == 200)
                                 {
                                     let ret = JSON.parse(response.response)
-                                    if(ret.success == true)r(200);else r(601);
-                                }else r(601);
+                                    if(ret.success == true)r(200);
+                                    else{
+                                        console.error("发送评论失败", response);
+                                        r(601);
+                                    }
+                                }else{
+                                    console.error("评论返回值异常", response);
+                                    r(601);
+                                }
+                            },
+                            error: (err)=>{
+                                console.error("请求发送异常", err);
+                                r(601);
                             }
                         })
                     }else{
@@ -957,7 +1023,6 @@ style="display: none;"></sup></div>
             },
             steamRepHisCheck: function (r, id){
                 this.steamInfoUpdate((ret) => {
-                    console.log("更新请求完毕，状态码：" + ret)
                     if(ret != 200)
                     {
                         r(ret);
@@ -971,10 +1036,10 @@ style="display: none;"></sup></div>
                             {
                                 let comments = response.responseText.match(/commentthread_comments([\s\S]*)commentthread_footer/);
                                 if(comments != null)r(200, comments[1].includes(steamInfo.steam64Id));
-                                else r(605)
+                                else r(605);
                             }else{
-                                console.log(response)
-                                r(601)
+                                console.error("检查评论记录返回异常", response);
+                                r(601);
                             }
                         }
                         //,anonymous:true
@@ -996,10 +1061,13 @@ style="display: none;"></sup></div>
                         data: $.param({ action: 'join', sessionID: steamInfo.communitySessionID }),
                         onload: (response) => {
                             if (response.status === 200 && !response.responseText.includes('grouppage_join_area')) {
-                                if(response.responseText.match(/<h3>(.+?)<\/h3>/) && response.responseText.match(/<h3>(.+?)<\/h3>/)[1] != "您已经是该组的成员了。")r(601);
-                                else r(200)
+                                if(response.responseText.match(/<h3>(.+?)<\/h3>/) && response.responseText.match(/<h3>(.+?)<\/h3>/)[1] != "您已经是该组的成员了。")
+                                {
+                                    console.error(response);
+                                    r(601);
+                                }else r(200);
                             } else {
-                                console.error(response)
+                                console.error(response);
                                 r(601);
                             }
                         }
@@ -1010,7 +1078,7 @@ style="display: none;"></sup></div>
             steamLeaveGroupAuto: function (r, url) {
                 let groupName = url.split('s/')[1];
                 this.steamGetGroupID(groupName, (groupName, groupId) => {
-                    var postUrl = ""
+                    var postUrl = "";
                     postUrl = (steamInfo.userName) ? 'https://steamcommunity.com/id/' + steamInfo.userName + '/home_process' : 'https://steamcommunity.com/profiles/' + steamInfo.steam64Id + '/home_process'
                     this.httpRequest({
                         url: postUrl,
@@ -1019,10 +1087,10 @@ style="display: none;"></sup></div>
                         data: $.param({ sessionID: steamInfo.communitySessionID, action: 'leaveGroup', groupId: groupId }),
                         onload: (response) => {
                             if (response.status === 200 && response.finalUrl.includes('groups') && $(response.responseText.toLowerCase()).find(`a[href='https://steamcommunity.com/groups/${groupName.toLowerCase()}']`).length === 0) {
-                                r(200)
+                                r(200);
                             } else {
-                                console.error(response)
-                                r(601)
+                                console.error(response);
+                                r(601);
                             }
                         },
                         r
@@ -1061,9 +1129,9 @@ style="display: none;"></sup></div>
                             }
                         })
                     }).then(groupId => {
-                        if (groupId !== false && callback) callback(groupName, groupId)
+                        if (groupId !== false && callback) callback(groupName, groupId);
                     }).catch(err => {
-                        console.error(err)
+                        console.error(err);
                     })
                 })
             },
@@ -1108,24 +1176,22 @@ style="display: none;"></sup></div>
                                         if (response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('已在库中')) {
                                             r(200)
                                         } else if ((response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('添加至您的愿望单')) || !response.responseText.includes('class="queue_actions_ctn"')) {
-                                            console.error(response)
-                                            GM_log({ result: 'error', statusText: response.statusText, status: response.status })
-                                            r(601)
+                                            console.error(response);
+                                            r(601);
                                         } else {
-                                            GM_log({ result: 'success', statusText: response.statusText, status: response.status })
-                                            r(200)
+                                            r(200);
                                         }
                                     } else {
-                                        console.error(response)
-                                        r(601)
+                                        console.error(response);
+                                        r(601);
                                     }
                                 },
                                 r
                             })
                         }
                     }).catch(err => {
-                        console.error(err)
-                        r(601)
+                        console.error(err);
+                        r(601);
                     })
                 },'store')
             },
@@ -1153,49 +1219,43 @@ style="display: none;"></sup></div>
                         })
                     }).then(result => {
                         if (result.result === 'success') {
-                            r(200)
+                            r(200);
                         } else {
                             this.httpRequest({
                                 url: 'https://store.steampowered.com/app/' + gameId,
                                 method: 'GET',
                                 onload: function (response) {
-                                    if (debug) console.log(response)
                                     if (response.status === 200) {
                                         if (response.responseText.includes('class="queue_actions_ctn"') && (response.responseText.includes('已在库中') || response.responseText.includes('添加至您的愿望单'))) {
-                                            r(200)
+                                            r(200);
                                         } else {
-                                            console.error('Error:' + result.statusText + '(' + result.status + ')')
-                                            r(601)
+                                            console.error(response);
+                                            r(601);
                                         }
                                     } else {
-                                        console.error(response)
-                                        r(601)
+                                        console.error(response);
+                                        r(601);
                                     }
                                 },
                                 r
                             })
                         }
                     }).catch(err => {
-                        console.error(err)
-                        r(601)
+                        console.error(err);
+                        r(601);
                     })
                 })
             },
             // ============Tumblr Start=========
             // tumblr关注博客（OK）
             tumblrFollowAuto: function(r, name){
-                this.tumblrGetKey((status, key = false)=>{
+                this.tumblrAuthUpdate((status, key = false)=>{
                     if(status != 200)
                     {
                         r(status);
                         return;
                     }
                     if(false != key){
-                        if(-1 != key.indexOf("!123") && -1 !=key.indexOf("|") )
-                        {
-                            r(401)
-                            return;
-                        }
                         this.httpRequest({
                             url: 'https://www.tumblr.com/svc/follow',
                             method: 'POST',
@@ -1213,24 +1273,20 @@ style="display: none;"></sup></div>
                             }
                         })
                     }else{
-                        r(601)
+                        console.error("tumblrFollowAuto->key值错误");
+                        r(601);
                     }
                 })
             },
             // tumblr取消关注博客
             tumblrUnfollowAuto: function(r, name){
-                this.tumblrGetKey((status, key = false)=>{
+                this.tumblrAuthUpdate((status, key = false)=>{
                     if(status != 200)
                     {
                         r(status);
                         return;
                     }
                     if(false != key){
-                        if(-1 != key.indexOf("!123") && -1 !=key.indexOf("|") )
-                        {
-                            r(401)
-                            return;
-                        }
                         this.httpRequest({
                             url: 'https://www.tumblr.com/svc/unfollow',
                             method: 'POST',
@@ -1247,12 +1303,12 @@ style="display: none;"></sup></div>
                             }
                         })
                     }else{
-                        r(601)
+                        r(601);
                     }
                 })
             },
             // tumblr获取请求头key（OK）
-            tumblrGetKey:function(r){
+            tumblrAuthUpdate:function(r, update = false){
                 r(603)
                 this.httpRequest({
                     url: 'https://www.tumblr.com/dashboard/iframe',
@@ -1261,8 +1317,17 @@ style="display: none;"></sup></div>
                         if(response.status == 200)
                         {
                             let key = response.responseText.match(/id="tumblr_form_key" content="(.+?)">/)
-                            if(key)r(200, key[1]);
-                            else r(601)
+                            if(key){
+                                if(-1 != key.indexOf("!123") && -1 !=key.indexOf("|") )
+                                {
+                                    r(401);
+                                    return;
+                                }else r(200, key);
+                            }
+                            else{
+                                console.error("tumblrGetKey->get key failed.", response);
+                                r(601);
+                            }
                         }else{
                             console.error(response);
                             r(601);
@@ -1286,14 +1351,14 @@ style="display: none;"></sup></div>
                         data: '[{"operationName":"FollowButton_FollowUser","variables":{"input":{"disableNotifications":false,"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"3efee1acda90efdff9fef6e6b4a29213be3ee490781c5b54469717b6131ffdfe"}}}]',
                         onload: (response) => {
                             if (response.status === 200) {
-                                r(200)
+                                r(200);
                             } else if(response.status === 401){
                                 twitchAuth.updateTime = 0;
                                 GM_setValue("twitchAuth", null);
-                                r(401)
+                                r(401);
                             }else{
                                 console.error(response);
-                                r(601)
+                                r(601);
                             }
                         }
                     })
@@ -1314,14 +1379,14 @@ style="display: none;"></sup></div>
                         data: '[{"operationName":"FollowButton_UnfollowUser","variables":{"input":{"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"d7fbdb4e9780dcdc0cc1618ec783309471cd05a59584fc3c56ea1c52bb632d41"}}}]',
                         onload: (response) => {
                             if (response.status === 200) {
-                                r(200)
+                                r(200);
                             } else if(response.status === 401){
                                 twitchAuth.updateTime = 0;
                                 GM_setValue("twitchAuth", null);
-                                r(401)
+                                r(401);
                             }else{
                                 console.error(response);
-                                r(601)
+                                r(601);
                             }
                         }
                     })
@@ -1352,7 +1417,7 @@ style="display: none;"></sup></div>
                 if (new Date().getTime() - twitchAuth.updateTime > 30 * 60 * 1000 || twitchAuth.status != 200 || update) {
                     r(603)
                     new Promise((resolve, reject)=>{
-                        if(false == getAuthStatus.twitch)
+                        if(false == getAuthStatus.twitch || true === update)
                         {
                             getAuthStatus.twitch = true;
                             GM_openInTab("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth", true);
@@ -1360,7 +1425,7 @@ style="display: none;"></sup></div>
                         let i = 0;
                         let check = setInterval(()=>{
                             i++;
-                            if(GM_getValue("twitchAuth") && new Date().getTime() - GM_getValue("twitchAuth").updateTime <= 5 * 1000)
+                            if(GM_getValue("twitchAuth") && new Date().getTime() - GM_getValue("twitchAuth").updateTime <= 10 * 1000)
                             {
                                 if(GM_getValue("twitchAuth").status != 200)
                                 {
@@ -1398,9 +1463,8 @@ style="display: none;"></sup></div>
                         r(status);
                         return;
                     }
-                    this.twitterGetUserInfo((userId)=>{
-                        if(debug)console.log(userId)
-                        if("error" == userId)
+                    this.twitterGetUserInfo((status, userId = null)=>{
+                        if(200 != status)
                         {
                             r(601);
                             return;
@@ -1460,7 +1524,6 @@ style="display: none;"></sup></div>
             },
             // 推特转推（OK）
             twitterRetweetAuto: function(r, url){
-                if(debug)console.log("====twitterRetweetAuto====");
                 let retweetId = url.split("status/")[1];
                 this.twitterAuthUpdate((status)=>{
                     if(status != 200)
@@ -1495,15 +1558,15 @@ style="display: none;"></sup></div>
                     headers: { authorization: "Bearer " + twitterAuth.authorization, "content-type": "application/json"},
                     onload: (response) => {
                         if (response.status === 200) {
-                            r(JSON.parse(response.responseText).data.user.rest_id);
+                            r(200, JSON.parse(response.responseText).data.user.rest_id);
                         } else {
                             console.error(response);
-                            r('error')
+                            r(601);
                         }
                     },
                     error:(res)=>{
-                        console.log(res);
-                        r('error')
+                        console.error(res);
+                        r(601);
                     },
                     anonymous:true
                 })
@@ -1515,18 +1578,21 @@ style="display: none;"></sup></div>
                     method: 'GET',
                     onload: (response) => {
                         if (response.status === 200) {
-                            r(response.responseHeaders)
+                            r(200, response.responseHeaders)
                         } else {
                             console.error(response);
+                            r(601);
                         }
                     },
                     error:(res)=>{
                         console.error(res);
+                        r(601);
                     }
                 })
             },
             // 推特凭证更新（OK）
             twitterAuthUpdate:function(r, update = false){
+                r(603);
                 if(new Date().getTime() - twitterAuth.updateTime > 30 * 60 * 1000 || update){
                     if(603 == getAuthStatus.twitter)
                     {
@@ -1548,7 +1614,11 @@ style="display: none;"></sup></div>
                     }
                     getAuthStatus.twitter = 603;
                     new Promise((resolve, reject) => {
-                        this.twitterAP((ret)=>{
+                        this.twitterAP((status, ret = null)=>{
+                            if(status != 200)
+                            {
+                                reject(status);
+                            }
                             let t = ret.match(/ct0=(.+?);/);
                             if(t == null)
                             {
@@ -1724,6 +1794,9 @@ style="display: none;"></sup></div>
         }
         GM_registerMenuCommand("设置时间间隔", checkTask.setTime);
         GM_registerMenuCommand("重置设置", func.reset);
+        GM_registerMenuCommand("凭证检测",()=>{
+            func.authVerify();
+        });
         function offlineSwitch(id){
             GM_unregisterMenuCommand(id);
             if(true == GM_getValue("offlineMode")){
