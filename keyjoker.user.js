@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         keyjoker自动任务
+// @name         KeyJoker Auto Task
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
 // @version      0.8.2
-// @description  keyjoker自动任务,修改自https://greasyfork.org/zh-CN/scripts/383411
+// @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
 // @include      *://www.keyjoker.com/entries*
