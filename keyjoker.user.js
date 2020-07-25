@@ -312,7 +312,7 @@ style="display: none;"></sup></div>
                 }
             },
             authVerify:function(){
-                noticeFrame.loadFrame();
+                // noticeFrame.loadFrame();
                 noticeFrame.addNotice("检查各项凭证");
                 noticeFrame.addNotice({type: "authVerify", name: "Discord Auth", status:{id: "discord", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "Spotify Auth&nbsp;", status:{id: "spotify", class: "wait", text:"ready"}});
