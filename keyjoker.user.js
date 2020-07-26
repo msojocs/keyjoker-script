@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.8.2
+// @version      0.8.3
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -1669,7 +1669,7 @@ style="display: none;"></sup></div>
                         r(err);
                     })
                 }else{
-                    r(1)
+                    r(200);
                 }
             },
             // ==========Twitter End========
