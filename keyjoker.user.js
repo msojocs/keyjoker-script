@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    https://greasyfork.org/zh-CN/scripts/406476
-// @version      0.8.3
+// @version      0.8.4
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -1035,7 +1035,8 @@ style="display: none;"></sup></div>
                             if(response.status == 200)
                             {
                                 let comments = response.responseText.match(/commentthread_comments([\s\S]*)commentthread_footer/);
-                                if(comments != null)r(200, comments[1].includes(steamInfo.steam64Id));
+                                if(debug)console.log(comments);
+                                if(comments != null)r(200, comments[1].includes(steamInfo.steam64Id) || comments[1].includes(steamInfo.userName));
                                 else r(605);
                             }else{
                                 console.error("检查评论记录返回异常", response);
