@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
-// @namespace    https://greasyfork.org/zh-CN/scripts/406476
+// @namespace    jiyecafe
 // @version      0.8.4
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
@@ -12,7 +12,7 @@
 // @updateURL    https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @downloadURL  https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @supportURL   https://www.jysafe.cn/4332.air
-// @homepage     https://www.jysafe.cn/
+// @homepage     https://github.com/jiyeme/keyjokerScript/
 // @run-at       document-start
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
