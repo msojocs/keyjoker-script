@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    jiyecafe
-// @version      0.8.4
+// @version      0.8.5
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
