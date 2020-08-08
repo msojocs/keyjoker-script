@@ -1,27 +1,27 @@
 {
     "actions": [
         {
-            "id": 9675,
-            "clicks": 10,
-            "entries": 5,
-            "text": "Write a \"+rep\" comment for \"I Do Believe\" on Steam",
-            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/9675",
-            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/9675",
+            "id": 1,
+            "clicks": 6085,
+            "entries": 7601,
+            "text": "Follow \"CSGOIdleEmpire\" on Twitter",
+            "redirect_url": "https://www.keyjoker.com/entries/open/1",
+            "report_url": "https://www.keyjoker.com/reports/new/1",
             "data": {
-                "id": "76561198959111435",
-                "url": "https:\/\/steamcommunity.com\/profiles\/76561198959111435",
-                "name": "I Do Believe"
+                "id": 769356077758607360,
+                "url": "https://twitter.com/CSGOIdleEmpire",
+                "username": "CSGOIdleEmpire"
             },
             "redeeming": false,
             "task": {
                 "provider": {
-                    "icon": "steam",
-                    "color": "#171a21"
+                    "icon": "twitter",
+                    "color": "#1da1f2"
                 },
                 "identifier": {
-                    "description": "Users of our platform +rep a Steam account of your choice."
+                    "description": "Users of our platform follow a Twitter account of your choice."
                 },
-                "name": "Rep Steam Account"
+                "name": "Follow Twitter Account"
             }
         }
     ],

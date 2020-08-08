@@ -42,7 +42,7 @@
 
 (function() {
     'use strict';
-    const debug = 0;
+    const debug = false;
     const discordAuth = GM_getValue('discordAuth') || {
         authorization: "",
         status:0,
@@ -1628,7 +1628,19 @@ style="display: none;"></sup></div>
                                 return;
                             }
                             let xcf = t[1];
-                            this.httpRequest({
+                            //
+                            let ct0 = xcf;
+                            if(ct0)
+                            {
+                                twitterAuth.ct0 = ct0;
+                                getAuthStatus.twitter = 200;
+                                resolve(200)
+                            }else{
+                                getAuthStatus.twitter = 401;
+                                reject(401)
+                            }
+                            //
+                            /*this.httpRequest({
                                 url: 'https://api.twitter.com/1.1/jot/client_event.json',
                                 method: 'POST',
                                 headers: { authorization: "Bearer " + twitterAuth.authorization,"x-csrf-token":xcf , "content-type": "application/json"},
@@ -1648,14 +1660,14 @@ style="display: none;"></sup></div>
                                     } else {
                                         console.error(response);
                                         getAuthStatus.twitter = 401;
-                                        resolve(401)
+                                        reject(401)
                                     }
                                 },
                                 error:(res)=>{
                                     console.error(res);
-                                    resolve(601)
+                                    reject(601)
                                 }
-                            })
+                            })*/
                         })
                     }).then((status)=>{
                         if(status == 200)
@@ -1664,7 +1676,7 @@ style="display: none;"></sup></div>
                             GM_setValue("twitterAuth", twitterAuth)
                             r(status);
                         }else{
-                            noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">twitter token获取失败</font>"})
+                            r(status);
                         }
                     }).catch((err)=>{
                         r(err);
@@ -1687,7 +1699,7 @@ style="display: none;"></sup></div>
                 })
             },
             test: function(){
-                    console.log(typeof offlineData)
+                this.twitterAuthUpdate(console.log, true);
             }
         }
         // ============Start===========
