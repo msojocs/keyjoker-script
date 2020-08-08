@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
-// @namespace    KeyJokerjAutoTask
+// @namespace    KeyJokerAutoTask
 // @version      0.8.5
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
