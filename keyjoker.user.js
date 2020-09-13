@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      0.8.5
+// @version      0.8.6
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -25,7 +25,7 @@
 // @grant        GM_deleteValue
 // @grant        GM_openInTab
 // @grant        GM_log
-// @connect      accounts.hcaptcha.com
+// @connect      hcaptcha.com
 // @connect      store.steampowered.com
 // @connect      steamcommunity.com
 // @connect      twitter.com
@@ -623,6 +623,64 @@ style="display: none;"></sup></div>
                 GM_xmlhttpRequest(requestObj);
             },
             // 人机验证出现图片时的处理
+            hC_get_c:function(r){
+                new Promise((resolve, reject)=>{
+                    this.httpRequest({
+                        url: 'https://hcaptcha.com/checksiteconfig?host=dashboard.hcaptcha.com&sitekey=e4b28873-6852-49c0-9784-7231f004b96b&sc=1&swa=1',
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8'},
+                        onload: (response) => {
+                            let ret = JSON.parse(response.response);
+                            if(ret.pass){
+                                resolve(ret.c);
+                            }else{
+                                reject();
+                            }
+                        },
+                        error: () =>{
+                            if(debug)console.error("error");
+                        }
+                    })
+                }).then((c)=>{
+                    r(c);
+                }).catch((err)=>{
+                    console.error(err);
+                    //let text = document.getElementsByClassName("prompt-text")[0].innerText;
+                    //document.getElementsByClassName("prompt-text")[0].innerText = text + "\n免验证Cookie获取异常，请手动进行验证";
+                });
+
+            },
+            hC_getcaptcha: function(r){
+                this.hC_get_c((c)=>{
+                    new Promise((resolve, reject)=>{
+                        this.httpRequest({
+                            url: 'https://hcaptcha.com/getcaptcha',
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded'},
+                            data: $.param({
+                                sitekey:'e4b28873-6852-49c0-9784-7231f004b96b',
+                                host:'dashboard.hcaptcha.com',
+                                n:'b7a96d7ec0fbd38cf21708391d4bca4701dddec329910c3dd4892e800016ef1a6955ff7547cf2f777f64fdc82b7d9107e8a356b4939d1f0ef298bf664b47572b715b046d74de84fa0a5bd0abe68f6fac76dc1ec0a28d221cd7239591b814f9e1c4e35f74ba6fbd4a6acff0c07aa080d36a59f81d1be33a44390b202a2afeeb22e819cf49c8057e3480feb587dbf8c27ce454fb3d3512adbd3261fa6ae198f443f2f14797c87bb1cd4d5d497c06717e9ad13e19562c5848f885e39cc866a5ff9b9b18c21be805025ce5ce0cc66be6faeedbd482044f002499e84e6e7d28600a91b14b291d2a9a0fba8ccb071ba1cc20870ad17858f802de49ae770d139187df0868857e33c4cd5ff0562c22b024b67d9afaff68b902cfe4cb6f4820ab75d1021854bb8d416bc6246bff02bf918c08c23604360cd62217e66ee4ffa0a477e814e0f491e27e3e4368053f8dc2d89ede674dddf55973d860594e7b51c7c8adc17d77216c8a83e53e8c67151f6abe1172554c460d98d511e2d6e296655c0207d992a83f4cea250c5c99d03bf05a9088f755063d4cfd8f9cd4b4e78d9cc3d1f9c00eeb42de4572e76bba450b23a6ab58abdd2fc6914e0fb2257c53abb6393bd40a3028d4d1eb6185269f09ed20331277105cc7b78ff780aadb36d4f03c61d709efb5c9b9970def03023de50139d34c0269c6582f1a39fd7411a447009fc91cf22deb8d6dd8769959db8d9b11a000',
+                                c:JSON.stringify(c)
+                            }),
+                            onload: (response) => {
+                                let rep = JSON.parse(response.response);
+                                if(rep.pass)resolve(rep.generated_pass_UUID);
+                                else reject(rep);
+                            },
+                            error: () =>{
+                                if(debug)console.error("error");
+                            }
+                        })
+                    }).then((c)=>{
+                        r(c);
+                    }).catch((err)=>{
+                    console.error(err);
+                        //let text = document.getElementsByClassName("prompt-text")[0].innerText;
+                        //document.getElementsByClassName("prompt-text")[0].innerText = text + "\ngetcaptcha failed!";
+                    });
+                });
+            },
             hcaptcha2: function () {
                 let hcaptcha2Click=setInterval(()=>{
                     if(document.getElementsByClassName("challenge-container").length != 0 && document.getElementsByClassName("challenge-container")[0].children.length != 0)
@@ -633,32 +691,65 @@ style="display: none;"></sup></div>
                         document.getElementsByClassName("prompt-text")[0].innerText = text + "\n正在自动获取免验证Cookie";
                         //$(".task-grid").remove();
                         //$(".challenge-example").remove();
-                        this.httpRequest({
-                            url: 'https://accounts.hcaptcha.com/accessibility/get_cookie',
-                            method: 'GET',
-                            headers: { 'Content-Type': 'application/json'},
-                            onload: (response) => {
-                                GM_log(response)
-                                if(response.status == 200)
-                                {
-                                    document.getElementsByClassName("prompt-text")[0].innerText = text + "\n免验证Cookie获取成功，请重新点击验证框";
-                                }else if(response.status == 401)
-                                {
-                                    document.getElementsByClassName("prompt-text")[0].innerText = text + "\n当前账号或IP的免验证Cookie获取次数已达上限，请更换hcaptcha账号或IP";
-                                    // setTimeout(()=>{window.open("https://dashboard.hcaptcha.com/welcome_accessibility")}, 3000);
-                                }else if(response.status == 500)
-                                {
-                                    document.getElementsByClassName("prompt-text")[0].innerText = text + "\n未登录hCaptcha";
-                                    // setTimeout(()=>{window.open("https://dashboard.hcaptcha.com/welcome_accessibility")}, 3000);
-                                }else{
-                                    console.error(response);
-                                    document.getElementsByClassName("prompt-text")[0].innerText = text + "\n发生未知错误,已将数据记录至控制台";
+
+                        new Promise((resolve, reject)=>{
+                            // csrf token
+                            this.httpRequest({
+                                url: 'https://accounts.hcaptcha.com/user',
+                                method: 'GET',
+                                headers: { 'Content-Type': 'application/json'},
+                                onload: (response) => {
+                                    let rep = JSON.parse(response.response);
+                                    if(response.status == 200)
+                                    {
+                                        resolve(rep.csrf_token);
+                                    }else{
+                                        reject(response);
+                                    }
+                                },
+                                error: (err) =>{
+                                    if(debug)console.error(err);
                                 }
-                            },
-                            error: () =>{
-                                if(debug)console.error("error");
+                            })
+                        }).then((csrf)=>{
+                            this.hC_getcaptcha((token)=>{
+                                this.httpRequest({
+                                    url: 'https://accounts.hcaptcha.com/accessibility/get_cookie',
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json','x-csrf-token':csrf},
+                                    data:JSON.stringify({token:token}),
+                                    onload: (response) => {
+                                        if(response.status == 200)
+                                        {
+                                            document.getElementsByClassName("prompt-text")[0].innerText = text + "\n免验证Cookie获取成功，请重新点击验证框";
+                                        }else if(response.status == 401)
+                                        {
+                                            document.getElementsByClassName("prompt-text")[0].innerText = text + "\n当前账号或IP的免验证Cookie获取次数已达上限，请更换hcaptcha账号或IP";
+                                            // setTimeout(()=>{window.open("https://dashboard.hcaptcha.com/welcome_accessibility")}, 3000);
+                                        }else if(response.status == 500)
+                                        {
+                                            document.getElementsByClassName("prompt-text")[0].innerText = text + "\n未登录hCaptcha";
+                                            // setTimeout(()=>{window.open("https://dashboard.hcaptcha.com/welcome_accessibility")}, 3000);
+                                        }else{
+                                            console.error(response);
+                                            document.getElementsByClassName("prompt-text")[0].innerText = text + "\n发生未知错误,已将数据记录至控制台";
+                                        }
+                                    },
+                                    error: (err) =>{
+                                        console.error(err);
+                                    }
+                                })
+                            });
+                        }).catch((err)=>{
+                            if(err.status == 401)
+                            {
+                                document.getElementsByClassName("prompt-text")[0].innerText = text + "\n未登录hCaptcha";
+                                // setTimeout(()=>{window.open("https://dashboard.hcaptcha.com/welcome_accessibility")}, 3000);
+                            }else{
+                                document.getElementsByClassName("prompt-text")[0].innerText = text + "\n未知错误";
                             }
-                        })
+                            console.error(err);
+                        });
                     }
                 },1000);
             },
@@ -1699,7 +1790,7 @@ style="display: none;"></sup></div>
                 })
             },
             test: function(){
-                this.twitterAuthUpdate(console.log, true);
+                this.hcaptcha2();
             }
         }
         // ============Start===========
