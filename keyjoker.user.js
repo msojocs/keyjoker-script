@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      0.8.7
+// @version      0.8.8
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -9,6 +9,7 @@
 // @include      *://assets.hcaptcha.com/*
 // @include      *://discord.com/channels/@me?keyjokertask=storageAuth
 // @include      *://www.twitch.tv/settings/profile?keyjokertask=storageAuth
+// @include      *://twitter.com/settings/account?keyjokertask=storageAuth
 // @updateURL    https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @downloadURL  https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @supportURL   https://www.jysafe.cn/4332.air
@@ -65,6 +66,7 @@
     const twitterAuth = GM_getValue('twitterAuth') || {
         authorization: "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
         ct0: '',
+        status: 0,
         updateTime: 0
     }
     // 0-未动作|200-成功取得|401未登录|603正在取得
@@ -301,6 +303,21 @@ style="display: none;"></sup></div>
                             GM_setValue("discordAuth", discordAuth);
                             console.log(discordAuth)
                             window.close();
+                        }
+                        break;
+                    case "twitter.com":
+                        if(location.search == "?keyjokertask=storageAuth")
+                        {
+                            let m = document.cookie.match(/ct0=(.+?);/);
+                            if(m != null && m[1])
+                            {
+                                twitterAuth.status = 200;
+                                twitterAuth.ct0 = m[1];
+                                twitterAuth.updateTime = new Date().getTime()
+                            }else{
+                                twitterAuth.status = 401;
+                            }
+                            GM_setValue("twitterAuth", twitterAuth)
                         }
                         break;
                     case "assets.hcaptcha.com":
@@ -1676,12 +1693,13 @@ style="display: none;"></sup></div>
                 })
             },
             // 推特取得用户页面响应头（OK）
-            twitterAP:function(r){
+            /*twitterAP:function(r){
                 this.httpRequest({
                     url: 'https://twitter.com/settings/account?k',
                     method: 'GET',
                     onload: (response) => {
                         if (response.status === 200) {
+                            if(debug)console.log(response)
                             r(200, response.responseHeaders)
                         } else {
                             console.error(response);
@@ -1693,96 +1711,44 @@ style="display: none;"></sup></div>
                         r(601);
                     }
                 })
-            },
+            },*/
             // 推特凭证更新（OK）
             twitterAuthUpdate:function(r, update = false){
-                r(603);
                 if(new Date().getTime() - twitterAuth.updateTime > 30 * 60 * 1000 || update){
-                    if(603 == getAuthStatus.twitter)
-                    {
+                    r(603);
+                    new Promise((resolve, reject)=>{
+                        if(false == getAuthStatus.twitter || true === update)
+                        {
+                            getAuthStatus.twitter = true;
+                            GM_openInTab("https://twitter.com/settings/account?keyjokertask=storageAuth", true);
+                        }
                         let i = 0;
-                        let twitterCheck = setInterval(()=>{
+                        let check = setInterval(()=>{
                             i++;
-                            if(GM_getValue("twitterAuth") && new Date().getTime() - GM_getValue("twitterAuth").updateTime <= 5 * 1000 || getAuthStatus.twitter != 603)
+                            if(GM_getValue("twitterAuth") && new Date().getTime() - GM_getValue("twitterAuth").updateTime <= 10 * 1000)
                             {
-                                clearInterval(twitterCheck);
-                                r(getAuthStatus.twitter);
+                                if(GM_getValue("twitterAuth").status != 200)
+                                {
+                                    clearInterval(check);
+                                    reject(GM_getValue("twitterAuth").status)
+                                    return;
+                                }
+                                twitterAuth.ct0 = GM_getValue("twitterAuth").ct0;
+                                twitterAuth.updateTime = GM_getValue("twitterAuth").updateTime
+                                twitterAuth.status = GM_getValue("twitterAuth").status;
+                                clearInterval(check);
+                                resolve(twitterAuth.status)
                             }
                             if(i >= 10)
                             {
-                                clearInterval(twitterCheck);
-                                r(408);
+                                clearInterval(check);
+                                reject(408)
                             }
-                        }, 1000);
-                        return;
-                    }
-                    getAuthStatus.twitter = 603;
-                    new Promise((resolve, reject) => {
-                        this.twitterAP((status, ret = null)=>{
-                            if(status != 200)
-                            {
-                                reject(status);
-                            }
-                            let t = ret.match(/ct0=(.+?);/);
-                            if(t == null)
-                            {
-                                getAuthStatus.twitter = 401;
-                                reject(401);
-                                return;
-                            }
-                            let xcf = t[1];
-                            //
-                            let ct0 = xcf;
-                            if(ct0)
-                            {
-                                twitterAuth.ct0 = ct0;
-                                getAuthStatus.twitter = 200;
-                                resolve(200)
-                            }else{
-                                getAuthStatus.twitter = 401;
-                                reject(401)
-                            }
-                            //
-                            /*this.httpRequest({
-                                url: 'https://api.twitter.com/1.1/jot/client_event.json',
-                                method: 'POST',
-                                headers: { authorization: "Bearer " + twitterAuth.authorization,"x-csrf-token":xcf , "content-type": "application/json"},
-                                data: "category=perftown&log=%5B%7B%22description%22%3A%22rweb%3Aseen_ids%3Apersistence%3Aget%3Asuccess%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A568%7D%2C%7B%22description%22%3A%22rweb%3Aseen_ids%3Apersistence%3Aget%3Asuccess%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A571%7D%2C%7B%22description%22%3A%22rweb%3Ainit%3AstorePrepare%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A581%7D%2C%7B%22description%22%3A%22rweb%3Attft%3AperfSupported%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A1%7D%2C%7B%22description%22%3A%22rweb%3Attft%3Aconnect%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A22%7D%2C%7B%22description%22%3A%22rweb%3Attft%3Aprocess%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A1497%7D%2C%7B%22description%22%3A%22rweb%3Attft%3Aresponse%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A425%7D%2C%7B%22description%22%3A%22rweb%3Attft%3Ainteractivity%22%2C%22product%22%3A%22rweb%22%2C%22duration_ms%22%3A2217%7D%5D",
-                                onload: (response) => {
-                                    if (response.status === 200) {
-                                        let ct0 = response.responseHeaders.match(/ct0=(.+?);/)[1]
-                                        if(ct0)
-                                        {
-                                            twitterAuth.ct0 = ct0;
-                                            getAuthStatus.twitter = 200;
-                                            resolve(200)
-                                        }else{
-                                            getAuthStatus.twitter = 401;
-                                            reject(401)
-                                        }
-                                    } else {
-                                        console.error(response);
-                                        getAuthStatus.twitter = 401;
-                                        reject(401)
-                                    }
-                                },
-                                error:(res)=>{
-                                    console.error(res);
-                                    reject(601)
-                                }
-                            })*/
-                        })
-                    }).then((status)=>{
-                        if(status == 200)
-                        {
-                            twitterAuth.updateTime = new Date().getTime()
-                            GM_setValue("twitterAuth", twitterAuth)
-                            r(status);
-                        }else{
-                            r(status);
-                        }
+                        }, 1000)
+                    }).then((ret)=>{
+                        r(ret)
                     }).catch((err)=>{
-                        r(err);
+                        r(err)
                     })
                 }else{
                     r(200);
@@ -1802,7 +1768,7 @@ style="display: none;"></sup></div>
                 })
             },
             test: function(){
-                this.hcaptcha2();
+                // GM_openInTab("https://discord.com/channels/@me?keyjokertask=storageAuth", true);
             }
         }
         // ============Start===========
