@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      0.8.8
+// @version      0.8.9
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -43,7 +43,7 @@
 
 (function() {
     'use strict';
-    const debug = false;
+    const debug = true;
     const discordAuth = GM_getValue('discordAuth') || {
         authorization: "",
         status:0,
@@ -292,6 +292,7 @@ style="display: none;"></sup></div>
                             console.log(twitchAuth)
                             window.close();
                         }
+                        window.close();
                         break;
                     case "discord.com":
                         if(location.search == "?keyjokertask=storageAuth")
@@ -1296,7 +1297,7 @@ style="display: none;"></sup></div>
                                     if (response.status === 200) {
                                         if (response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('已在库中')) {
                                             r(200)
-                                        } else if ((response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('添加至您的愿望单')) || !response.responseText.includes('class="queue_actions_ctn"')) {
+                                        } else if ((response.responseText.includes('class="queue_actions_ctn"') && !response.responseText.includes('add_to_wishlist_area" style="display: none;"')) || !response.responseText.includes('class="queue_actions_ctn"')) {
                                             console.error(response);
                                             r(601);
                                         } else {
