@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      0.8.9
+// @version      0.8.11
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -400,15 +400,11 @@ style="display: none;"></sup></div>
                             noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + ret.msg + "</font>"})
                             return;
                         }
-                        if(ret.ver > GM_info.script.version)
+                        if(this.checkVersion(ret.ver))
                         {
                             noticeFrame.addNotice({type:"msg", msg:"发现新版本！<font class=\"success\">" + ret.ver + "=>" + ret.msg + "</font>"})
-                        }else if(ret.ver < GM_info.script.version){
-                            noticeFrame.addNotice({type:"msg", msg:"震惊(○´･д･)ﾉ！<font class=\"success\">你的版本比最新版本还要新！</font>"})
-                        }else if(ret.ver == GM_info.script.version){
-                            noticeFrame.addNotice({type:"msg",msg:"当前已是最新版本！"})
                         }else{
-                            noticeFrame.addNotice({type:"msg",msg:"<font class=\"error\">发生了未知异常！！</font>"})
+                            noticeFrame.addNotice({type:"msg",msg:"当前已是最新版本！"})
                         }
                     },
                     error:(ret)=>{
@@ -417,6 +413,17 @@ style="display: none;"></sup></div>
                     },
                     anonymous:true
                 })
+            },
+            checkVersion: function(ver){
+                let new_ver = ver.split('.');
+                let old_ver = GM_info.script.version.split('.');
+                for(var i=0; i<new_ver.length && i<old_ver.length; i++){
+                    if(parseInt(new_ver[i]) > parseInt(old_ver[i])){
+                        // 需更新
+                        return 1;
+                    }
+                }
+                return 0;
             },
             // discord自动加入服务器（OK）
             discordJoinServerAuto: function(r, server){
