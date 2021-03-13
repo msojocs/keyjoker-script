@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      0.8.11
+// @version      0.8.12
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -43,7 +43,7 @@
 
 (function() {
     'use strict';
-    const debug = true;
+    const debug = false;
     const discordAuth = GM_getValue('discordAuth') || {
         authorization: "",
         status:0,
@@ -69,6 +69,9 @@
         status: 0,
         updateTime: 0
     }
+
+    var completeCheck = null;
+
     // 0-未动作|200-成功取得|401未登录|603正在取得
     const getAuthStatus = {
         discord: false,
@@ -601,17 +604,22 @@ style="display: none;"></sup></div>
                             break;
                     }
                 }
+
                 let i = 0;
-                let completeCheck = setInterval(()=>{
+
+                // 清除上次残留线程
+                if(null != completeCheck)clearInterval(completeCheck);
+
+                completeCheck = setInterval(()=>{
                     i++;
-                    if(i >= 5)clearInterval(completeCheck);
+                    //if(i >= 5)clearInterval(completeCheck);
                     if($(".list-complete-item").length == 0)
                     {
+                        clearInterval(completeCheck);
                         noticeFrame.addNotice({type:"msg", msg:"任务似乎已完成，恢复监测!"});
                         GM_setValue("start", 1);
                         checkSwitch();
                         checkTask.next();
-                        clearInterval(completeCheck);
                     }
                 }, 5 * 1000)
             },
