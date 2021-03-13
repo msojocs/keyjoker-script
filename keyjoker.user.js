@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      0.8.12
+// @version      0.8.14
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -613,6 +613,14 @@ style="display: none;"></sup></div>
                 completeCheck = setInterval(()=>{
                     i++;
                     //if(i >= 5)clearInterval(completeCheck);
+                    if(1 == $('#fraud-warning-modal[style!="display: none;"]').length){
+                        // 有弹窗，模拟点击OK
+                        $('button.btn.btn-secondary[type!="button"]')[0].click();
+                    }
+                    if( document.getElementById("toast-container") && document.getElementById("toast-container").textContent == "This action does not exist."){
+                        // 操作不存在
+                       $('.card').remove();
+                }
                     if($(".list-complete-item").length == 0)
                     {
                         clearInterval(completeCheck);
