@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      0.8.14
+// @version      0.8.18
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -322,6 +322,7 @@ style="display: none;"></sup></div>
                                 twitterAuth.status = 401;
                             }
                             GM_setValue("twitterAuth", twitterAuth)
+                            window.close();
                         }
                         break;
                     case "assets.hcaptcha.com":
@@ -386,7 +387,7 @@ style="display: none;"></sup></div>
                         break;
                     default:
                         noticeFrame.updateNotice1({id:id, class:"error", text:"Unknown Error"})
-                        console.error("React Unknown Error--->" + code)
+                        console.error("React Unknown Error--->", code)
                         break;
                 }
             },
@@ -613,14 +614,16 @@ style="display: none;"></sup></div>
                 completeCheck = setInterval(()=>{
                     i++;
                     //if(i >= 5)clearInterval(completeCheck);
+                    // click reedem
+                    $('button[class="btn btn-primary"]').click();
                     if(1 == $('#fraud-warning-modal[style!="display: none;"]').length){
                         // 有弹窗，模拟点击OK
                         $('button.btn.btn-secondary[type!="button"]')[0].click();
                     }
                     if( document.getElementById("toast-container") && document.getElementById("toast-container").textContent == "This action does not exist."){
                         // 操作不存在
-                       $('.card').remove();
-                }
+                        $('.card').remove();
+                    }
                     if($(".list-complete-item").length == 0)
                     {
                         clearInterval(completeCheck);
@@ -1180,7 +1183,19 @@ style="display: none;"></sup></div>
                             {
                                 let comments = response.responseText.match(/commentthread_comments([\s\S]*)commentthread_footer/);
                                 if(debug)console.log(comments);
-                                if(comments != null)r(200, comments[1].includes(steamInfo.steam64Id) || comments[1].includes(steamInfo.userName));
+                                if(comments != null)
+                                {
+                                    if(comments[1].includes(steamInfo.steam64Id) || steamInfo.userName?comments[1].includes(steamInfo.userName):false)
+                                    {
+                                        r(200, true);
+                                    }
+                                    else if(!response.responseText.includes("commentthread_textarea"))
+                                    {
+                                        r(605)
+                                    }else{
+                                        r(200, false);
+                                    }
+                                }
                                 else r(605);
                             }else{
                                 console.error("检查评论记录返回异常", response);
