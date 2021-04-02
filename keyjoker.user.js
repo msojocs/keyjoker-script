@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      0.8.18
+// @version      0.8.19
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -610,7 +610,7 @@ style="display: none;"></sup></div>
 
                 // 清除上次残留线程
                 if(null != completeCheck)clearInterval(completeCheck);
-
+                let discordCheck = true;
                 completeCheck = setInterval(()=>{
                     i++;
                     //if(i >= 5)clearInterval(completeCheck);
@@ -620,9 +620,16 @@ style="display: none;"></sup></div>
                         // 有弹窗，模拟点击OK
                         $('button.btn.btn-secondary[type!="button"]')[0].click();
                     }
-                    if( document.getElementById("toast-container") && document.getElementById("toast-container").textContent == "This action does not exist."){
+                    if( document.getElementById("toast-container")){
                         // 操作不存在
-                        $('.card').remove();
+                        if(document.getElementById("toast-container").textContent == "This action does not exist.")
+                            $('.card').remove();
+                        // check discord error [Could not refresh Discord information, please try again.]
+                        if(discordCheck == true && document.getElementById("toast-container").textContent == "Could not refresh Discord information, please try again.")
+                        {
+                            discordCheck = false;
+                            GM_openInTab("https://www.keyjoker.com/account/identities", true)
+                        }
                     }
                     if($(".list-complete-item").length == 0)
                     {
