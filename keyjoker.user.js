@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      0.8.19
+// @version      0.9.0
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -276,6 +276,1071 @@ style="display: none;"></sup></div>
                 }
             }
         }
+        const DISCORD = (()=>{
+            const AuthUpdate = (r, update)=>{
+                if (new Date().getTime() - discordAuth.updateTime > 30 * 60 * 1000 || discordAuth.status != 200 || update) {
+                    r(603)
+                    new Promise((resolve, reject)=>{
+                        if(false == getAuthStatus.discord || true === update)
+                        {
+                            getAuthStatus.discord = true;
+                            GM_openInTab("https://discord.com/channels/@me?keyjokertask=storageAuth", true);
+                        }
+                        let i = 0;
+                        let check = setInterval(()=>{
+                            i++;
+                            if(GM_getValue("discordAuth") && new Date().getTime() - GM_getValue("discordAuth").updateTime <= 10 * 1000)
+                            {
+                                if(GM_getValue("discordAuth").status != 200)
+                                {
+                                    clearInterval(check);
+                                    reject(GM_getValue("discordAuth").status)
+                                    return;
+                                }
+                                discordAuth.authorization = GM_getValue("discordAuth").authorization
+                                discordAuth.updateTime = GM_getValue("discordAuth").updateTime
+                                discordAuth.status = GM_getValue("discordAuth").status;
+                                clearInterval(check);
+                                resolve(discordAuth.status)
+                            }
+                            if(i >= 10)
+                            {
+                                clearInterval(check);
+                                reject(408)
+                            }
+                        }, 1000)
+                    }).then((ret)=>{
+                        r(ret)
+                    }).catch((err)=>{
+                        r(err)
+                    })
+                }else{
+                    r(200)
+                }
+            }
+            const JoinServer = (r, server)=>{
+                AuthUpdate((ret)=>{
+                    if(ret != 200)
+                    {
+                        r(ret);
+                        return;
+                    }
+                    func.httpRequest({
+                        url: 'https://discord.com/api/v6/invites/' + server,
+                        method: 'POST',
+                        headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
+                        onload: (response) => {
+                            if (response.status === 200) {
+                                if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                                r(200);
+                            } else {
+                                console.error(response);
+                                r(601);
+                            }
+                        },
+                        error:(res)=>{
+                            console.error(res);
+                            r(601);
+                        },
+                        anonymous:true
+                    })
+                })
+            }
+            const LeaveServer = (r, serverId)=>{
+                AuthUpdate((ret)=>{
+                    if(ret != 200)
+                    {
+                        r(ret);
+                        return;
+                    }
+                    $.ajax({
+                        url: 'https://discord.com/api/v6/users/@me/guilds/' + serverId,
+                        method: 'DELETE',
+                        headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
+                        onload: (response) => {
+                            if (response.status === 604) {
+                                if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                                r(604);
+                            } else {
+                                console.error(response);
+                                r(601);
+                            }
+                        },
+                        error:(res)=>{
+                            console.error(res);
+                            r(601);
+                        },
+                        anonymous:true
+                    })
+                })
+            }
+            return {
+                AuthUpdate: AuthUpdate,
+                JoinServer: JoinServer,
+                LeaveServer: LeaveServer
+            }
+        })();
+        const SPOTIFY = (()=>{
+            const GetUserInfo = (r)=>{
+                r(603)
+                GetAccessToken(
+                    (status, accessToken)=>{
+                        if(status != 200)
+                        {
+                            r(status);
+                            return;
+                        }
+                        func.httpRequest({
+                            url: 'https://api.spotify.com/v1/me',
+                            method: 'GET',
+                            headers:{authorization: "Bearer " + accessToken},
+                            onload: (response) => {
+                                if (response.status === 200) {
+                                    r(200, accessToken, JSON.parse(response.responseText).id);
+                                } else {
+                                    console.error(response)
+                                    r(401);
+                                }
+                            },
+                            error:(res)=>{
+                                console.error("error");
+                                r(604);
+                            },
+                            anonymous:true
+                        })
+                    }
+                )
+            }
+            const GetAccessToken = function(r){
+                r(603);
+                func.httpRequest({
+                    url: 'https://open.spotify.com/get_access_token?reason=transport&productType=web_player',
+                    method: 'GET',
+                    onload: (response) => {
+                        if (response.status === 200) {
+                            r(200, JSON.parse(response.responseText).accessToken);
+                        } else {
+                            console.log(response);
+                            r(401);
+                        }
+                    },
+                    error:(res)=>{
+                        if(debug)console.log(res);
+                        r(604);
+                    }
+                })
+            }
+            const SaveAuto = (r, data, del = false)=>{
+                GetUserInfo((status, accessToken = null, userId = null)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
+                    let putUrl = "";
+                    new Promise((resolve, reject)=>{
+                        switch(data.type)
+                        {
+                            case "album":
+                                putUrl = "https://spclient.wg.spotify.com/collection-view/v1/collection/albums/" + userId + "?base62ids=" + data.id + "&model=bookmark";
+                                resolve(putUrl);
+                                break;
+                            case "track":
+                                func.httpRequest({
+                                    url: 'https://api.spotify.com/v1/tracks?ids=' + data.id + '&market=from_token',
+                                    method: 'GET',
+                                    headers:{authorization: "Bearer " + accessToken},
+                                    onload: (response) => {
+                                        if(response.status == 200)
+                                        {
+                                            let temp = JSON.parse(response.response);
+                                            putUrl = "https://spclient.wg.spotify.com/collection-view/v1/collection/albums/" + userId + "?base62ids=" + temp.tracks[0].album.id + "&model=bookmark";
+                                            resolve(putUrl);
+                                        }else
+                                        {
+                                            console.error(response);
+                                            reject(601);
+                                        }
+                                    },
+                                    error:(res)=>{
+                                        console.error(res);
+                                        reject(601);
+                                    },
+                                    anonymous:true
+                                })
+                                break;
+                            default:
+                                console.error("spotifySaveAuto未知类型：", data);
+                                r(601);
+                                return;
+                                break;
+                        }
+                    }).then((putUrl)=>{
+                        if(debug)console.log(putUrl)
+                        $.ajax({
+                            type: !del?'PUT':"DELETE",
+                            url: putUrl,
+                            headers: {authorization: "Bearer " + accessToken},
+                            success: function(data){
+                                console.log(data);
+                                r(200);
+                            },
+                            error: function(data){
+                                console.error(data);
+                                r(601);
+                            },
+                            anonymous:true
+                        });
+                    })
+                });
+            }
+            const Follow = (r, data, del = false)=>{
+                GetUserInfo((status, accessToken = null)=>{
+                    if(status != 200)
+                    {
+                        r(status)
+                        return;
+                    }
+                    let putUrl = "";
+                    switch(data.type)
+                    {
+                        case "artist":
+                            putUrl = "https://api.spotify.com/v1/me/following?type=artist&ids=" + data.id;
+                            break;
+                        case "playlist":
+                            putUrl = "https://api.spotify.com/v1/playlists/" + data.id + "/followers"
+                            break;
+                        case "user":
+                            putUrl = "https://api.spotify.com/v1/me/following?type=user&ids=" + data.id;
+                            break;
+                        default:
+                            console.error(data);
+                            r(601);
+                            return;
+                            break;
+                    }
+                    $.ajax({
+                        type: !del?'PUT':"DELETE",
+                        url: putUrl,
+                        headers: {authorization: "Bearer " + accessToken},
+                        success: function(data){
+                            r(200);
+                        },
+                        error: function(data){
+                            console.error(data);
+                            r(604);
+                        },
+                        anonymous:true
+                    });
+                });
+            }
+            return {
+                GetAccessToken: GetAccessToken,
+                SaveAuto: SaveAuto,
+                Follow: Follow
+            }
+        })();
+        const STEAM = (()=>{
+            const InfoUpdate = (r, type = 'all', update = false)=> {
+                r(603);
+                if (type === 'community' || type === 'all') {
+                    if (new Date().getTime() - steamInfo.comUpdateTime > 10 * 60 * 1000 || update) {
+                        if(603 == getAuthStatus.steamCom)
+                        {
+                            let i = 0;
+                            let steamCheck = setInterval(()=>{
+                                i++;
+                                if(603 != getAuthStatus.steamCom)
+                                {
+                                    clearInterval(steamCheck);
+                                    r(getAuthStatus.steamCom);
+                                }
+                                if(i >= 10)
+                                {
+                                    clearInterval(steamCheck);
+                                    r(408);
+                                }
+                            }, 1000)
+                            return;
+                        }
+                        getAuthStatus.steamCom = 603;
+                        new Promise((resolve, reject) => {
+                            func.httpRequest({
+                                url: 'https://steamcommunity.com/my',
+                                method: 'GET',
+                                onload: (response) => {
+                                    if (response.status === 200) {
+                                        if ($(response.responseText).find('a[href*="/login/home"]').length > 0) {
+                                            getAuthStatus.steamCom = 401;
+                                            reject(401);
+                                        } else {
+                                            const steam64Id = response.responseText.match(/g_steamID = "(.+?)";/);
+                                            const communitySessionID = response.responseText.match(/g_sessionID = "(.+?)";/);
+                                            const userName = response.responseText.match(/steamcommunity.com\/id\/(.+?)\/friends\//);
+                                            if (steam64Id) steamInfo.steam64Id = steam64Id[1];
+                                            if (communitySessionID) steamInfo.communitySessionID = communitySessionID[1];
+                                            if (userName) steamInfo.userName = userName[1];
+                                            getAuthStatus.steamCom = 200;
+                                            resolve(200);
+                                        }
+                                    } else {
+                                        console.error(response);
+                                        getAuthStatus.steamCom = 601;
+                                        reject(601);
+                                    }
+                                },
+                                r: resolve
+                            })
+                        }).then((ret) => {
+                            if(ret == 200)
+                            {
+                                steamInfo.comUpdateTime = new Date().getTime();
+                                GM_setValue('steamInfo', steamInfo);
+                            }
+                            r(ret);
+                        }).catch(err => {
+                            console.error(err);
+                            r(err);
+                        })
+                    } else {
+                        r(200);
+                    }
+                }
+                if (type === 'store' || type === 'all') {
+                    if (new Date().getTime() - steamInfo.storeUpdateTime > 10 * 60 * 1000 || update) {
+                        if(603 == getAuthStatus.steamStore)
+                        {
+                            let i = 0;
+                            let steamCheck = setInterval(()=>{
+                                i++;
+                                if(603 != getAuthStatus.steamStore)
+                                {
+                                    clearInterval(steamCheck);
+                                    r(getAuthStatus.steamStore);
+                                }
+                                if(i >= 10)
+                                {
+                                    clearInterval(steamCheck);
+                                    r(408);
+                                }
+                            }, 1000)
+                            return;
+                        }
+                        getAuthStatus.steamStore = 603;
+                        new Promise((resolve, reject) => {
+                            func.httpRequest({
+                                url: 'https://store.steampowered.com/stats/',
+                                method: 'GET',
+                                onload: (response) => {
+                                    if (response.status === 200) {
+                                        if ($(response.responseText).find('a[href*="/login/"]').length > 0) {
+                                            if (debug) console.log(response)
+                                            getAuthStatus.steamStore = 401;
+                                            reject(401)
+                                        } else {
+                                            const storeSessionID = response.responseText.match(/g_sessionID = "(.+?)";/)
+                                            if (storeSessionID) steamInfo.storeSessionID = storeSessionID[1]
+                                            getAuthStatus.steamStore = 200;
+                                            resolve(200);
+                                        }
+                                    } else {
+                                        console.error(response);
+                                        getAuthStatus.steamStore = 601;
+                                        reject(601);
+                                    }
+                                },
+                                r: resolve
+                            })
+                        }).then((ret) => {
+                            if(ret == 200)
+                            {
+                                steamInfo.storeUpdateTime = new Date().getTime();
+                                GM_setValue('steamInfo', steamInfo);
+                            }
+                            r(ret)
+                        }).catch(err => {
+                            console.error(err);
+                            r(err);
+                        })
+                    } else {
+                        r(200)
+                    }
+                }
+            }
+            const Rep = (r, id)=>{
+                RepHisCheck((status, ret = null) => {
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
+                    if(!ret){
+                        func.httpRequest({
+                            url: 'https://steamcommunity.com/comment/Profile/post/' + id + '/-1/',
+                            method: 'POST',
+                            data: $.param({comment:'+rep',count:6,sessionid:steamInfo.communitySessionID,feature2:-1}),
+                            headers:{'content-type': 'application/x-www-form-urlencoded'},
+                            onload: (response) => {
+                                if(response.status == 200)
+                                {
+                                    let ret = JSON.parse(response.response)
+                                    if(ret.success == true)r(200);
+                                    else{
+                                        console.error("发送评论失败", response);
+                                        r(601);
+                                    }
+                                }else{
+                                    console.error("评论返回值异常", response);
+                                    r(601);
+                                }
+                            },
+                            error: (err)=>{
+                                console.error("请求发送异常", err);
+                                r(601);
+                            }
+                        })
+                    }else{
+                        r(200);
+                    }
+                },id)
+            }
+            const RepHisCheck = function (r, id){
+                InfoUpdate((ret) => {
+                    if(ret != 200)
+                    {
+                        r(ret);
+                        return;
+                    }
+                    func.httpRequest({
+                        url: "https://steamcommunity.com/profiles/" + id,
+                        method: 'GET',
+                        onload: (response) => {
+                            if(response.status == 200)
+                            {
+                                let comments = response.responseText.match(/commentthread_comments([\s\S]*)commentthread_footer/);
+                                if(debug)console.log(comments);
+                                if(comments != null)
+                                {
+                                    if(comments[1].includes(steamInfo.steam64Id) || steamInfo.userName?comments[1].includes(steamInfo.userName):false)
+                                    {
+                                        r(200, true);
+                                    }
+                                    else if(!response.responseText.includes("commentthread_textarea"))
+                                    {
+                                        r(605)
+                                    }else{
+                                        r(200, false);
+                                    }
+                                }
+                                else r(605);
+                            }else{
+                                console.error("检查评论记录返回异常", response);
+                                r(601);
+                            }
+                        }
+                        //,anonymous:true
+                    });
+                }, "community")
+            }
+            const JoinGroupAuto = function (r, url) {
+                InfoUpdate((ret) => {
+                    if(ret != 200)
+                    {
+                        r(ret);
+                        return;
+                    }
+                    func.httpRequest({
+                        url: url,
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                        data: $.param({ action: 'join', sessionID: steamInfo.communitySessionID }),
+                        onload: (response) => {
+                            if (response.status === 200 && !response.responseText.includes('grouppage_join_area')) {
+                                if(response.responseText.match(/<h3>(.+?)<\/h3>/) && response.responseText.match(/<h3>(.+?)<\/h3>/)[1] != "您已经是该组的成员了。")
+                                {
+                                    console.error(response);
+                                    r(601);
+                                }else r(200);
+                            } else {
+                                console.error(response);
+                                r(601);
+                            }
+                        }
+                    })
+                }, 'community');
+            }
+            const LeaveGroup = function (r, url) {
+                let groupName = url.split('s/')[1];
+                GetGroupID(groupName, (groupName, groupId) => {
+                    var postUrl = "";
+                    postUrl = (steamInfo.userName) ? 'https://steamcommunity.com/id/' + steamInfo.userName + '/home_process' : 'https://steamcommunity.com/profiles/' + steamInfo.steam64Id + '/home_process'
+                    func.httpRequest({
+                        url: postUrl,
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                        data: $.param({ sessionID: steamInfo.communitySessionID, action: 'leaveGroup', groupId: groupId }),
+                        onload: (response) => {
+                            if (response.status === 200 && response.finalUrl.includes('groups') && $(response.responseText.toLowerCase()).find(`a[href='https://steamcommunity.com/groups/${groupName.toLowerCase()}']`).length === 0) {
+                                r(200);
+                            } else {
+                                console.error(response);
+                                r(601);
+                            }
+                        },
+                        r
+                    })
+                })
+            }
+            const GetGroupID = function (groupName, callback) {
+                InfoUpdate((ret) => {
+                    if(ret != 200)
+                    {
+                        r(ret);
+                        return;
+                    }
+                    new Promise(resolve => {
+                        func.httpRequest({
+                            url: 'https://steamcommunity.com/groups/' + groupName,
+                            method: 'GET',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                            onload: function (response) {
+                                if (debug) console.log(response)
+                                if (response.status === 200) {
+                                    const groupId = response.responseText.match(/OpenGroupChat\( '([0-9]+)'/)
+                                    if (groupId === null) {
+                                        console.error(response)
+                                        resolve(false)
+                                    } else {
+                                        resolve(groupId[1])
+                                    }
+                                } else {
+                                    console.error(response)
+                                    resolve(false)
+                                }
+                            },
+                            r: () => {
+                                resolve(false)
+                            }
+                        })
+                    }).then(groupId => {
+                        if (groupId !== false && callback) callback(groupName, groupId);
+                    }).catch(err => {
+                        console.error(err);
+                    })
+                })
+            }
+            const AddWishlistAuto = function (r, gameId) {
+                InfoUpdate((ret) => {
+                    if(ret != 200)
+                    {
+                        r(ret);
+                        return;
+                    }
+                    new Promise(resolve => {
+                        func.httpRequest({
+                            url: 'https://store.steampowered.com/api/addtowishlist',
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                            data: $.param({ sessionid: steamInfo.storeSessionID, appid: gameId }),
+                            dataType: 'json',
+                            onload: function (response) {
+                                if (debug) console.log(response)
+                                if (response.status === 200 && response.response && response.response.success === true) {
+                                    resolve({ result: 'success', statusText: response.statusText, status: response.status })
+                                } else {
+                                    resolve({ result: 'error', statusText: response.statusText, status: response.status })
+                                }
+                            },
+                            onabort: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                            onerror: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                            ontimeout: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                            r: resolve
+                        })
+                    }).then(result => {
+                        if (result.result === 'success') {
+                            r(200)
+                        } else {
+                            func.httpRequest({
+                                url: 'https://store.steampowered.com/app/' + gameId,
+                                method: 'GET',
+                                onload: function (response) {
+                                    if (debug) console.log(response)
+                                    if (response.status === 200) {
+                                        if (response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('已在库中')) {
+                                            r(200)
+                                        } else if ((response.responseText.includes('class="queue_actions_ctn"') && !response.responseText.includes('add_to_wishlist_area" style="display: none;"')) || !response.responseText.includes('class="queue_actions_ctn"')) {
+                                            console.error(response);
+                                            r(601);
+                                        } else {
+                                            r(200);
+                                        }
+                                    } else {
+                                        console.error(response);
+                                        r(601);
+                                    }
+                                },
+                                r
+                            })
+                        }
+                    }).catch(err => {
+                        console.error(err);
+                        r(601);
+                    })
+                },'store')
+            }
+            const RemoveWishlistAuto = function (r, gameId) {
+                this.steamInfoUpdate(() => {
+                    new Promise(resolve => {
+                        func.httpRequest({
+                            url: 'https://store.steampowered.com/api/removefromwishlist',
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                            data: $.param({ sessionid: steamInfo.storeSessionID, appid: gameId }),
+                            dataType: 'json',
+                            onload: function (response) {
+                                if (response.status === 200 && response.response && response.response.success === true) {
+                                    resolve({ result: 'success', statusText: response.statusText, status: response.status })
+                                } else {
+                                    resolve({ result: 'error', statusText: response.statusText, status: response.status })
+                                }
+                            },
+                            onabort: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                            onerror: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                            ontimeout: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
+                            r: resolve
+                        })
+                    }).then(result => {
+                        if (result.result === 'success') {
+                            r(200);
+                        } else {
+                            func.httpRequest({
+                                url: 'https://store.steampowered.com/app/' + gameId,
+                                method: 'GET',
+                                onload: function (response) {
+                                    if (response.status === 200) {
+                                        if (response.responseText.includes('class="queue_actions_ctn"') && (response.responseText.includes('已在库中') || response.responseText.includes('添加至您的愿望单'))) {
+                                            r(200);
+                                        } else {
+                                            console.error(response);
+                                            r(601);
+                                        }
+                                    } else {
+                                        console.error(response);
+                                        r(601);
+                                    }
+                                },
+                                r
+                            })
+                        }
+                    }).catch(err => {
+                        console.error(err);
+                        r(601);
+                    })
+                })
+            }
+            return {
+                InfoUpdate: InfoUpdate,
+                Rep: Rep,
+                JoinGroup: JoinGroupAuto,
+                LeaveGroup: LeaveGroup,
+                AddWishlist: AddWishlistAuto
+            }
+        })();
+        const TUMBLR = (()=>{
+            const FollowAuto = function(r, name){
+                AuthUpdate((status, key = false)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
+                    if(false != key){
+                        func.httpRequest({
+                            url: 'https://www.tumblr.com/svc/follow',
+                            method: 'POST',
+                            headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
+                            data: $.param({'data[tumblelog]': name}),
+                            onload: (response) => {
+                                if(response.status == 200)
+                                {
+                                    r(200);
+                                }else
+                                {
+                                    console.error(response);
+                                    r(601);
+                                }
+                            }
+                        })
+                    }else{
+                        console.error("tumblrFollowAuto->key值错误");
+                        r(601);
+                    }
+                })
+            }
+            const UnfollowAuto = function(r, name){
+                AuthUpdate((status, key = false)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
+                    if(false != key){
+                        func.httpRequest({
+                            url: 'https://www.tumblr.com/svc/unfollow',
+                            method: 'POST',
+                            headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
+                            data: $.param({'data[tumblelog]': name}),
+                            onload: (response) => {
+                                if(response.status == 200)
+                                {
+                                    r(200);
+                                }else{
+                                    console.error(response);
+                                    r(601);
+                                }
+                            }
+                        })
+                    }else{
+                        r(601);
+                    }
+                })
+            }
+            const AuthUpdate = function(r, update = false){
+                r(603)
+                func.httpRequest({
+                    url: 'https://www.tumblr.com/dashboard/iframe',
+                    method: 'GET',
+                    onload: (response) => {
+                        if(response.status == 200)
+                        {
+                            let key = response.responseText.match(/id="tumblr_form_key" content="(.+?)">/)
+                            if(key){
+                                if(-1 != key.indexOf("!123") && -1 !=key.indexOf("|") )
+                                {
+                                    r(401);
+                                    return;
+                                }else r(200, key);
+                            }
+                            else{
+                                console.error("tumblrGetKey->get key failed.", response);
+                                r(601);
+                            }
+                        }else{
+                            console.error(response);
+                            r(601);
+                        }
+                    }
+                })
+            }
+            return {
+                AuthUpdate: AuthUpdate,
+                Follow: FollowAuto,
+                UnfollowAuto: UnfollowAuto
+            }
+        })();
+        const TWITCH = (()=>{
+            const FollowAuto = function(r, channelId){
+                AuthUpdate((status)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
+                    func.httpRequest({
+                        url: 'https://gql.twitch.tv/gql',
+                        method: 'POST',
+                        headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
+                        data: '[{"operationName":"FollowButton_FollowUser","variables":{"input":{"disableNotifications":false,"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"3efee1acda90efdff9fef6e6b4a29213be3ee490781c5b54469717b6131ffdfe"}}}]',
+                        onload: (response) => {
+                            if (response.status === 200) {
+                                r(200);
+                            } else if(response.status === 401){
+                                twitchAuth.updateTime = 0;
+                                GM_setValue("twitchAuth", null);
+                                r(401);
+                            }else{
+                                console.error(response);
+                                r(601);
+                            }
+                        }
+                    })
+                })
+            }
+            const UnfollowAuto = function(r, channelId){
+                AuthUpdate((status)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
+                    func.httpRequest({
+                        url: 'https://gql.twitch.tv/gql',
+                        method: 'POST',
+                        headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
+                        data: '[{"operationName":"FollowButton_UnfollowUser","variables":{"input":{"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"d7fbdb4e9780dcdc0cc1618ec783309471cd05a59584fc3c56ea1c52bb632d41"}}}]',
+                        onload: (response) => {
+                            if (response.status === 200) {
+                                r(200);
+                            } else if(response.status === 401){
+                                twitchAuth.updateTime = 0;
+                                GM_setValue("twitchAuth", null);
+                                r(401);
+                            }else{
+                                console.error(response);
+                                r(601);
+                            }
+                        }
+                    })
+                })
+            }
+            // 弃用
+            const twitchGetId = function(r, channels){
+                func.httpRequest({
+                    url: 'https://api.twitch.tv/api/channels/' + channels + '/access_token?oauth_token=' + GM_getValue("twitchAuth").match(/auth-token=(.+?); /)[1] + '&need_https=true&platform=web&player_type=site&player_backend=mediaplayer',
+                    method: 'GET',
+                    onload: (response) => {
+                        if (response.status === 200) {
+                            let rep = JSON.parse(JSON.parse(response.responseText).token);
+                            r(rep.channel_id);
+                        } else {
+                            console.error(response);
+                            r('error')
+                        }
+                    },
+                    error:(res)=>{
+                        console.error(res);
+                    },
+                    anonymous:true
+                })
+            }
+            const AuthUpdate = function(r, update = false){
+                if (new Date().getTime() - twitchAuth.updateTime > 30 * 60 * 1000 || twitchAuth.status != 200 || update) {
+                    r(603)
+                    new Promise((resolve, reject)=>{
+                        if(false == getAuthStatus.twitch || true === update)
+                        {
+                            getAuthStatus.twitch = true;
+                            GM_openInTab("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth", true);
+                        }
+                        let i = 0;
+                        let check = setInterval(()=>{
+                            i++;
+                            if(GM_getValue("twitchAuth") && new Date().getTime() - GM_getValue("twitchAuth").updateTime <= 10 * 1000)
+                            {
+                                if(GM_getValue("twitchAuth").status != 200)
+                                {
+                                    clearInterval(check);
+                                    reject(401);
+                                    return;
+                                }
+                                twitchAuth["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
+                                twitchAuth.updateTime = GM_getValue('twitchAuth').updateTime;
+                                twitchAuth.status = GM_getValue('twitchAuth').status;
+                                clearInterval(check);
+                                resolve(200)
+                            }
+                            if(i >= 10)
+                            {
+                                clearInterval(check);
+                                reject(408)
+                            }
+                        }, 1000)
+                    }).then((ret)=>{
+                        r(ret);
+                    }).catch((err)=>{
+                        r(err);
+                    })
+                }else{
+                    r(200)
+                }
+            }
+            return {
+                AuthUpdate: AuthUpdate,
+                FollowAuto: FollowAuto,
+                UnfollowAuto: UnfollowAuto
+            }
+        })();
+        const TWITTER = (()=>{
+            const FollowAuto = function(r, data){
+                AuthUpdate((status)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
+                    GetUserInfo((status, userId = null)=>{
+                        if(200 != status)
+                        {
+                            r(601);
+                            return;
+                        }
+                        func.httpRequest({
+                            url: 'https://api.twitter.com/1.1/friendships/create.json',
+                            method: 'POST',
+                            headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
+                            data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
+                            onload: (response) => {
+                                if (response.status === 200) {
+                                    r(200);
+                                } else {
+                                    console.error(response);
+                                    twitterAuth.updateTime = 0;
+                                    GM_setValue("twitterAuth", twitterAuth);
+                                    r(601);
+                                }
+                            }
+                        })
+                    },data.username)
+                })
+            }
+            const UnfollowAuto = function(r, data){
+                AuthUpdate((status)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
+                    GetUserInfo((userId)=>{
+                        if(debug)console.log(userId)
+                        if("error" == userId)
+                        {
+                            r(601);
+                            return;
+                        }
+                        func.httpRequest({
+                            url: 'https://api.twitter.com/1.1/friendships/destroy.json',
+                            method: 'POST',
+                            headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
+                            data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
+                            onload: (response) => {
+                                if (response.status === 200) {
+                                    r(200);
+                                } else {
+                                    console.error(response);
+                                    twitterAuth.updateTime = 0;
+                                    GM_setValue("twitterAuth", twitterAuth);
+                                    r(601);
+                                }
+                            }
+                        })
+                    },data.username)
+                })
+            }
+            const RetweetAuto = function(r, url){
+                let retweetId = url.split("status/")[1];
+                AuthUpdate((status)=>{
+                    if(status != 200)
+                    {
+                        r(status);
+                        return;
+                    }
+                    func.httpRequest({
+                        url: 'https://api.twitter.com/1.1/statuses/retweet.json',
+                        method: 'POST',
+                        headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
+                        data: $.param({ tweet_mode: "extended",id: retweetId}),
+                        onload: (response) => {
+                            if (response.status === 200 || (response.status === 403 && response.responseText == '{"errors":[{"code":327,"message":"You have already retweeted this Tweet."}]}')) {
+                                r(200);
+                            } else {
+                                console.error(response);
+                                twitterAuth.updateTime = 0;
+                                GM_setValue("twitterAuth", twitterAuth);
+                                r(601);
+                            }
+                        }
+                    })
+                })
+            }
+            const GetUserInfo = function(r, userName){
+                if(debug)console.log("====twitterGetUserInfo====");
+                func.httpRequest({
+                    url: 'https://api.twitter.com/graphql/-xfUfZsnR_zqjFd-IfrN5A/UserByScreenName?variables=%7B%22screen_name%22%3A%22' + userName + '%22%2C%22withHighlightedLabel%22%3Atrue%7D',
+                    method: 'GET',
+                    headers: { authorization: "Bearer " + twitterAuth.authorization, "content-type": "application/json"},
+                    onload: (response) => {
+                        if (response.status === 200) {
+                            r(200, JSON.parse(response.responseText).data.user.rest_id);
+                        } else {
+                            console.error(response);
+                            r(601);
+                        }
+                    },
+                    error:(res)=>{
+                        console.error(res);
+                        r(601);
+                    },
+                    anonymous:true
+                })
+            }
+            const AuthUpdate = function(r, update = false){
+                if(new Date().getTime() - twitterAuth.updateTime > 30 * 60 * 1000 || update){
+                    r(603);
+                    new Promise((resolve, reject)=>{
+                        if(false == getAuthStatus.twitter || true === update)
+                        {
+                            getAuthStatus.twitter = true;
+                            GM_openInTab("https://twitter.com/settings/account?keyjokertask=storageAuth", true);
+                        }
+                        let i = 0;
+                        let check = setInterval(()=>{
+                            i++;
+                            if(GM_getValue("twitterAuth") && new Date().getTime() - GM_getValue("twitterAuth").updateTime <= 10 * 1000)
+                            {
+                                if(GM_getValue("twitterAuth").status != 200)
+                                {
+                                    clearInterval(check);
+                                    reject(GM_getValue("twitterAuth").status)
+                                    return;
+                                }
+                                twitterAuth.ct0 = GM_getValue("twitterAuth").ct0;
+                                twitterAuth.updateTime = GM_getValue("twitterAuth").updateTime
+                                twitterAuth.status = GM_getValue("twitterAuth").status;
+                                clearInterval(check);
+                                resolve(twitterAuth.status)
+                            }
+                            if(i >= 10)
+                            {
+                                clearInterval(check);
+                                reject(408)
+                            }
+                        }, 1000)
+                    }).then((ret)=>{
+                        r(ret)
+                    }).catch((err)=>{
+                        r(err)
+                    })
+                }else{
+                    r(200);
+                }
+            }
+            // 推特取得用户页面响应头（OK）
+            /*twitterAP:function(r){
+                func.httpRequest({
+                    url: 'https://twitter.com/settings/account?k',
+                    method: 'GET',
+                    onload: (response) => {
+                        if (response.status === 200) {
+                            if(debug)console.log(response)
+                            r(200, response.responseHeaders)
+                        } else {
+                            console.error(response);
+                            r(601);
+                        }
+                    },
+                    error:(res)=>{
+                        console.error(res);
+                        r(601);
+                    }
+                })
+            },*/
+
+            return {
+                FollowAuto: FollowAuto,
+                RetweetAuto: RetweetAuto,
+                AuthUpdate: AuthUpdate
+            }
+        })();
         const func = {
             // twitch & discord 凭证存储，人机验证处理
             appHandle: function(){
@@ -342,22 +1407,22 @@ style="display: none;"></sup></div>
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.tumblr.com/login\" target=\"_blank\">Tumblr</a> Auth", status:{id: "tumblr", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.twitch.tv/login\" target=\"_blank\">Twitch</a> Auth&nbsp;", status:{id: "twitch", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://twitter.com/login/\" target=\"_blank\">Twitter</a> Auth", status:{id: "twitter", class: "wait", text:"ready"}});
-                this.discordAuthUpdate((status)=>{
+                DISCORD.AuthUpdate((status)=>{
                     this.statusReact(status, "discord");
                 }, true);
-                this.spotifyGetAccessToken((status, ret = null)=>{
+                SPOTIFY.GetAccessToken((status, ret = null)=>{
                     this.statusReact(status, "spotify");
                 });
-                this.steamInfoUpdate((status)=>{
+                STEAM.InfoUpdate((status)=>{
                     this.statusReact(status, "steam");
                 }, "all", true);
-                this.tumblrAuthUpdate((status, key = null)=>{
+                TUMBLR.AuthUpdate((status, key = null)=>{
                     this.statusReact(status, "tumblr");
                 }, true);
-                this.twitchAuthUpdate((status)=>{
+                TWITCH.AuthUpdate((status)=>{
                     this.statusReact(status, "twitch");
                 }, true);
-                this.twitterAuthUpdate((status)=>{
+                TWITTER.AuthUpdate((status)=>{
                     this.statusReact(status, "twitter");
                 }, true);
             },
@@ -422,112 +1487,18 @@ style="display: none;"></sup></div>
                 let new_ver = ver.split('.');
                 let old_ver = GM_info.script.version.split('.');
                 for(var i=0; i<new_ver.length && i<old_ver.length; i++){
-                    if(parseInt(new_ver[i]) > parseInt(old_ver[i])){
+                    let _new = parseInt(new_ver[i]);
+                    let _old = parseInt(old_ver[i]);
+                    if(_new >_old){
                         // 需更新
                         return 1;
+                    }else if(_new == _old){
+                        continue;
+                    }else{
+                        break;
                     }
                 }
                 return 0;
-            },
-            // discord自动加入服务器（OK）
-            discordJoinServerAuto: function(r, server){
-                this.discordAuthUpdate((ret)=>{
-                    if(ret != 200)
-                    {
-                        r(ret);
-                        return;
-                    }
-                    this.httpRequest({
-                        url: 'https://discord.com/api/v6/invites/' + server,
-                        method: 'POST',
-                        headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
-                        onload: (response) => {
-                            if (response.status === 200) {
-                                if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                                r(200);
-                            } else {
-                                console.error(response);
-                                r(601);
-                            }
-                        },
-                        error:(res)=>{
-                            console.error(res);
-                            r(601);
-                        },
-                        anonymous:true
-                    })
-                })
-            },
-            // discord自动退组服务器（OK）
-            discordLeaveServerAuto: function(r, serverId){
-                this.discordAuthUpdate((ret)=>{
-                    if(ret != 200)
-                    {
-                        r(ret);
-                        return;
-                    }
-                    $.ajax({
-                        url: 'https://discord.com/api/v6/users/@me/guilds/' + serverId,
-                        method: 'DELETE',
-                        headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
-                        onload: (response) => {
-                            if (response.status === 604) {
-                                if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
-                                r(604);
-                            } else {
-                                console.error(response);
-                                r(601);
-                            }
-                        },
-                        error:(res)=>{
-                            console.error(res);
-                            r(601);
-                        },
-                        anonymous:true
-                    })
-                })
-            },
-            // discord凭证更新（OK）
-            discordAuthUpdate:function(r, update = false){
-                if (new Date().getTime() - discordAuth.updateTime > 30 * 60 * 1000 || discordAuth.status != 200 || update) {
-                    r(603)
-                    new Promise((resolve, reject)=>{
-                        if(false == getAuthStatus.discord || true === update)
-                        {
-                            getAuthStatus.discord = true;
-                            GM_openInTab("https://discord.com/channels/@me?keyjokertask=storageAuth", true);
-                        }
-                        let i = 0;
-                        let check = setInterval(()=>{
-                            i++;
-                            if(GM_getValue("discordAuth") && new Date().getTime() - GM_getValue("discordAuth").updateTime <= 10 * 1000)
-                            {
-                                if(GM_getValue("discordAuth").status != 200)
-                                {
-                                    clearInterval(check);
-                                    reject(GM_getValue("discordAuth").status)
-                                    return;
-                                }
-                                discordAuth.authorization = GM_getValue("discordAuth").authorization
-                                discordAuth.updateTime = GM_getValue("discordAuth").updateTime
-                                discordAuth.status = GM_getValue("discordAuth").status;
-                                clearInterval(check);
-                                resolve(discordAuth.status)
-                            }
-                            if(i >= 10)
-                            {
-                                clearInterval(check);
-                                reject(408)
-                            }
-                        }, 1000)
-                    }).then((ret)=>{
-                        r(ret)
-                    }).catch((err)=>{
-                        r(err)
-                    })
-                }else{
-                    r(200)
-                }
             },
             // 做任务
             do_task: function(data){
@@ -569,35 +1540,35 @@ style="display: none;"></sup></div>
                     switch(task.task.name)
                     {
                         case "Join Steam Group":
-                            this.steamJoinGroupAuto(react, task.data.url);
+                            STEAM.JoinGroup(react, task.data.url);
                             break;
                         case "Rep Steam Account":
-                            this.steamRepAuto(react, task.data.id);
+                            STEAM.Rep(react, task.data.id);
                             break;
                         case "Wishlist Steam Game":
-                            this.steamAddWishlistAuto(react, task.data.id);
+                            STEAM.AddWishlist(react, task.data.id);
                             break;
                         case "Follow Twitter Account":
-                            this.twitterFollowAuto(react, task.data);
+                            TWITTER.FollowAuto(react, task.data);
                             break;
                         case "Join Discord Server":
                             var server = task.data.url.split(".gg/")[1];
-                            this.discordJoinServerAuto(react, server)
+                            DISCORD.JoinServer(react, server)
                             break;
                         case "Retweet Twitter Tweet":
-                            this.twitterRetweetAuto(react, task.data.url);
+                            TWITTER.RetweetAuto(react, task.data.url);
                             break;
                         case "Save Spotify Album":
-                            this.spotifySaveAuto(react, task.data);
+                            SPOTIFY.SaveAuto(react, task.data);
                             break;
                         case "Follow Spotify Account":
-                            this.spotifyFollowAuto(react, task.data);
+                            SPOTIFY.Follow(react, task.data);
                             break;
                         case "Follow Twitch Channel":
                             this.twitchFollowAuto(react, task.data.id);
                             break;
                         case "Follow Tumblr Blog":
-                            this.tumblrFollowAuto(react, task.data.name);
+                            TUMBLR.Follow(react, task.data.name);
                             break;
                         default:
                             noticeFrame.updateNotice1({id:task.id, class:"error", text:"Unknow Type:" + task.task.name})
@@ -852,955 +1823,7 @@ style="display: none;"></sup></div>
                 }
                 noticeFrame.addNotice({type:"msg",msg:"设置重置完毕"})
             },
-            // OK
-            spotifySaveAuto: function(r, data, del = false){
-                this.spotifyGetUserInfo((status, accessToken = null, userId = null)=>{
-                    if(status != 200)
-                    {
-                        r(status);
-                        return;
-                    }
-                    let putUrl = "";
-                    new Promise((resolve, reject)=>{
-                        switch(data.type)
-                        {
-                            case "album":
-                                putUrl = "https://spclient.wg.spotify.com/collection-view/v1/collection/albums/" + userId + "?base62ids=" + data.id + "&model=bookmark";
-                                resolve(putUrl);
-                                break;
-                            case "track":
-                                this.httpRequest({
-                                    url: 'https://api.spotify.com/v1/tracks?ids=' + data.id + '&market=from_token',
-                                    method: 'GET',
-                                    headers:{authorization: "Bearer " + accessToken},
-                                    onload: (response) => {
-                                        if(response.status == 200)
-                                        {
-                                            let temp = JSON.parse(response.response);
-                                            putUrl = "https://spclient.wg.spotify.com/collection-view/v1/collection/albums/" + userId + "?base62ids=" + temp.tracks[0].album.id + "&model=bookmark";
-                                            resolve(putUrl);
-                                        }else
-                                        {
-                                            console.error(response);
-                                            reject(601);
-                                        }
-                                    },
-                                    error:(res)=>{
-                                        console.error(res);
-                                        reject(601);
-                                    },
-                                    anonymous:true
-                                })
-                                break;
-                            default:
-                                console.error("spotifySaveAuto未知类型：", data);
-                                r(601);
-                                return;
-                                break;
-                        }
-                    }).then((putUrl)=>{
-                        if(debug)console.log(putUrl)
-                        $.ajax({
-                            type: !del?'PUT':"DELETE",
-                            url: putUrl,
-                            headers: {authorization: "Bearer " + accessToken},
-                            success: function(data){
-                                console.log(data);
-                                r(200);
-                            },
-                            error: function(data){
-                                console.error(data);
-                                r(601);
-                            },
-                            anonymous:true
-                        });
-                    })
-                });
-            },
-            // OK
-            spotifyFollowAuto: function(r, data, del = false){
-                this.spotifyGetUserInfo((status, accessToken = null)=>{
-                    if(status != 200)
-                    {
-                        r(status)
-                        return;
-                    }
-                    let putUrl = "";
-                    switch(data.type)
-                    {
-                        case "artist":
-                            putUrl = "https://api.spotify.com/v1/me/following?type=artist&ids=" + data.id;
-                            break;
-                        case "playlist":
-                            putUrl = "https://api.spotify.com/v1/playlists/" + data.id + "/followers"
-                            break;
-                        case "user":
-                            putUrl = "https://api.spotify.com/v1/me/following?type=user&ids=" + data.id;
-                            break;
-                        default:
-                            console.error(data);
-                            r(601);
-                            return;
-                            break;
-                    }
-                    $.ajax({
-                        type: !del?'PUT':"DELETE",
-                        url: putUrl,
-                        headers: {authorization: "Bearer " + accessToken},
-                        success: function(data){
-                            r(200);
-                        },
-                        error: function(data){
-                            console.error(data);
-                            r(604);
-                        },
-                        anonymous:true
-                    });
-                });
-            },
-            // OK
-            spotifyGetUserInfo: function(r){
-                r(603)
-                this.spotifyGetAccessToken(
-                    (status, accessToken)=>{
-                        if(status != 200)
-                        {
-                            r(status);
-                            return;
-                        }
-                        this.httpRequest({
-                            url: 'https://api.spotify.com/v1/me',
-                            method: 'GET',
-                            headers:{authorization: "Bearer " + accessToken},
-                            onload: (response) => {
-                                if (response.status === 200) {
-                                    r(200, accessToken, JSON.parse(response.responseText).id);
-                                } else {
-                                    console.error(response)
-                                    r(401);
-                                }
-                            },
-                            error:(res)=>{
-                                console.error("error");
-                                r(604);
-                            },
-                            anonymous:true
-                        })
-                    }
-                )
-            },
-            // OK
-            spotifyGetAccessToken: function(r){
-                r(603);
-                this.httpRequest({
-                    url: 'https://open.spotify.com/get_access_token?reason=transport&productType=web_player',
-                    method: 'GET',
-                    onload: (response) => {
-                        if (response.status === 200) {
-                            r(200, JSON.parse(response.responseText).accessToken);
-                        } else {
-                            console.log(response);
-                            r(401);
-                        }
-                    },
-                    error:(res)=>{
-                        if(debug)console.log(res);
-                        r(604);
-                    }
-                })
-            },
-            // =====================Steam Start======================
-            // steam信息更新（In Progress）[修改自https://greasyfork.org/zh-CN/scripts/370650]
-            steamInfoUpdate: function (r, type = 'all', update = false) {
-                r(603);
-                if (type === 'community' || type === 'all') {
-                    if (new Date().getTime() - steamInfo.comUpdateTime > 10 * 60 * 1000 || update) {
-                        if(603 == getAuthStatus.steamCom)
-                        {
-                            let i = 0;
-                            let steamCheck = setInterval(()=>{
-                                i++;
-                                if(603 != getAuthStatus.steamCom)
-                                {
-                                    clearInterval(steamCheck);
-                                    r(getAuthStatus.steamCom);
-                                }
-                                if(i >= 10)
-                                {
-                                    clearInterval(steamCheck);
-                                    r(408);
-                                }
-                            }, 1000)
-                            return;
-                        }
-                        getAuthStatus.steamCom = 603;
-                        new Promise((resolve, reject) => {
-                            this.httpRequest({
-                                url: 'https://steamcommunity.com/my',
-                                method: 'GET',
-                                onload: (response) => {
-                                    if (response.status === 200) {
-                                        if ($(response.responseText).find('a[href*="/login/home"]').length > 0) {
-                                            getAuthStatus.steamCom = 401;
-                                            reject(401);
-                                        } else {
-                                            const steam64Id = response.responseText.match(/g_steamID = "(.+?)";/);
-                                            const communitySessionID = response.responseText.match(/g_sessionID = "(.+?)";/);
-                                            const userName = response.responseText.match(/steamcommunity.com\/id\/(.+?)\/friends\//);
-                                            if (steam64Id) steamInfo.steam64Id = steam64Id[1];
-                                            if (communitySessionID) steamInfo.communitySessionID = communitySessionID[1];
-                                            if (userName) steamInfo.userName = userName[1];
-                                            getAuthStatus.steamCom = 200;
-                                            resolve(200);
-                                        }
-                                    } else {
-                                        console.error(response);
-                                        getAuthStatus.steamCom = 601;
-                                        reject(601);
-                                    }
-                                },
-                                r: resolve
-                            })
-                        }).then((ret) => {
-                            if(ret == 200)
-                            {
-                                steamInfo.comUpdateTime = new Date().getTime();
-                                GM_setValue('steamInfo', steamInfo);
-                            }
-                            r(ret);
-                        }).catch(err => {
-                            console.error(err);
-                            r(err);
-                        })
-                    } else {
-                        r(200);
-                    }
-                }
-                if (type === 'store' || type === 'all') {
-                    if (new Date().getTime() - steamInfo.storeUpdateTime > 10 * 60 * 1000 || update) {
-                        if(603 == getAuthStatus.steamStore)
-                        {
-                            let i = 0;
-                            let steamCheck = setInterval(()=>{
-                                i++;
-                                if(603 != getAuthStatus.steamStore)
-                                {
-                                    clearInterval(steamCheck);
-                                    r(getAuthStatus.steamStore);
-                                }
-                                if(i >= 10)
-                                {
-                                    clearInterval(steamCheck);
-                                    r(408);
-                                }
-                            }, 1000)
-                            return;
-                        }
-                        getAuthStatus.steamStore = 603;
-                        new Promise((resolve, reject) => {
-                            this.httpRequest({
-                                url: 'https://store.steampowered.com/stats/',
-                                method: 'GET',
-                                onload: (response) => {
-                                    if (response.status === 200) {
-                                        if ($(response.responseText).find('a[href*="/login/"]').length > 0) {
-                                            if (debug) console.log(response)
-                                            getAuthStatus.steamStore = 401;
-                                            reject(401)
-                                        } else {
-                                            const storeSessionID = response.responseText.match(/g_sessionID = "(.+?)";/)
-                                            if (storeSessionID) steamInfo.storeSessionID = storeSessionID[1]
-                                            getAuthStatus.steamStore = 200;
-                                            resolve(200);
-                                        }
-                                    } else {
-                                        console.error(response);
-                                        getAuthStatus.steamStore = 601;
-                                        reject(601);
-                                    }
-                                },
-                                r: resolve
-                            })
-                        }).then((ret) => {
-                            if(ret == 200)
-                            {
-                                steamInfo.storeUpdateTime = new Date().getTime();
-                                GM_setValue('steamInfo', steamInfo);
-                            }
-                            r(ret)
-                        }).catch(err => {
-                            console.error(err);
-                            r(err);
-                        })
-                    } else {
-                        r(200)
-                    }
-                }
-            },
-            // steam个人资料回复"+rep"（OK）
-            steamRepAuto: function(r, id){
-                this.steamRepHisCheck((status, ret = null) => {
-                    if(status != 200)
-                    {
-                        r(status);
-                        return;
-                    }
-                    if(!ret){
-                        this.httpRequest({
-                            url: 'https://steamcommunity.com/comment/Profile/post/' + id + '/-1/',
-                            method: 'POST',
-                            data: $.param({comment:'+rep',count:6,sessionid:steamInfo.communitySessionID,feature2:-1}),
-                            headers:{'content-type': 'application/x-www-form-urlencoded'},
-                            onload: (response) => {
-                                if(response.status == 200)
-                                {
-                                    let ret = JSON.parse(response.response)
-                                    if(ret.success == true)r(200);
-                                    else{
-                                        console.error("发送评论失败", response);
-                                        r(601);
-                                    }
-                                }else{
-                                    console.error("评论返回值异常", response);
-                                    r(601);
-                                }
-                            },
-                            error: (err)=>{
-                                console.error("请求发送异常", err);
-                                r(601);
-                            }
-                        })
-                    }else{
-                        r(200);
-                    }
-                },id)
-            },
-            steamRepHisCheck: function (r, id){
-                this.steamInfoUpdate((ret) => {
-                    if(ret != 200)
-                    {
-                        r(ret);
-                        return;
-                    }
-                    this.httpRequest({
-                        url: "https://steamcommunity.com/profiles/" + id,
-                        method: 'GET',
-                        onload: (response) => {
-                            if(response.status == 200)
-                            {
-                                let comments = response.responseText.match(/commentthread_comments([\s\S]*)commentthread_footer/);
-                                if(debug)console.log(comments);
-                                if(comments != null)
-                                {
-                                    if(comments[1].includes(steamInfo.steam64Id) || steamInfo.userName?comments[1].includes(steamInfo.userName):false)
-                                    {
-                                        r(200, true);
-                                    }
-                                    else if(!response.responseText.includes("commentthread_textarea"))
-                                    {
-                                        r(605)
-                                    }else{
-                                        r(200, false);
-                                    }
-                                }
-                                else r(605);
-                            }else{
-                                console.error("检查评论记录返回异常", response);
-                                r(601);
-                            }
-                        }
-                        //,anonymous:true
-                    });
-                }, "community")
-            },
-            // steam加组（OK）[修改自https://greasyfork.org/zh-CN/scripts/370650]
-            steamJoinGroupAuto: function (r, url) {
-                this.steamInfoUpdate((ret) => {
-                    if(ret != 200)
-                    {
-                        r(ret);
-                        return;
-                    }
-                    this.httpRequest({
-                        url: url,
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                        data: $.param({ action: 'join', sessionID: steamInfo.communitySessionID }),
-                        onload: (response) => {
-                            if (response.status === 200 && !response.responseText.includes('grouppage_join_area')) {
-                                if(response.responseText.match(/<h3>(.+?)<\/h3>/) && response.responseText.match(/<h3>(.+?)<\/h3>/)[1] != "您已经是该组的成员了。")
-                                {
-                                    console.error(response);
-                                    r(601);
-                                }else r(200);
-                            } else {
-                                console.error(response);
-                                r(601);
-                            }
-                        }
-                    })
-                }, 'community');
-            },
-            // steam退组
-            steamLeaveGroupAuto: function (r, url) {
-                let groupName = url.split('s/')[1];
-                this.steamGetGroupID(groupName, (groupName, groupId) => {
-                    var postUrl = "";
-                    postUrl = (steamInfo.userName) ? 'https://steamcommunity.com/id/' + steamInfo.userName + '/home_process' : 'https://steamcommunity.com/profiles/' + steamInfo.steam64Id + '/home_process'
-                    this.httpRequest({
-                        url: postUrl,
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                        data: $.param({ sessionID: steamInfo.communitySessionID, action: 'leaveGroup', groupId: groupId }),
-                        onload: (response) => {
-                            if (response.status === 200 && response.finalUrl.includes('groups') && $(response.responseText.toLowerCase()).find(`a[href='https://steamcommunity.com/groups/${groupName.toLowerCase()}']`).length === 0) {
-                                r(200);
-                            } else {
-                                console.error(response);
-                                r(601);
-                            }
-                        },
-                        r
-                    })
-                })
-            },
-            steamGetGroupID: function (groupName, callback) {
-                this.steamInfoUpdate((ret) => {
-                    if(ret != 200)
-                    {
-                        r(ret);
-                        return;
-                    }
-                    new Promise(resolve => {
-                        this.httpRequest({
-                            url: 'https://steamcommunity.com/groups/' + groupName,
-                            method: 'GET',
-                            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                            onload: function (response) {
-                                if (debug) console.log(response)
-                                if (response.status === 200) {
-                                    const groupId = response.responseText.match(/OpenGroupChat\( '([0-9]+)'/)
-                                    if (groupId === null) {
-                                        console.error(response)
-                                        resolve(false)
-                                    } else {
-                                        resolve(groupId[1])
-                                    }
-                                } else {
-                                    console.error(response)
-                                    resolve(false)
-                                }
-                            },
-                            r: () => {
-                                resolve(false)
-                            }
-                        })
-                    }).then(groupId => {
-                        if (groupId !== false && callback) callback(groupName, groupId);
-                    }).catch(err => {
-                        console.error(err);
-                    })
-                })
-            },
-            // steam加愿望单（In Progress）[修改自https://greasyfork.org/zh-CN/scripts/370650]
-            steamAddWishlistAuto: function (r, gameId) {
-                this.steamInfoUpdate((ret) => {
-                    if(ret != 200)
-                    {
-                        r(ret);
-                        return;
-                    }
-                    new Promise(resolve => {
-                        this.httpRequest({
-                            url: 'https://store.steampowered.com/api/addtowishlist',
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                            data: $.param({ sessionid: steamInfo.storeSessionID, appid: gameId }),
-                            dataType: 'json',
-                            onload: function (response) {
-                                if (debug) console.log(response)
-                                if (response.status === 200 && response.response && response.response.success === true) {
-                                    resolve({ result: 'success', statusText: response.statusText, status: response.status })
-                                } else {
-                                    resolve({ result: 'error', statusText: response.statusText, status: response.status })
-                                }
-                            },
-                            onabort: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
-                            onerror: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
-                            ontimeout: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
-                            r: resolve
-                        })
-                    }).then(result => {
-                        if (result.result === 'success') {
-                            r(200)
-                        } else {
-                            this.httpRequest({
-                                url: 'https://store.steampowered.com/app/' + gameId,
-                                method: 'GET',
-                                onload: function (response) {
-                                    if (debug) console.log(response)
-                                    if (response.status === 200) {
-                                        if (response.responseText.includes('class="queue_actions_ctn"') && response.responseText.includes('已在库中')) {
-                                            r(200)
-                                        } else if ((response.responseText.includes('class="queue_actions_ctn"') && !response.responseText.includes('add_to_wishlist_area" style="display: none;"')) || !response.responseText.includes('class="queue_actions_ctn"')) {
-                                            console.error(response);
-                                            r(601);
-                                        } else {
-                                            r(200);
-                                        }
-                                    } else {
-                                        console.error(response);
-                                        r(601);
-                                    }
-                                },
-                                r
-                            })
-                        }
-                    }).catch(err => {
-                        console.error(err);
-                        r(601);
-                    })
-                },'store')
-            },
-            // steam移除愿望单（In Progress）[修改自https://greasyfork.org/zh-CN/scripts/370650]
-            steamRemoveWishlistAuto: function (r, gameId) {
-                this.steamInfoUpdate(() => {
-                    new Promise(resolve => {
-                        this.httpRequest({
-                            url: 'https://store.steampowered.com/api/removefromwishlist',
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                            data: $.param({ sessionid: steamInfo.storeSessionID, appid: gameId }),
-                            dataType: 'json',
-                            onload: function (response) {
-                                if (response.status === 200 && response.response && response.response.success === true) {
-                                    resolve({ result: 'success', statusText: response.statusText, status: response.status })
-                                } else {
-                                    resolve({ result: 'error', statusText: response.statusText, status: response.status })
-                                }
-                            },
-                            onabort: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
-                            onerror: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
-                            ontimeout: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
-                            r: resolve
-                        })
-                    }).then(result => {
-                        if (result.result === 'success') {
-                            r(200);
-                        } else {
-                            this.httpRequest({
-                                url: 'https://store.steampowered.com/app/' + gameId,
-                                method: 'GET',
-                                onload: function (response) {
-                                    if (response.status === 200) {
-                                        if (response.responseText.includes('class="queue_actions_ctn"') && (response.responseText.includes('已在库中') || response.responseText.includes('添加至您的愿望单'))) {
-                                            r(200);
-                                        } else {
-                                            console.error(response);
-                                            r(601);
-                                        }
-                                    } else {
-                                        console.error(response);
-                                        r(601);
-                                    }
-                                },
-                                r
-                            })
-                        }
-                    }).catch(err => {
-                        console.error(err);
-                        r(601);
-                    })
-                })
-            },
-            // ============Tumblr Start=========
-            // tumblr关注博客（OK）
-            tumblrFollowAuto: function(r, name){
-                this.tumblrAuthUpdate((status, key = false)=>{
-                    if(status != 200)
-                    {
-                        r(status);
-                        return;
-                    }
-                    if(false != key){
-                        this.httpRequest({
-                            url: 'https://www.tumblr.com/svc/follow',
-                            method: 'POST',
-                            headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
-                            data: $.param({'data[tumblelog]': name}),
-                            onload: (response) => {
-                                if(response.status == 200)
-                                {
-                                    r(200);
-                                }else
-                                {
-                                    console.error(response);
-                                    r(601);
-                                }
-                            }
-                        })
-                    }else{
-                        console.error("tumblrFollowAuto->key值错误");
-                        r(601);
-                    }
-                })
-            },
-            // tumblr取消关注博客
-            tumblrUnfollowAuto: function(r, name){
-                this.tumblrAuthUpdate((status, key = false)=>{
-                    if(status != 200)
-                    {
-                        r(status);
-                        return;
-                    }
-                    if(false != key){
-                        this.httpRequest({
-                            url: 'https://www.tumblr.com/svc/unfollow',
-                            method: 'POST',
-                            headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
-                            data: $.param({'data[tumblelog]': name}),
-                            onload: (response) => {
-                                if(response.status == 200)
-                                {
-                                    r(200);
-                                }else{
-                                    console.error(response);
-                                    r(601);
-                                }
-                            }
-                        })
-                    }else{
-                        r(601);
-                    }
-                })
-            },
-            // tumblr获取请求头key（OK）
-            tumblrAuthUpdate:function(r, update = false){
-                r(603)
-                this.httpRequest({
-                    url: 'https://www.tumblr.com/dashboard/iframe',
-                    method: 'GET',
-                    onload: (response) => {
-                        if(response.status == 200)
-                        {
-                            let key = response.responseText.match(/id="tumblr_form_key" content="(.+?)">/)
-                            if(key){
-                                if(-1 != key.indexOf("!123") && -1 !=key.indexOf("|") )
-                                {
-                                    r(401);
-                                    return;
-                                }else r(200, key);
-                            }
-                            else{
-                                console.error("tumblrGetKey->get key failed.", response);
-                                r(601);
-                            }
-                        }else{
-                            console.error(response);
-                            r(601);
-                        }
-                    }
-                })
-            },
-            // ============Twitch Start=========
-            // twitch关注（OK）
-            twitchFollowAuto: function(r, channelId){
-                this.twitchAuthUpdate((status)=>{
-                    if(status != 200)
-                    {
-                        r(status);
-                        return;
-                    }
-                    this.httpRequest({
-                        url: 'https://gql.twitch.tv/gql',
-                        method: 'POST',
-                        headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
-                        data: '[{"operationName":"FollowButton_FollowUser","variables":{"input":{"disableNotifications":false,"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"3efee1acda90efdff9fef6e6b4a29213be3ee490781c5b54469717b6131ffdfe"}}}]',
-                        onload: (response) => {
-                            if (response.status === 200) {
-                                r(200);
-                            } else if(response.status === 401){
-                                twitchAuth.updateTime = 0;
-                                GM_setValue("twitchAuth", null);
-                                r(401);
-                            }else{
-                                console.error(response);
-                                r(601);
-                            }
-                        }
-                    })
-                })
-            },
-            // twitch关注（OK）
-            twitchUnfollowAuto: function(r, channelId){
-                this.twitchAuthUpdate((status)=>{
-                    if(status != 200)
-                    {
-                        r(status);
-                        return;
-                    }
-                    this.httpRequest({
-                        url: 'https://gql.twitch.tv/gql',
-                        method: 'POST',
-                        headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
-                        data: '[{"operationName":"FollowButton_UnfollowUser","variables":{"input":{"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"d7fbdb4e9780dcdc0cc1618ec783309471cd05a59584fc3c56ea1c52bb632d41"}}}]',
-                        onload: (response) => {
-                            if (response.status === 200) {
-                                r(200);
-                            } else if(response.status === 401){
-                                twitchAuth.updateTime = 0;
-                                GM_setValue("twitchAuth", null);
-                                r(401);
-                            }else{
-                                console.error(response);
-                                r(601);
-                            }
-                        }
-                    })
-                })
-            },
-            // 弃用
-            twitchGetId: function(r, channels){
-                this.httpRequest({
-                    url: 'https://api.twitch.tv/api/channels/' + channels + '/access_token?oauth_token=' + GM_getValue("twitchAuth").match(/auth-token=(.+?); /)[1] + '&need_https=true&platform=web&player_type=site&player_backend=mediaplayer',
-                    method: 'GET',
-                    onload: (response) => {
-                        if (response.status === 200) {
-                            let rep = JSON.parse(JSON.parse(response.responseText).token);
-                            r(rep.channel_id);
-                        } else {
-                            console.error(response);
-                            r('error')
-                        }
-                    },
-                    error:(res)=>{
-                        console.error(res);
-                    },
-                    anonymous:true
-                })
-            },
-            // twitch凭证更新（OK）
-            twitchAuthUpdate:function(r, update = false){
-                if (new Date().getTime() - twitchAuth.updateTime > 30 * 60 * 1000 || twitchAuth.status != 200 || update) {
-                    r(603)
-                    new Promise((resolve, reject)=>{
-                        if(false == getAuthStatus.twitch || true === update)
-                        {
-                            getAuthStatus.twitch = true;
-                            GM_openInTab("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth", true);
-                        }
-                        let i = 0;
-                        let check = setInterval(()=>{
-                            i++;
-                            if(GM_getValue("twitchAuth") && new Date().getTime() - GM_getValue("twitchAuth").updateTime <= 10 * 1000)
-                            {
-                                if(GM_getValue("twitchAuth").status != 200)
-                                {
-                                    clearInterval(check);
-                                    reject(401);
-                                    return;
-                                }
-                                twitchAuth["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
-                                twitchAuth.updateTime = GM_getValue('twitchAuth').updateTime;
-                                twitchAuth.status = GM_getValue('twitchAuth').status;
-                                clearInterval(check);
-                                resolve(200)
-                            }
-                            if(i >= 10)
-                            {
-                                clearInterval(check);
-                                reject(408)
-                            }
-                        }, 1000)
-                    }).then((ret)=>{
-                        r(ret);
-                    }).catch((err)=>{
-                        r(err);
-                    })
-                }else{
-                    r(200)
-                }
-            },
-            // ==========Twitter Start========
-            // 推特关注用户（OK）
-            twitterFollowAuto: function(r, data){
-                this.twitterAuthUpdate((status)=>{
-                    if(status != 200)
-                    {
-                        r(status);
-                        return;
-                    }
-                    this.twitterGetUserInfo((status, userId = null)=>{
-                        if(200 != status)
-                        {
-                            r(601);
-                            return;
-                        }
-                        this.httpRequest({
-                            url: 'https://api.twitter.com/1.1/friendships/create.json',
-                            method: 'POST',
-                            headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
-                            data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
-                            onload: (response) => {
-                                if (response.status === 200) {
-                                    r(200);
-                                } else {
-                                    console.error(response);
-                                    twitterAuth.updateTime = 0;
-                                    GM_setValue("twitterAuth", twitterAuth);
-                                    r(601);
-                                }
-                            }
-                        })
-                    },data.username)
-                })
-            },
-            // 推特取消关注用户（OK）
-            twitterUnfollowAuto: function(r, data){
-                this.twitterAuthUpdate((status)=>{
-                    if(status != 200)
-                    {
-                        r(status);
-                        return;
-                    }
-                    this.twitterGetUserInfo((userId)=>{
-                        if(debug)console.log(userId)
-                        if("error" == userId)
-                        {
-                            r(601);
-                            return;
-                        }
-                        this.httpRequest({
-                            url: 'https://api.twitter.com/1.1/friendships/destroy.json',
-                            method: 'POST',
-                            headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
-                            data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
-                            onload: (response) => {
-                                if (response.status === 200) {
-                                    r(200);
-                                } else {
-                                    console.error(response);
-                                    twitterAuth.updateTime = 0;
-                                    GM_setValue("twitterAuth", twitterAuth);
-                                    r(601);
-                                }
-                            }
-                        })
-                    },data.username)
-                })
-            },
-            // 推特转推（OK）
-            twitterRetweetAuto: function(r, url){
-                let retweetId = url.split("status/")[1];
-                this.twitterAuthUpdate((status)=>{
-                    if(status != 200)
-                    {
-                        r(status);
-                        return;
-                    }
-                    this.httpRequest({
-                        url: 'https://api.twitter.com/1.1/statuses/retweet.json',
-                        method: 'POST',
-                        headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
-                        data: $.param({ tweet_mode: "extended",id: retweetId}),
-                        onload: (response) => {
-                            if (response.status === 200 || (response.status === 403 && response.responseText == '{"errors":[{"code":327,"message":"You have already retweeted this Tweet."}]}')) {
-                                r(200);
-                            } else {
-                                console.error(response);
-                                twitterAuth.updateTime = 0;
-                                GM_setValue("twitterAuth", twitterAuth);
-                                r(601);
-                            }
-                        }
-                    })
-                })
-            },
-            // 推特根据用户名获取用户id（OK）
-            twitterGetUserInfo: function(r, userName){
-                if(debug)console.log("====twitterGetUserInfo====");
-                this.httpRequest({
-                    url: 'https://api.twitter.com/graphql/-xfUfZsnR_zqjFd-IfrN5A/UserByScreenName?variables=%7B%22screen_name%22%3A%22' + userName + '%22%2C%22withHighlightedLabel%22%3Atrue%7D',
-                    method: 'GET',
-                    headers: { authorization: "Bearer " + twitterAuth.authorization, "content-type": "application/json"},
-                    onload: (response) => {
-                        if (response.status === 200) {
-                            r(200, JSON.parse(response.responseText).data.user.rest_id);
-                        } else {
-                            console.error(response);
-                            r(601);
-                        }
-                    },
-                    error:(res)=>{
-                        console.error(res);
-                        r(601);
-                    },
-                    anonymous:true
-                })
-            },
-            // 推特取得用户页面响应头（OK）
-            /*twitterAP:function(r){
-                this.httpRequest({
-                    url: 'https://twitter.com/settings/account?k',
-                    method: 'GET',
-                    onload: (response) => {
-                        if (response.status === 200) {
-                            if(debug)console.log(response)
-                            r(200, response.responseHeaders)
-                        } else {
-                            console.error(response);
-                            r(601);
-                        }
-                    },
-                    error:(res)=>{
-                        console.error(res);
-                        r(601);
-                    }
-                })
-            },*/
-            // 推特凭证更新（OK）
-            twitterAuthUpdate:function(r, update = false){
-                if(new Date().getTime() - twitterAuth.updateTime > 30 * 60 * 1000 || update){
-                    r(603);
-                    new Promise((resolve, reject)=>{
-                        if(false == getAuthStatus.twitter || true === update)
-                        {
-                            getAuthStatus.twitter = true;
-                            GM_openInTab("https://twitter.com/settings/account?keyjokertask=storageAuth", true);
-                        }
-                        let i = 0;
-                        let check = setInterval(()=>{
-                            i++;
-                            if(GM_getValue("twitterAuth") && new Date().getTime() - GM_getValue("twitterAuth").updateTime <= 10 * 1000)
-                            {
-                                if(GM_getValue("twitterAuth").status != 200)
-                                {
-                                    clearInterval(check);
-                                    reject(GM_getValue("twitterAuth").status)
-                                    return;
-                                }
-                                twitterAuth.ct0 = GM_getValue("twitterAuth").ct0;
-                                twitterAuth.updateTime = GM_getValue("twitterAuth").updateTime
-                                twitterAuth.status = GM_getValue("twitterAuth").status;
-                                clearInterval(check);
-                                resolve(twitterAuth.status)
-                            }
-                            if(i >= 10)
-                            {
-                                clearInterval(check);
-                                reject(408)
-                            }
-                        }, 1000)
-                    }).then((ret)=>{
-                        r(ret)
-                    }).catch((err)=>{
-                        r(err)
-                    })
-                }else{
-                    r(200);
-                }
-            },
-            // ==========Twitter End========
+
             runDirectUrl:function(direct_url){
                 GM_log("====访问跳转链接====")
                 this.httpRequest({
