@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      0.9.0
+// @version      0.9.1
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -1565,7 +1565,7 @@ style="display: none;"></sup></div>
                             SPOTIFY.Follow(react, task.data);
                             break;
                         case "Follow Twitch Channel":
-                            this.twitchFollowAuto(react, task.data.id);
+                            TWITCH.FollowAuto(react, task.data.id);
                             break;
                         case "Follow Tumblr Blog":
                             TUMBLR.Follow(react, task.data.name);
