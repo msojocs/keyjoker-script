@@ -26,6 +26,7 @@
 // @grant        GM_deleteValue
 // @grant        GM_openInTab
 // @grant        GM_log
+// @grant       GM_notification
 // @connect      hcaptcha.com
 // @connect      store.steampowered.com
 // @connect      steamcommunity.com
@@ -36,7 +37,6 @@
 // @connect      tumblr.com
 // @connect      spotify.com
 // @connect      jysafe.cn
-// @require      https://greasyfork.org/scripts/379868-jquery-not/code/jQuery%20not%20$.js?version=700787
 // @require      https://cdn.staticfile.org/jquery/3.3.1/jquery.min.js
 // @require      https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@e1f9bc6ca24cf7e8f734bd910306737449a26830/keyjoker.ext.js
 // ==/UserScript==
@@ -69,8 +69,8 @@
         status: 0,
         updateTime: 0
     }
-
-    var completeCheck = null;
+    const jq = $;
+    let completeCheck = null;
 
     // 0-未动作|200-成功取得|401未登录|603正在取得
     const getAuthStatus = {
@@ -86,7 +86,7 @@
     const noticeFrame = {
         loadFrame: ()=>{
             if(debug)console.log("loadFrame");
-            $('body').append(`<style>
+            jq('body').append(`<style>
 .fuck-task-logs li{display:list-item !important;float:none !important}
 #extraBtn .el-badge.item{margin-bottom:4px !important}
 #extraBtn .el-badge.item sup{padding-right:0 !important}
@@ -164,31 +164,31 @@ style="display: none;"></sup></div>
             switch(data.type)
             {
                 case "taskStatus":
-                    $('.el-notification__content').append('<li>' + data.task.task.name + ' <a href="' + data.task.data.url + '" target="_blank">' + (data.task.data.name||data.task.data.username) + '</a>|<font id="' + data.task.id + '" class="' + data.status +'">' + data.status +'</font></li>');
+                    jq('.el-notification__content').append('<li>' + data.task.task.name + ' <a href="' + data.task.data.url + '" target="_blank">' + (data.task.data.name||data.task.data.username) + '</a>|<font id="' + data.task.id + '" class="' + data.status +'">' + data.status +'</font></li>');
                     break;
                 case "msg":
-                    $('.el-notification__content').append("<li>" + data.msg + "</li>");
+                    jq('.el-notification__content').append("<li>" + data.msg + "</li>");
                     break;
                 case "authVerify":
-                    $('.el-notification__content').append('<li>' + data.name + ' |<font id="' + data.status.id + '" class="' + data.status.class +'">' + data.status.text + '</font></li>');
+                    jq('.el-notification__content').append('<li>' + data.name + ' |<font id="' + data.status.id + '" class="' + data.status.class +'">' + data.status.text + '</font></li>');
                     break;
                 default:
-                    $('.el-notification__content').append("<li>" + data + "</li>");
+                    jq('.el-notification__content').append("<li>" + data + "</li>");
                     break;
             }
         },
         clearNotice:()=>{
-            $('.el-notification__content li').remove();
+            jq('.el-notification__content li').remove();
         },
         updateNotice: function(id, status){
-            $('font#' + id).removeClass()
-            $('font#' + id).addClass(status)
-            $('font#' + id).text(status)
+            jq('font#' + id).removeClass()
+            jq('font#' + id).addClass(status)
+            jq('font#' + id).text(status)
         },
         updateNotice1: function(data){
-            $('font#' + data.id).removeClass()
-            $('font#' + data.id).addClass(data.class)
-            $('font#' + data.id).text(data.text || data.class)
+            jq('font#' + data.id).removeClass()
+            jq('font#' + data.id).addClass(data.class)
+            jq('font#' + data.id).text(data.text || data.class)
         }
     }
     try{
@@ -198,24 +198,24 @@ style="display: none;"></sup></div>
                 let hour=date.getHours();
                 let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                 if(GM_getValue("start")==1){
-                    $(".border-bottom").text(hour+":"+min+" 执行新任务检测");
-                    $.ajax({
+                    jq(".border-bottom").text(hour+":"+min+" 执行新任务检测");
+                    jq.ajax({
                         url:"/entries/load",
                         type:"get",
-                        headers:{'x-csrf-token': $('meta[name="csrf-token"]').attr('content')},
+                        headers:{'x-csrf-token': jq('meta[name="csrf-token"]').attr('content')},
                         success:(data,status,xhr)=>{
                             if(data && (data.actions && (data.actions.length > sum) )){
                                 if(debug)console.log(data);
                                 let date=new Date();
                                 let hour=date.getHours();
                                 let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
-                                $(".border-bottom").text(hour+":"+min+" 检测到新任务（暂停检测）");
-                                $show({
-                                    title:"keyjoker新任务",
-                                    msg:"keyjoker网站更新"+(data.actions.length-sum)+"个新任务！",
-                                    icon:"https://www.keyjoker.com/favicon-32x32.png",
-                                    time:0,
-                                    onclick:function(){
+                                jq(".border-bottom").text(hour+":"+min+" 检测到新任务（暂停检测）");
+                                GM_notification({
+                                    title: "keyjoker新任务",
+                                    text: "keyjoker网站更新"+(data.actions.length-sum)+"个新任务！",
+                                    image: "https://www.keyjoker.com/favicon-32x32.png",
+                                    timeout: 0,
+                                    onclick: function(){
                                         //location.reload(true);
                                     }
                                 });
@@ -268,7 +268,7 @@ style="display: none;"></sup></div>
                 if(!time){
                     time=60;
                 }
-                let sum=$(".list-complete-item").length;
+                let sum=jq(".list-complete-item").length;
                 if(sum>0){
                     this.reLoad(time*1000,sum);
                 }else{
@@ -325,9 +325,14 @@ style="display: none;"></sup></div>
                         r(ret);
                         return;
                     }
+                    // https://discord.com/api/v9/invites/EVgxm7TTvD
                     func.httpRequest({
-                        url: 'https://discord.com/api/v6/invites/' + server,
+                        url: 'https://discord.com/api/v9/invites/' + server,
+                        headers: {
+                            referer: 'https://discord.com/invite/' + server
+                        },
                         method: 'POST',
+                        data: {},
                         headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
                         onload: (response) => {
                             if (response.status === 200) {
@@ -353,7 +358,7 @@ style="display: none;"></sup></div>
                         r(ret);
                         return;
                     }
-                    $.ajax({
+                    jq.ajax({
                         url: 'https://discord.com/api/v6/users/@me/guilds/' + serverId,
                         method: 'DELETE',
                         headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
@@ -477,7 +482,7 @@ style="display: none;"></sup></div>
                         }
                     }).then((putUrl)=>{
                         if(debug)console.log(putUrl)
-                        $.ajax({
+                        jq.ajax({
                             type: !del?'PUT':"DELETE",
                             url: putUrl,
                             headers: {authorization: "Bearer " + accessToken},
@@ -519,7 +524,7 @@ style="display: none;"></sup></div>
                             return;
                             break;
                     }
-                    $.ajax({
+                    jq.ajax({
                         type: !del?'PUT':"DELETE",
                         url: putUrl,
                         headers: {authorization: "Bearer " + accessToken},
@@ -570,7 +575,7 @@ style="display: none;"></sup></div>
                                 method: 'GET',
                                 onload: (response) => {
                                     if (response.status === 200) {
-                                        if ($(response.responseText).find('a[href*="/login/home"]').length > 0) {
+                                        if (jq(response.responseText).find('a[href*="/login/home"]').length > 0) {
                                             getAuthStatus.steamCom = 401;
                                             reject(401);
                                         } else {
@@ -633,7 +638,7 @@ style="display: none;"></sup></div>
                                 method: 'GET',
                                 onload: (response) => {
                                     if (response.status === 200) {
-                                        if ($(response.responseText).find('a[href*="/login/"]').length > 0) {
+                                        if (jq(response.responseText).find('a[href*="/login/"]').length > 0) {
                                             if (debug) console.log(response)
                                             getAuthStatus.steamStore = 401;
                                             reject(401)
@@ -678,7 +683,7 @@ style="display: none;"></sup></div>
                         func.httpRequest({
                             url: 'https://steamcommunity.com/comment/Profile/post/' + id + '/-1/',
                             method: 'POST',
-                            data: $.param({comment:'+rep',count:6,sessionid:steamInfo.communitySessionID,feature2:-1}),
+                            data: jq.param({comment:'+rep',count:6,sessionid:steamInfo.communitySessionID,feature2:-1}),
                             headers:{'content-type': 'application/x-www-form-urlencoded'},
                             onload: (response) => {
                                 if(response.status == 200)
@@ -753,7 +758,7 @@ style="display: none;"></sup></div>
                         url: url,
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                        data: $.param({ action: 'join', sessionID: steamInfo.communitySessionID }),
+                        data: jq.param({ action: 'join', sessionID: steamInfo.communitySessionID }),
                         onload: (response) => {
                             if (response.status === 200 && !response.responseText.includes('grouppage_join_area')) {
                                 if(response.responseText.match(/<h3>(.+?)<\/h3>/) && response.responseText.match(/<h3>(.+?)<\/h3>/)[1] != "您已经是该组的成员了。")
@@ -778,9 +783,9 @@ style="display: none;"></sup></div>
                         url: postUrl,
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                        data: $.param({ sessionID: steamInfo.communitySessionID, action: 'leaveGroup', groupId: groupId }),
+                        data: jq.param({ sessionID: steamInfo.communitySessionID, action: 'leaveGroup', groupId: groupId }),
                         onload: (response) => {
-                            if (response.status === 200 && response.finalUrl.includes('groups') && $(response.responseText.toLowerCase()).find(`a[href='https://steamcommunity.com/groups/${groupName.toLowerCase()}']`).length === 0) {
+                            if (response.status === 200 && response.finalUrl.includes('groups') && jq(response.responseText.toLowerCase()).find(`a[href='https://steamcommunity.com/groups/${groupName.toLowerCase()}']`).length === 0) {
                                 r(200);
                             } else {
                                 console.error(response);
@@ -795,7 +800,7 @@ style="display: none;"></sup></div>
                 InfoUpdate((ret) => {
                     if(ret != 200)
                     {
-                        r(ret);
+                        callback(ret);
                         return;
                     }
                     new Promise(resolve => {
@@ -841,7 +846,7 @@ style="display: none;"></sup></div>
                             url: 'https://store.steampowered.com/api/addtowishlist',
                             method: 'POST',
                             headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                            data: $.param({ sessionid: steamInfo.storeSessionID, appid: gameId }),
+                            data: jq.param({ sessionid: steamInfo.storeSessionID, appid: gameId }),
                             dataType: 'json',
                             onload: function (response) {
                                 if (debug) console.log(response)
@@ -895,7 +900,7 @@ style="display: none;"></sup></div>
                             url: 'https://store.steampowered.com/api/removefromwishlist',
                             method: 'POST',
                             headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                            data: $.param({ sessionid: steamInfo.storeSessionID, appid: gameId }),
+                            data: jq.param({ sessionid: steamInfo.storeSessionID, appid: gameId }),
                             dataType: 'json',
                             onload: function (response) {
                                 if (response.status === 200 && response.response && response.response.success === true) {
@@ -959,7 +964,7 @@ style="display: none;"></sup></div>
                             url: 'https://www.tumblr.com/svc/follow',
                             method: 'POST',
                             headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
-                            data: $.param({'data[tumblelog]': name}),
+                            data: jq.param({'data[tumblelog]': name}),
                             onload: (response) => {
                                 if(response.status == 200)
                                 {
@@ -989,7 +994,7 @@ style="display: none;"></sup></div>
                             url: 'https://www.tumblr.com/svc/unfollow',
                             method: 'POST',
                             headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
-                            data: $.param({'data[tumblelog]': name}),
+                            data: jq.param({'data[tumblelog]': name}),
                             onload: (response) => {
                                 if(response.status == 200)
                                 {
@@ -1178,7 +1183,7 @@ style="display: none;"></sup></div>
                             url: 'https://api.twitter.com/1.1/friendships/create.json',
                             method: 'POST',
                             headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
-                            data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
+                            data: jq.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
                             onload: (response) => {
                                 if (response.status === 200) {
                                     r(200);
@@ -1211,7 +1216,7 @@ style="display: none;"></sup></div>
                             url: 'https://api.twitter.com/1.1/friendships/destroy.json',
                             method: 'POST',
                             headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
-                            data: $.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
+                            data: jq.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}),
                             onload: (response) => {
                                 if (response.status === 200) {
                                     r(200);
@@ -1238,7 +1243,7 @@ style="display: none;"></sup></div>
                         url: 'https://api.twitter.com/1.1/statuses/retweet.json',
                         method: 'POST',
                         headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
-                        data: $.param({ tweet_mode: "extended",id: retweetId}),
+                        data: jq.param({ tweet_mode: "extended",id: retweetId}),
                         onload: (response) => {
                             if (response.status === 200 || (response.status === 403 && response.responseText == '{"errors":[{"code":327,"message":"You have already retweeted this Tweet."}]}')) {
                                 r(200);
@@ -1586,15 +1591,16 @@ style="display: none;"></sup></div>
                     i++;
                     //if(i >= 5)clearInterval(completeCheck);
                     // click reedem
-                    $('button[class="btn btn-primary"]').click();
-                    if(1 == $('#fraud-warning-modal[style!="display: none;"]').length){
+                    jq('button[class="btn btn-primary"]').click();
+                    if(1 == jq('#fraud-warning-modal[style!="display: none;"]').length){
                         // 有弹窗，模拟点击OK
-                        $('button.btn.btn-secondary[type!="button"]')[0].click();
+                        jq('button.btn.btn-secondary[type!="button"]')[0].click();
                     }
                     if( document.getElementById("toast-container")){
                         // 操作不存在
-                        if(document.getElementById("toast-container").textContent == "This action does not exist.")
-                            $('.card').remove();
+                        if(document.getElementById("toast-container").textContent == "This action does not exist."){
+                            jq('.card').remove();
+                        }
                         // check discord error [Could not refresh Discord information, please try again.]
                         if(discordCheck == true && document.getElementById("toast-container").textContent == "Could not refresh Discord information, please try again.")
                         {
@@ -1602,7 +1608,7 @@ style="display: none;"></sup></div>
                             GM_openInTab("https://www.keyjoker.com/account/identities", true)
                         }
                     }
-                    if($(".list-complete-item").length == 0)
+                    if(jq(".list-complete-item").length == 0)
                     {
                         clearInterval(completeCheck);
                         noticeFrame.addNotice({type:"msg", msg:"任务似乎已完成，恢复监测!"});
@@ -1680,7 +1686,7 @@ style="display: none;"></sup></div>
                             url: 'https://hcaptcha.com/getcaptcha',
                             method: 'POST',
                             headers: { 'Content-Type': 'application/x-www-form-urlencoded'},
-                            data: $.param({
+                            data: jq.param({
                                 sitekey:'e4b28873-6852-49c0-9784-7231f004b96b',
                                 host:'dashboard.hcaptcha.com',
                                 n:'暂未实现获取方案',
@@ -1789,20 +1795,20 @@ style="display: none;"></sup></div>
             },
             // OK
             redeemAuto: function(redirect_url){
-                if(0 != $('a[href="' + redirect_url + '"]').length)$('a[href="' + redirect_url + '"]').next().click();
+                if(0 != jq('a[href="' + redirect_url + '"]').length)jq('a[href="' + redirect_url + '"]').next().click();
             },
             reLoadTaskList: function(r){
                 // 重载任务列表
                 if(2 == document.getElementsByClassName('row').length)
                 {
-                    $('.row')[1].remove();
-                    $('.layout-container').append('<entries-component></entries-component>');
+                    jq('.row')[1].remove();
+                    jq('.layout-container').append('<entries-component></entries-component>');
                     if(true == GM_getValue("offlineMode") && typeof offlineData === "object")
                     {
                         offlineData["app.js"]();
                         r();
                     }else{
-                        $.getScript("/js/app.js", (rep,status)=>{
+                        jq.getScript("/js/app.js", (rep,status)=>{
                             if("success" == status)r();
                             else console.error(status, rep);
                         });
@@ -1829,7 +1835,7 @@ style="display: none;"></sup></div>
                 this.httpRequest({
                     url: direct_url,
                     method: 'GET',
-                    headers: {'x-csrf-token': $('meta[name="csrf-token"]').attr('content')},
+                    headers: {'x-csrf-token': jq('meta[name="csrf-token"]').attr('content')},
                     onload: (response) => {
                     },
                     error:(res)=>{
@@ -1858,12 +1864,12 @@ style="display: none;"></sup></div>
                     //},1000);
                     checkUpdate();
                 }else{
-                    if($('.container').length > 0)
+                    if(jq('.container').length > 0)
                     {
                         let i = 0;
                         let check = setInterval(()=>{
                             i++;
-                            if($('.container')[0].innerText == "Whoops, looks like something went wrong.")location.href = location.pathname
+                            if(jq('.container')[0].innerText == "Whoops, looks like something went wrong.")location.href = location.pathname
                             if(i >= 10)clearInterval(check)
                         }, 1000);
                     }
@@ -1881,14 +1887,14 @@ style="display: none;"></sup></div>
             }
         }
         function eventBind(){
-            $('button#checkUpdate').click(()=>{func.checkUpdate()})
-            $('button#fuck').click(function(){
-                checkTask.start(()=>{$('.card').remove();})
+            jq('button#checkUpdate').click(()=>{func.checkUpdate()})
+            jq('button#fuck').click(function(){
+                checkTask.start(()=>{jq('.card').remove();})
             })
-            $('button#clearNotice').click(function(){
+            jq('button#clearNotice').click(function(){
                 noticeFrame.clearNotice()
             })
-            $('button#changeLog').click(function(){
+            jq('button#changeLog').click(function(){
                 noticeFrame.addNotice({type:"msg", msg:"获取日志中..."})
                 func.httpRequest({
                     url: 'https://task.jysafe.cn/keyjoker/script/update.php?type=changelog&ver=' + GM_info.script.version,
@@ -1911,7 +1917,7 @@ style="display: none;"></sup></div>
                     anonymous:true
                 })
             })
-            $('button#report').click(function(){
+            jq('button#report').click(function(){
                 noticeFrame.addNotice({type:"msg",msg:"目前提供以下反馈渠道："})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/jiyeme/keyjokerScript/issues/new/choose\" target=\"_blank\">GitHub</a>"})
@@ -1970,7 +1976,7 @@ style="display: none;"></sup></div>
                     let hour=date.getHours();
                     let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                     GM_setValue("start",0);
-                    $(".border-bottom").text(hour + ":" + min + " 停止执行新任务检测");
+                    jq(".border-bottom").text(hour + ":" + min + " 停止执行新任务检测");
                     checkSwitch();
                 });
             }else{
