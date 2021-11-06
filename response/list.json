@@ -1,0 +1,266 @@
+{
+    "actions": [
+        {
+            "id": 23332,
+            "clicks": 650,
+            "entries": 343,
+            "text": "Join the server \"| Sword | Giveaways, Community & More!\" on Discord",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/23332",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/23332",
+            "data": {
+                "id": "896548126150758470",
+                "url": "https:\/\/discord.gg\/W4g54FC2",
+                "name": "| Sword | Giveaways, Community & More!"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "discord",
+                    "color": "#7289da"
+                },
+                "identifier": {
+                    "description": "Users of our platform join a Discord server of your choice."
+                },
+                "name": "Join Discord Server"
+            }
+        },
+        {
+            "id": 21882,
+            "clicks": 1182,
+            "entries": 720,
+            "text": "Join the server \"Leaper's Lagoon\" on Discord",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/21882",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/21882",
+            "data": {
+                "id": "327256722257477632",
+                "url": "https:\/\/discord.gg\/2fCusKBJ",
+                "name": "Leaper's Lagoon"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "discord",
+                    "color": "#7289da"
+                },
+                "identifier": {
+                    "description": "Users of our platform join a Discord server of your choice."
+                },
+                "name": "Join Discord Server"
+            }
+        },
+        {
+            "id": 22070,
+            "clicks": 661,
+            "entries": 928,
+            "text": "Like this page on Facebook",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/22070",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/22070",
+            "data": {
+                "url": "https:\/\/www.facebook.com\/OPQuests"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "facebook",
+                    "color": "#3b5998"
+                },
+                "identifier": {
+                    "description": "Users of our platform like a Facebook page or group of your choice."
+                },
+                "name": "Like Facebook Page"
+            }
+        },
+        {
+            "id": 21129,
+            "clicks": 1292,
+            "entries": 1489,
+            "text": "Follow \"dgma_team\" on Twitter",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/21129",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/21129",
+            "data": {
+                "id": 1161252519194103809,
+                "url": "https:\/\/twitter.com\/dgma_team",
+                "username": "dgma_team"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "twitter",
+                    "color": "#1da1f2"
+                },
+                "identifier": {
+                    "description": "Users of our platform follow a Twitter account of your choice."
+                },
+                "name": "Follow Twitter Account"
+            }
+        },
+        {
+            "id": 22069,
+            "clicks": 1174,
+            "entries": 1274,
+            "text": "Follow \"opquests\" on Twitter",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/22069",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/22069",
+            "data": {
+                "id": 1439535935381725184,
+                "url": "https:\/\/twitter.com\/opquests",
+                "username": "opquests"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "twitter",
+                    "color": "#1da1f2"
+                },
+                "identifier": {
+                    "description": "Users of our platform follow a Twitter account of your choice."
+                },
+                "name": "Follow Twitter Account"
+            }
+        },
+        {
+            "id": 23364,
+            "clicks": 739,
+            "entries": 809,
+            "text": "Follow \"Strange__Matter\" on Twitter",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/23364",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/23364",
+            "data": {
+                "id": 1130970012951429120,
+                "url": "https:\/\/twitter.com\/Strange__Matter",
+                "username": "Strange__Matter"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "twitter",
+                    "color": "#1da1f2"
+                },
+                "identifier": {
+                    "description": "Users of our platform follow a Twitter account of your choice."
+                },
+                "name": "Follow Twitter Account"
+            }
+        },
+        {
+            "id": 21626,
+            "clicks": 1077,
+            "entries": 1444,
+            "text": "Subscribe to \"Hamsters Gaming\" on YouTube",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/21626",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/21626",
+            "data": {
+                "url": "https:\/\/www.youtube.com\/channel\/UCVukRAGs1K6h1UxIISb2AeQ",
+                "name": "Hamsters Gaming"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "youtube",
+                    "color": "#ff0000"
+                },
+                "identifier": {
+                    "description": "Users of our platform subscribe to a YouTube channel of your choice."
+                },
+                "name": "Subscribe YouTube Channel"
+            }
+        },
+        {
+            "id": 23365,
+            "clicks": 569,
+            "entries": 615,
+            "text": "Join the server \"Strange Matter Studios\" on Discord",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/23365",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/23365",
+            "data": {
+                "id": "640692146315460641",
+                "url": "https:\/\/discord.gg\/EVgxm7TTvD",
+                "name": "Strange Matter Studios"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "discord",
+                    "color": "#7289da"
+                },
+                "identifier": {
+                    "description": "Users of our platform join a Discord server of your choice."
+                },
+                "name": "Join Discord Server"
+            }
+        },
+        {
+            "id": 21120,
+            "clicks": 1647,
+            "entries": 1060,
+            "text": "Join the server \"ChillBar | Social \u30fb Chatting \u30fb Voice \u30fb Anime \u30fb Welcoming \u30fb Emojis \u30fb Emotes \u30fb Stickers\" on Discord",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/21120",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/21120",
+            "data": {
+                "id": "394854570926407682",
+                "url": "https:\/\/discord.gg\/Pk99BG8ygs",
+                "name": "ChillBar | Social \u30fb Chatting \u30fb Voice \u30fb Anime \u30fb Welcoming \u30fb Emojis \u30fb Emotes \u30fb Stickers"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "discord",
+                    "color": "#7289da"
+                },
+                "identifier": {
+                    "description": "Users of our platform join a Discord server of your choice."
+                },
+                "name": "Join Discord Server"
+            }
+        },
+        {
+            "id": 23376,
+            "clicks": 707,
+            "entries": 779,
+            "text": "Follow \"CrimeEmpires\" on Twitter",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/23376",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/23376",
+            "data": {
+                "id": 1077973859201150976,
+                "url": "https:\/\/twitter.com\/CrimeEmpires",
+                "username": "CrimeEmpires"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "twitter",
+                    "color": "#1da1f2"
+                },
+                "identifier": {
+                    "description": "Users of our platform follow a Twitter account of your choice."
+                },
+                "name": "Follow Twitter Account"
+            }
+        },
+        {
+            "id": 22067,
+            "clicks": 1453,
+            "entries": 1633,
+            "text": "Join the group \"OPQuests.com\" on Steam",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/22067",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/22067",
+            "data": {
+                "gid": "41262030",
+                "url": "https:\/\/steamcommunity.com\/groups\/opquests",
+                "name": "OPQuests.com"
+            },
+            "redeeming": false,
+            "task": {
+                "provider": {
+                    "icon": "steam",
+                    "color": "#171a21"
+                },
+                "identifier": {
+                    "description": "Users of our platform join a Steam group of your choice."
+                },
+                "name": "Join Steam Group"
+            }
+        }
+    ],
+    "reward": 200
+}

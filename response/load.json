@@ -1,27 +1,27 @@
 {
     "actions": [
         {
-            "id": 1,
-            "clicks": 6085,
-            "entries": 7601,
-            "text": "Follow \"CSGOIdleEmpire\" on Twitter",
-            "redirect_url": "https://www.keyjoker.com/entries/open/1",
-            "report_url": "https://www.keyjoker.com/reports/new/1",
+            "id": 22068,
+            "clicks": 1013,
+            "entries": 985,
+            "text": "Join the server \"OPQUESTS.COM\" on Discord",
+            "redirect_url": "https:\/\/www.keyjoker.com\/entries\/open\/22068",
+            "report_url": "https:\/\/www.keyjoker.com\/reports\/new\/22068",
             "data": {
-                "id": 769356077758607360,
-                "url": "https://twitter.com/CSGOIdleEmpire",
-                "username": "CSGOIdleEmpire"
+                "id": "890145801337176085",
+                "url": "https:\/\/discord.gg\/QbYvb2qwDT",
+                "name": "OPQUESTS.COM"
             },
             "redeeming": false,
             "task": {
                 "provider": {
-                    "icon": "twitter",
-                    "color": "#1da1f2"
+                    "icon": "discord",
+                    "color": "#7289da"
                 },
                 "identifier": {
-                    "description": "Users of our platform follow a Twitter account of your choice."
+                    "description": "Users of our platform join a Discord server of your choice."
                 },
-                "name": "Follow Twitter Account"
+                "name": "Join Discord Server"
             }
         }
     ],

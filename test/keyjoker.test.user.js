@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.0.3
+// @version      1.0.0
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -10,7 +10,6 @@
 // @include      *://discord.com/channels/@me?keyjokertask=storageAuth
 // @include      *://www.twitch.tv/settings/profile?keyjokertask=storageAuth
 // @include      *://twitter.com/settings/account?keyjokertask=storageAuth
-// @include      *?keyjokertask=*
 // @updateURL    https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @downloadURL  https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @supportURL   https://www.jysafe.cn/4332.air
@@ -27,7 +26,7 @@
 // @grant        GM_deleteValue
 // @grant        GM_openInTab
 // @grant        GM_log
-// @grant        GM_notification
+// @grant       GM_notification
 // @connect      hcaptcha.com
 // @connect      store.steampowered.com
 // @connect      steamcommunity.com
@@ -70,8 +69,6 @@
         status: 0,
         updateTime: 0
     }
-    const ignoreList = GM_getValue('ignoreList') || [];
-
     const jq = $;
     let completeCheck = null;
 
@@ -283,7 +280,6 @@ style="display: none;"></sup></div>
                         type:"get",
                         headers:{'x-csrf-token': jq('meta[name="csrf-token"]').attr('content')},
                         success:(data,status,xhr)=>{
-                            data.actions = data.actions.filter(e=>ignoreList.indexOf(e.id)===-1)
                             if(data && (data.actions && (data.actions.length > sum) )){
                                 if(debug)console.log(data);
                                 let date=new Date();
@@ -301,13 +297,7 @@ style="display: none;"></sup></div>
                                 });
                                 // 重载列表
                                 noticeFrame.clearNotice();
-                                func.reLoadTaskList().then(()=>{
-                                    ignoreList.forEach(id=>{
-                                        const ele = jq(`a[href='https://www.keyjoker.com/entries/open/${id}']`)
-                                        if(ele.length > 0){
-                                            ele[0].parentNode.parentNode.parentNode.parentNode.remove()
-                                        }
-                                    })
+                                func.reLoadTaskList(()=>{
                                     func.do_task(data);
                                 });
                                 GM_setValue("start", 0);
@@ -1018,13 +1008,14 @@ style="display: none;"></sup></div>
                     }
                 })
             }
-            const AuthUpdate = function(forceUpdate = false){
+            const AuthUpdate = function(r, update = false){
                 return new Promise((resolve, reject)=>{
-                    if (new Date().getTime() - twitchAuth.updateTime < 30 * 60 * 1000 && twitchAuth.status === 200 && !forceUpdate) {
+                    if (new Date().getTime() - twitchAuth.updateTime < 30 * 60 * 1000 && twitchAuth.status === 200 && !update) {
                         resolve(200)
                         return
                     }
-                    if(false == getAuthStatus.twitch || true === forceUpdate)
+                    r(603)
+                    if(false == getAuthStatus.twitch || true === update)
                     {
                         getAuthStatus.twitch = true;
                         GM_openInTab("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth", true);
@@ -1238,9 +1229,9 @@ style="display: none;"></sup></div>
                             }else twitchAuth.status = 401;
                             GM_setValue("twitchAuth", twitchAuth)
                             log.log(twitchAuth)
-                            window.close();
+                            if(!debug)window.close();
                         }
-                        window.close();
+                        if(!debug)window.close();
                         break;
                     case "discord.com":
                         if(location.search == "?keyjokertask=storageAuth")
@@ -1251,7 +1242,7 @@ style="display: none;"></sup></div>
                             discordAuth.updateTime = new Date().getTime();
                             GM_setValue("discordAuth", discordAuth);
                             log.log(discordAuth)
-                            window.close();
+                            if(!debug)window.close();
                         }
                         break;
                     case "twitter.com":
@@ -1267,16 +1258,7 @@ style="display: none;"></sup></div>
                                 twitterAuth.status = 401;
                             }
                             GM_setValue("twitterAuth", twitterAuth)
-                            window.close();
-                        }
-                        break;
-                    case "www.keyjoker.com":
-                        if(location.search == "?keyjokertask=unbindDiscord")
-                        {
-                            const auto = jq("h4:contains('Discord')")[0].parentNode
-                            //auto.nextElementSibling.firstChild.click()
-                            const modal = auto.parentNode.parentNode.parentNode.nextElementSibling
-                            if(modal.id.indexOf('delete-identity-')===0) modal.firstChild.firstChild.lastChild.firstChild.lastChild.click()
+                            if(!debug)window.close();
                         }
                         break;
                     case "assets.hcaptcha.com":
@@ -1409,21 +1391,7 @@ style="display: none;"></sup></div>
                                 noticeFrame.updateNotice(task.id, {class:"error", text:"Not Login"})
                                 break;
                             case 404:
-                                {
-                                    // 创建一个新的 div 元素
-                                    let ignoreBtn = document.createElement("button");
-                                    ignoreBtn.innerText = '忽略'
-                                    ignoreBtn.style.background = 'red'
-                                    ignoreBtn.className = 'btn btn-primary'
-                                    ignoreBtn.addEventListener('click', e=>{
-                                        log.log(e)
-                                        log.log(task.id)
-                                        ignoreList.push(task.id)
-                                        GM_setValue('ignoreList', ignoreList)
-                                    })
-                                    jq(`a[href='https://www.keyjoker.com/entries/open/${task.id}']`)[0].parentNode.append(ignoreBtn)
-                                    noticeFrame.updateNotice(task.id, {class:"error", text:"目标不存在"})
-                                }
+                                noticeFrame.updateNotice(task.id, {class:"error", text:"目标不存在"})
                                 break;
                             case 408:
                                 noticeFrame.updateNotice(task.id, {class:"error", text:"Time Out"})
@@ -1496,8 +1464,7 @@ style="display: none;"></sup></div>
                     //jq('button[class="btn btn-primary"]').click();
                     if(1 == jq('#fraud-warning-modal[style!="display: none;"]').length){
                         // 有弹窗，模拟点击OK
-                        const ele = jq('button.btn.btn-secondary[type!="button"]')
-                        if(ele.length > 0)ele[0].click();
+                        jq('button.btn.btn-secondary[type!="button"]')[0].click();
                     }
                     if( document.getElementById("toast-container")){
                         // 操作不存在
@@ -1508,7 +1475,7 @@ style="display: none;"></sup></div>
                         if(discordCheck == true && document.getElementById("toast-container").textContent == "Could not refresh Discord information, please try again.")
                         {
                             discordCheck = false;
-                            GM_openInTab("https://www.keyjoker.com/account/identities?keyjokertask=unbindDiscord", true)
+                            GM_openInTab("https://www.keyjoker.com/account/identities", true)
                         }
                     }
                     if(jq(".list-complete-item").length == 0)
@@ -1629,27 +1596,25 @@ style="display: none;"></sup></div>
                 if(0 != jq('a[href="' + redirect_url + '"]').length)jq('a[href="' + redirect_url + '"]').next().click();
             },
             reLoadTaskList: function(r){
-                return new Promise((resolve, reject)=>{
-                    // 重载任务列表
-                    if(2 == document.getElementsByClassName('row').length)
+                // 重载任务列表
+                if(2 == document.getElementsByClassName('row').length)
+                {
+                    jq('.row')[1].remove();
+                    jq('.layout-container').append('<entries-component></entries-component>');
+                    if(true == GM_getValue("offlineMode") && typeof offlineData === "object")
                     {
-                        jq('.row')[1].remove();
-                        jq('.layout-container').append('<entries-component></entries-component>');
-                        if(true == GM_getValue("offlineMode") && typeof offlineData === "object")
-                        {
-                            offlineData["app.js"]();
-                            resolve();
-                        }else{
-                            jq.getScript("/js/app.js", (rep,status)=>{
-                                if("success" == status)resolve();
-                                else console.error(status, rep);
-                            });
-                        }
-                    }else
-                    {
-                        resolve();
+                        offlineData["app.js"]();
+                        r();
+                    }else{
+                        jq.getScript("/js/app.js", (rep,status)=>{
+                            if("success" == status)r();
+                            else console.error(status, rep);
+                        });
                     }
-                })
+                }else
+                {
+                    r();
+                }
             },
             reset: function (){
                 if(!confirm("你确定要执行重置操作？"))return;
