@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.0.3
+// @version      1.0.6
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -88,7 +88,7 @@
     var checkSwitchId = null;
     const noticeFrame = {
         loadFrame: ()=>{
-            if(debug)console.log("loadFrame");
+            log.log("loadFrame");
             jq('body').append(`<style>
 .fuck-task-logs li{display:list-item !important;float:none !important}
 #extraBtn .el-badge.item{margin-bottom:4px !important}
@@ -285,12 +285,12 @@ style="display: none;"></sup></div>
                         success:(data,status,xhr)=>{
                             data.actions = data.actions.filter(e=>ignoreList.indexOf(e.id)===-1)
                             if(data && (data.actions && (data.actions.length > sum) )){
-                                if(debug)console.log(data);
+                                log.log(data);
                                 let date=new Date();
                                 let hour=date.getHours();
                                 let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                                 jq(".border-bottom").text(hour+":"+min+" 检测到新任务（暂停检测）");
-                                GM_notification({
+                                /*GM_notification({
                                     title: "keyjoker新任务",
                                     text: "keyjoker网站更新"+(data.actions.length-sum)+"个新任务！",
                                     image: "https://www.keyjoker.com/favicon-32x32.png",
@@ -298,7 +298,7 @@ style="display: none;"></sup></div>
                                     onclick: function(){
                                         //location.reload(true);
                                     }
-                                });
+                                });*/
                                 // 重载列表
                                 noticeFrame.clearNotice();
                                 func.reLoadTaskList().then(()=>{
@@ -449,15 +449,15 @@ style="display: none;"></sup></div>
                         headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
                         onload: (response) => {
                             if (response.status === 604) {
-                                if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                                log.log({ result: 'success', statusText: response.statusText, status: response.status })
                                 r(604);
                             } else {
-                                console.error(response);
+                                log.error(response);
                                 r(601);
                             }
                         },
                         error:(res)=>{
-                            console.error(res);
+                            log.error(res);
                             r(601);
                         },
                         anonymous:true
@@ -492,7 +492,7 @@ style="display: none;"></sup></div>
                     if (res.status === 200) {
                         return Promise.resolve(JSON.parse(res.responseText).accessToken);
                     } else {
-                        console.log(res);
+                        log.log(res);
                         return Promise.reject(401);
                     }
                 })
@@ -528,28 +528,28 @@ style="display: none;"></sup></div>
                                         reject(601);
                                     }
                                 }).catch(err=>{
-                                    console.error(err);
+                                    log.error(err);
                                     reject(601);
                                 })
                                 break;
                             default:
-                                console.error("spotifySaveAuto未知类型：", data);
+                                log.error("spotifySaveAuto未知类型：", data);
                                 r(601);
                                 return;
                                 break;
                         }
                     }).then((putUrl)=>{
-                        if(debug)console.log(putUrl)
+                        log.log(putUrl)
                         jq.ajax({
                             type: !del?'PUT':"DELETE",
                             url: putUrl,
                             headers: {authorization: "Bearer " + accessToken},
                             success: function(data){
-                                console.log(data);
+                                log.log(data);
                                 r(200);
                             },
                             error: function(data){
-                                console.error(data);
+                                log.error(data);
                                 r(601);
                             },
                             anonymous:true
@@ -577,7 +577,7 @@ style="display: none;"></sup></div>
                             putUrl = "https://api.spotify.com/v1/me/following?type=user&ids=" + data.id;
                             break;
                         default:
-                            console.error(data);
+                            log.error(data);
                             r(601);
                             return;
                             break;
@@ -590,7 +590,7 @@ style="display: none;"></sup></div>
                             r(200);
                         },
                         error: function(data){
-                            console.error(data);
+                            log.error(data);
                             r(604);
                         },
                         anonymous:true
@@ -972,7 +972,7 @@ style="display: none;"></sup></div>
                             GM_setValue("twitchAuth", null);
                             r(401);
                         }else{
-                            console.error(res);
+                            log.error(res);
                             r(601);
                         }
                     })
@@ -1104,7 +1104,7 @@ style="display: none;"></sup></div>
                         return;
                     }
                     GetUserInfo((userId)=>{
-                        if(debug)console.log(userId)
+                        log.log(userId)
                         if("error" == userId)
                         {
                             r(601);
@@ -1273,10 +1273,14 @@ style="display: none;"></sup></div>
                     case "www.keyjoker.com":
                         if(location.search == "?keyjokertask=unbindDiscord")
                         {
-                            const auto = jq("h4:contains('Discord')")[0].parentNode
-                            //auto.nextElementSibling.firstChild.click()
-                            const modal = auto.parentNode.parentNode.parentNode.nextElementSibling
-                            if(modal.id.indexOf('delete-identity-')===0) modal.firstChild.firstChild.lastChild.firstChild.lastChild.click()
+                            jq(document).ready(()=>{
+                                log.log("keyjoker unbindDiscord")
+                                const auto = jq("h4:contains('Discord')")[0].parentNode
+                                //auto.nextElementSibling.firstChild.click()
+                                const modal = auto.parentNode.parentNode.parentNode.nextElementSibling
+                                if(modal.id.indexOf('delete-identity-')===0) modal.firstChild.firstChild.lastChild.firstChild.lastChild.click()
+                                else location.href = "https://www.keyjoker.com/socialite/discord"
+                            })
                         }
                         break;
                     case "assets.hcaptcha.com":
@@ -1393,7 +1397,7 @@ style="display: none;"></sup></div>
             do_task: function(data){
                 for(const task of data.actions)
                 {
-                    noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
+                    noticeFrame.addNotice({type: "taskStatus", task:task, status:'wait'});
                     this.runDirectUrl(task.redirect_url);
                     let react = (code)=>{
                         switch(code)
@@ -1479,7 +1483,7 @@ style="display: none;"></sup></div>
                             break;
                         default:
                             noticeFrame.updateNotice(task.id, {class:"error", text:"Unknow Type:" + task.task.name})
-                            console.error("未指定操作" + task.task.name)
+                            log.error("未指定操作" + task.task.name)
                             break;
                     }
                 }
@@ -1491,12 +1495,14 @@ style="display: none;"></sup></div>
                 let discordCheck = true;
                 completeCheck = setInterval(()=>{
                     i++;
-                    if(i >= 5)clearInterval(completeCheck);
-                    // click reedem
-                    //jq('button[class="btn btn-primary"]').click();
+                    //if(i >= 50)clearInterval(completeCheck);
+                    //else
+                        jq('button[class="btn btn-primary"]').click();
+
                     if(1 == jq('#fraud-warning-modal[style!="display: none;"]').length){
                         // 有弹窗，模拟点击OK
                         const ele = jq('button.btn.btn-secondary[type!="button"]')
+                        jq(".modal-backdrop, .fade, .show").remove();
                         if(ele.length > 0)ele[0].click();
                     }
                     if( document.getElementById("toast-container")){
@@ -1560,7 +1566,7 @@ style="display: none;"></sup></div>
                         let c = rep.generated_pass_UUID
                         r(c);
                     }).catch((err)=>{
-                        console.error(err);
+                        log.error(err);
                         r(false)
                         //let text = document.getElementsByClassName("prompt-text")[0].innerText;
                         //document.getElementsByClassName("prompt-text")[0].innerText = text + "\ngetcaptcha failed!";
@@ -1573,7 +1579,7 @@ style="display: none;"></sup></div>
                     if(document.getElementsByClassName("challenge-container").length != 0 && document.getElementsByClassName("challenge-container")[0].children.length != 0)
                     {
                         clearInterval(hcaptcha2Click);
-                        console.log("open hcaptcha");
+                        log.log("open hcaptcha");
                         let text = document.getElementsByClassName("prompt-text")[0].innerText;
                         document.getElementsByClassName("prompt-text")[0].innerText = text + "\n正在自动获取免验证Cookie";
                         //$(".task-grid").remove();
@@ -1604,7 +1610,7 @@ style="display: none;"></sup></div>
                                         document.getElementsByClassName("prompt-text")[0].innerText = text + "\n未登录hCaptcha";
                                         // setTimeout(()=>{window.open("https://dashboard.hcaptcha.com/welcome_accessibility")}, 3000);
                                     }else{
-                                        console.error(response);
+                                        log.error(response);
                                         document.getElementsByClassName("prompt-text")[0].innerText = text + "\n发生未知错误,已将数据记录至控制台";
                                     }
                                 }).catch(err=>{
@@ -1619,7 +1625,7 @@ style="display: none;"></sup></div>
                             }else{
                                 document.getElementsByClassName("prompt-text")[0].innerText = text + "\n未知错误";
                             }
-                            console.error(err);
+                            log.error(err);
                         });
                     }
                 },1000);
@@ -1642,7 +1648,7 @@ style="display: none;"></sup></div>
                         }else{
                             jq.getScript("/js/app.js", (rep,status)=>{
                                 if("success" == status)resolve();
-                                else console.error(status, rep);
+                                else log.error(status, rep);
                             });
                         }
                     }else
