@@ -1,15 +1,12 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.0.6
+// @version      1.0.8
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
 // @include      *://www.keyjoker.com/entries*
 // @include      *://assets.hcaptcha.com/*
-// @include      *://discord.com/channels/@me?keyjokertask=storageAuth
-// @include      *://www.twitch.tv/settings/profile?keyjokertask=storageAuth
-// @include      *://twitter.com/settings/account?keyjokertask=storageAuth
 // @include      *?keyjokertask=*
 // @updateURL    https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @downloadURL  https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
@@ -45,11 +42,6 @@
 (function() {
     'use strict';
     const debug = true;
-    const discordAuth = GM_getValue('discordAuth') || {
-        authorization: "",
-        status:0,
-        updateTime: 0
-    }
     // steam信息
     const steamInfo = GM_getValue('steamInfo') || {
         userName: '',
@@ -73,11 +65,11 @@
     const ignoreList = GM_getValue('ignoreList') || [];
 
     const jq = $;
+    unsafeWindow.jq = jq
     let completeCheck = null;
 
     // 0-未动作|200-成功取得|401未登录|603正在取得
     const getAuthStatus = {
-        discord: false,
         spotify: false,
         steamStore: 0,
         steamCom: 0,
@@ -363,110 +355,28 @@ style="display: none;"></sup></div>
             }
         }
         const DISCORD = (()=>{
-            const AuthUpdate = (update = false)=>{
-                return new Promise((resolve, reject)=>{
-                    if (new Date().getTime() - discordAuth.updateTime < 30 * 60 * 1000 && discordAuth.status == 200 && !update) {
-                        log.info("DISCORD: 直接使用未过期的Auth")
-                        resolve(200)
-                        return;
-                    }
-                    if(false == getAuthStatus.discord || true === update)
-                    {
-                        getAuthStatus.discord = true;
-                        GM_openInTab("https://discord.com/channels/@me?keyjokertask=storageAuth", true);
-                    }
-                    let i = 0;
-                    let check = setInterval(()=>{
-                        i++;
-                        if(GM_getValue("discordAuth") && new Date().getTime() - GM_getValue("discordAuth").updateTime <= 10 * 1000)
-                        {
-                            if(GM_getValue("discordAuth").status != 200)
-                            {
-                                clearInterval(check);
-                                reject(GM_getValue("discordAuth").status)
-                                return;
-                            }
-                            discordAuth.authorization = GM_getValue("discordAuth").authorization
-                            discordAuth.updateTime = GM_getValue("discordAuth").updateTime
-                            discordAuth.status = GM_getValue("discordAuth").status;
-                            clearInterval(check);
-                            resolve(discordAuth.status)
-                        }
-                        if(i >= 10)
-                        {
-                            clearInterval(check);
-                            reject(408)
-                        }
-                    }, 1000)
-                    })
-            }
             const doJoinServer = (server)=>{
-                return HTTP.POST('https://discord.com/api/v9/invites/' + server, null, {
-                    headers: {
-                        referer: 'https://discord.com/invite/' + server,
-                        authorization: discordAuth.authorization
-                    },
-                    anonymous: true,
-                    responseType: 'json'
-                }).then(res=>{
-                    if (res.status === 200) {
-                        log.log({ result: 'success', statusText: res.statusText, status: res.status })
-                        return Promise.resolve(200);
-                    } else {
-                        log.error("状态码异常：", res);
-                        log.info(res.responseText)
-                        return Promise.reject(res.status);
-                    }
-                })
             }
-            const JoinServer = async (r, server)=>{
-                log.info("DISCORD: 准备加入服务器：", server)
-                try{
-                    log.info("DISCORD: 更新凭证：", server)
-                    const auth = await AuthUpdate()
-
-                    // https://discord.com/api/v9/invites/EVgxm7TTvD
-                    log.info("DISCORD: 加入服务器：", server)
-                    const ret = await doJoinServer(server)
-                    log.info('DISCORD: ret', ret)
-                    r(ret)
-                }catch(e){
-                    log.error("DISCORD: 加入服务器出错：", e)
-                    r(e);
-                    return;
+            const JoinServer = (r, data)=>{
+                const url = data.url;
+                GM_openInTab(`${url}?keyjokertask=join`, true);
+            }
+            const JoinServer2 = ()=>{
+                log.info('JoinServer2')
+                unsafeWindow.onunload = ()=>{
+                    log.info('溜了溜了')
+                    unsafeWindow.close()
                 }
+                const clickAction = ()=>{
+                    jq('button').click()
+                }
+                setInterval(clickAction, 1000)
             }
             const LeaveServer = (r, serverId)=>{
-                AuthUpdate((ret)=>{
-                    if(ret != 200)
-                    {
-                        r(ret);
-                        return;
-                    }
-                    jq.ajax({
-                        url: 'https://discord.com/api/v6/users/@me/guilds/' + serverId,
-                        method: 'DELETE',
-                        headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
-                        onload: (response) => {
-                            if (response.status === 604) {
-                                log.log({ result: 'success', statusText: response.statusText, status: response.status })
-                                r(604);
-                            } else {
-                                log.error(response);
-                                r(601);
-                            }
-                        },
-                        error:(res)=>{
-                            log.error(res);
-                            r(601);
-                        },
-                        anonymous:true
-                    })
-                })
             }
             return {
-                AuthUpdate: AuthUpdate,
                 JoinServer: JoinServer,
+                JoinServer2: JoinServer2,
                 LeaveServer: LeaveServer
             }
         })();
@@ -1243,15 +1153,9 @@ style="display: none;"></sup></div>
                         window.close();
                         break;
                     case "discord.com":
-                        if(location.search == "?keyjokertask=storageAuth")
+                        if(location.search == "?keyjokertask=join")
                         {
-                            discordAuth.authorization = JSON.parse(localStorage.getItem("token"));
-                            if(discordAuth.authorization == null)discordAuth.status = 401;
-                            else discordAuth.status = 200;
-                            discordAuth.updateTime = new Date().getTime();
-                            GM_setValue("discordAuth", discordAuth);
-                            log.log(discordAuth)
-                            window.close();
+                            window.onload=DISCORD.JoinServer2
                         }
                         break;
                     case "twitter.com":
@@ -1294,18 +1198,12 @@ style="display: none;"></sup></div>
             authVerify:function(){
                 // noticeFrame.loadFrame();
                 noticeFrame.addNotice("检查各项凭证");
-                noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://discord.com/login/\" target=\"_blank\">Discord</a> Auth", status:{id: "discord", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://accounts.spotify.com/login/\" target=\"_blank\">Spotify</a> Auth&nbsp;", status:{id: "spotify", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://steamcommunity.com/login/\" target=\"_blank\">Steam</a> Auth&nbsp;&nbsp;", status:{id: "steam", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.tumblr.com/login\" target=\"_blank\">Tumblr</a> Auth", status:{id: "tumblr", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.twitch.tv/login\" target=\"_blank\">Twitch</a> Auth&nbsp;", status:{id: "twitch", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://twitter.com/login/\" target=\"_blank\">Twitter</a> Auth", status:{id: "twitter", class: "wait", text:"ready"}});
 
-                DISCORD.AuthUpdate(true).then(res=>{
-                    this.statusReact(res, "discord");
-                }).catch(err=>{
-                    this.statusReact(err, "discord");
-                });
                 SPOTIFY.GetAccessToken().then((res)=>{
                     log.info("spotify", res)
                     this.statusReact(200, "spotify");
@@ -1463,8 +1361,7 @@ style="display: none;"></sup></div>
                             TWITTER.FollowAuto(react, task.data);
                             break;
                         case "Join Discord Server":
-                            var server = task.data.url.split(".gg/")[1];
-                            DISCORD.JoinServer(react, server)
+                            DISCORD.JoinServer(react, task.data)
                             break;
                         case "Retweet Twitter Tweet":
                             TWITTER.RetweetAuto(react, task.data.url);
@@ -1493,16 +1390,16 @@ style="display: none;"></sup></div>
                 // 清除上次残留线程
                 if(null != completeCheck)clearInterval(completeCheck);
                 let discordCheck = true;
-                completeCheck = setInterval(()=>{
+                const completeCheckFunc = ()=>{
                     i++;
                     //if(i >= 50)clearInterval(completeCheck);
                     //else
                         jq('button[class="btn btn-primary"]').click();
 
+                    jq(".modal-backdrop, .fade, .show").remove();
                     if(1 == jq('#fraud-warning-modal[style!="display: none;"]').length){
                         // 有弹窗，模拟点击OK
                         const ele = jq('button.btn.btn-secondary[type!="button"]')
-                        jq(".modal-backdrop, .fade, .show").remove();
                         if(ele.length > 0)ele[0].click();
                     }
                     if( document.getElementById("toast-container")){
@@ -1525,7 +1422,9 @@ style="display: none;"></sup></div>
                         checkSwitch();
                         checkTask.next();
                     }
-                }, 5 * 1000)
+                }
+                completeCheckFunc();
+                completeCheck = setInterval(completeCheckFunc, 5 * 1000)
             },
             // 人机验证出现图片时的处理
             hC_get_c: function(r){
@@ -1677,7 +1576,7 @@ style="display: none;"></sup></div>
             },
             test: function(){
                 // GM_openInTab("https://discord.com/channels/@me?keyjokertask=storageAuth", true);
-                DISCORD.JoinServer(log.info, 'QbYvb2qwDT')
+
             }
         }
         // ============Start===========
