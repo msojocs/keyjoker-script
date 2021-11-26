@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.0.8
+// @version      1.0.10
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -270,44 +270,40 @@ style="display: none;"></sup></div>
                 let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                 if(GM_getValue("start")==1){
                     jq(".border-bottom").text(hour+":"+min+" 执行新任务检测");
+                    log.info(`检测：${parseInt(new Date().getTime()/1000)}`)
                     jq.ajax({
                         url:"/entries/load",
                         type:"get",
                         headers:{'x-csrf-token': jq('meta[name="csrf-token"]').attr('content')},
                         success:(data,status,xhr)=>{
                             data.actions = data.actions.filter(e=>ignoreList.indexOf(e.id)===-1)
+                            log.info("检测是否新增")
                             if(data && (data.actions && (data.actions.length > sum) )){
+                                log.info("检测是否新增", "是")
                                 log.log(data);
                                 let date=new Date();
                                 let hour=date.getHours();
                                 let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                                 jq(".border-bottom").text(hour+":"+min+" 检测到新任务（暂停检测）");
-                                /*GM_notification({
-                                    title: "keyjoker新任务",
-                                    text: "keyjoker网站更新"+(data.actions.length-sum)+"个新任务！",
-                                    image: "https://www.keyjoker.com/favicon-32x32.png",
-                                    timeout: 0,
-                                    onclick: function(){
-                                        //location.reload(true);
-                                    }
-                                });*/
                                 // 重载列表
                                 noticeFrame.clearNotice();
+                                GM_setValue("start", 0);
+                                checkSwitch();
+                                log.info("重载列表")
                                 func.reLoadTaskList().then(()=>{
+                                    log.info("忽略处理")
                                     ignoreList.forEach(id=>{
                                         const ele = jq(`a[href='https://www.keyjoker.com/entries/open/${id}']`)
                                         if(ele.length > 0){
                                             ele[0].parentNode.parentNode.parentNode.parentNode.remove()
                                         }
                                     })
+                                    log.info("做任务")
                                     func.do_task(data);
                                 });
-                                GM_setValue("start", 0);
-                                checkSwitch();
                             }else{
-                                setTimeout(()=>{
-                                    this.reLoad(time,sum);
-                                },time);
+                                log.info("检测是否新增", "否")
+                                setTimeout(()=>this.reLoad(time,sum),time);
                             }
                         },
                         error:(err)=>{
@@ -335,7 +331,6 @@ style="display: none;"></sup></div>
             },
             next: function (){
                 // 初始化凭证获取状态
-                getAuthStatus.discord = false;
                 getAuthStatus.spotify = false;
                 getAuthStatus.steamStore = 0;
                 getAuthStatus.steamCom = 0;
@@ -348,9 +343,9 @@ style="display: none;"></sup></div>
                 }
                 let sum=jq(".list-complete-item").length;
                 if(sum>0){
-                    this.reLoad(time*1000,sum);
+                    this.reLoad(time*1000, sum);
                 }else{
-                    this.reLoad(time*1000,0);
+                    this.reLoad(time*1000, 0);
                 }
             }
         }
@@ -358,12 +353,13 @@ style="display: none;"></sup></div>
             const doJoinServer = (server)=>{
             }
             const JoinServer = (r, data)=>{
+                log.info("加入discord", data.url)
                 const url = data.url;
-                GM_openInTab(`${url}?keyjokertask=join`, true);
+                GM_openInTab(`${url}?keyjokertask=joinDiscord`, false);
             }
             const JoinServer2 = ()=>{
                 log.info('JoinServer2')
-                unsafeWindow.onunload = ()=>{
+                unsafeWindow.onbeforeunload = unsafeWindow.onunload = ()=>{
                     log.info('溜了溜了')
                     unsafeWindow.close()
                 }
@@ -1153,7 +1149,7 @@ style="display: none;"></sup></div>
                         window.close();
                         break;
                     case "discord.com":
-                        if(location.search == "?keyjokertask=join")
+                        if(location.search == "?keyjokertask=joinDiscord")
                         {
                             window.onload=DISCORD.JoinServer2
                         }
@@ -1293,6 +1289,7 @@ style="display: none;"></sup></div>
             },
             // 做任务
             do_task: function(data){
+                log.info("遍历做任务")
                 for(const task of data.actions)
                 {
                     noticeFrame.addNotice({type: "taskStatus", task:task, status:'wait'});
@@ -1384,6 +1381,7 @@ style="display: none;"></sup></div>
                             break;
                     }
                 }
+                log.info("遍历完毕")
 
                 let i = 0;
 
@@ -1391,6 +1389,7 @@ style="display: none;"></sup></div>
                 if(null != completeCheck)clearInterval(completeCheck);
                 let discordCheck = true;
                 const completeCheckFunc = ()=>{
+                    log.info("检测任务是否完成", "start")
                     i++;
                     //if(i >= 50)clearInterval(completeCheck);
                     //else
@@ -1422,8 +1421,8 @@ style="display: none;"></sup></div>
                         checkSwitch();
                         checkTask.next();
                     }
+                    log.info("检测任务是否完成", "end")
                 }
-                completeCheckFunc();
                 completeCheck = setInterval(completeCheckFunc, 5 * 1000)
             },
             // 人机验证出现图片时的处理
@@ -1547,7 +1546,10 @@ style="display: none;"></sup></div>
                         }else{
                             jq.getScript("/js/app.js", (rep,status)=>{
                                 if("success" == status)resolve();
-                                else log.error(status, rep);
+                                else {
+                                    log.error(status, rep);
+                                    reject()
+                                }
                             });
                         }
                     }else
