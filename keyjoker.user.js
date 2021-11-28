@@ -183,12 +183,25 @@ style="display: none;"></sup></div>
         },
     }
 
-    const log = ((...data)=>{
+    const log = (()=>{
 
-        if(debug){
-            return console
-        }else{
-            return {}
+        const log = (...data)=>{
+            if(debug)console.log("KJ", ...data)
+        }
+        const info = (...data)=>{
+            if(debug)console.info("KJ", ...data)
+        }
+        const error = (...data)=>{
+            if(debug)console.error("KJ", ...data)
+        }
+        const warn = (...data)=>{
+            if(debug)console.warn("KJ", ...data)
+        }
+        return {
+            log,
+            info,
+            warn,
+            error
         }
     })();
     const HTTP = (function(){
@@ -355,16 +368,53 @@ style="display: none;"></sup></div>
             const JoinServer = (r, data)=>{
                 log.info("加入discord", data.url)
                 const url = data.url;
-                GM_openInTab(`${url}?keyjokertask=joinDiscord`, false);
+                GM_openInTab(`${url}?keyjokertask=joinDiscord&taskid=${data.id}`, true);
+                let before = JSON.parse(GM_getValue("discord")||"{}")
+                before[data.id] = 0
+                GM_setValue("discord", JSON.stringify(before))
+                let checkInterval;
+                const checkDiscordTaskStatus = ()=>{
+                    let status = JSON.parse(GM_getValue("discord")||"{}")
+                    if(status[data.id] !== 0){
+                        r(status[data.id])
+                        clearInterval(checkInterval)
+                    }
+                }
+                checkInterval = setInterval(checkDiscordTaskStatus, 1000)
             }
             const JoinServer2 = ()=>{
                 log.info('JoinServer2')
                 unsafeWindow.onbeforeunload = unsafeWindow.onunload = ()=>{
                     log.info('溜了溜了')
-                    unsafeWindow.close()
+                    window.close()
                 }
+                let status = JSON.parse(GM_getValue("discord")||"{}")
                 const clickAction = ()=>{
-                    jq('button').click()
+                    let search = location.search
+                    if(search == null){
+                        log.info("discord", "search获取失败")
+                        return;
+                    }
+                    let match = search.match(/taskid=(\d+)/)
+                    if(match == null){
+                        log.info("discord", "taskid获取失败")
+                        return;
+                    }
+                    let id = match[1]
+
+                    if(jq("input[name='username']").length === 1 || jq("input[name='email']").length === 1){
+                        // 未登录
+                        log.info("discord", "未登录")
+                        status[id]= 401
+                    }else if(jq('button').length === 2){
+                        status[id]= 404
+                        log.info("discord", "服务器不存在")
+                    }else if(jq('button').length === 1){
+                        status[id]= 200
+                        log.info("discord", "加入服务器")
+                        jq('button').click()
+                    }
+                    GM_setValue("discord", JSON.stringify(status))
                 }
                 setInterval(clickAction, 1000)
             }
@@ -1149,9 +1199,10 @@ style="display: none;"></sup></div>
                         window.close();
                         break;
                     case "discord.com":
-                        if(location.search == "?keyjokertask=joinDiscord")
+                        if(location.search.includes("?keyjokertask=joinDiscord"))
                         {
-                            window.onload=DISCORD.JoinServer2
+                            log.info("discord", "ready")
+                            jq(document).ready(DISCORD.JoinServer2);
                         }
                         break;
                     case "twitter.com":
@@ -1313,8 +1364,10 @@ style="display: none;"></sup></div>
                                     let ignoreBtn = document.createElement("button");
                                     ignoreBtn.innerText = '忽略'
                                     ignoreBtn.style.background = 'red'
-                                    ignoreBtn.className = 'btn btn-primary'
+                                    ignoreBtn.style.color = 'white'
+                                    ignoreBtn.className = 'btn'
                                     ignoreBtn.addEventListener('click', e=>{
+                                        log.info("点击忽略")
                                         log.log(e)
                                         log.log(task.id)
                                         ignoreList.push(task.id)
@@ -1393,24 +1446,26 @@ style="display: none;"></sup></div>
                     i++;
                     //if(i >= 50)clearInterval(completeCheck);
                     //else
-                        jq('button[class="btn btn-primary"]').click();
+                    log.info("点击redeem按钮")
+                    jq('button[class="btn btn-primary"]').click();
 
                     jq(".modal-backdrop, .fade, .show").remove();
                     if(1 == jq('#fraud-warning-modal[style!="display: none;"]').length){
-                        // 有弹窗，模拟点击OK
+                        log.info("有弹窗，模拟点击OK")
                         const ele = jq('button.btn.btn-secondary[type!="button"]')
                         if(ele.length > 0)ele[0].click();
                     }
                     if( document.getElementById("toast-container")){
-                        // 操作不存在
                         if(document.getElementById("toast-container").textContent == "This action does not exist."){
+                            log.info("任务操作不存在")
                             jq('.card').remove();
                         }
                         // check discord error [Could not refresh Discord information, please try again.]
                         if(discordCheck == true && document.getElementById("toast-container").textContent == "Could not refresh Discord information, please try again.")
                         {
+                            log.info("Discord 身份过期")
                             discordCheck = false;
-                            GM_openInTab("https://www.keyjoker.com/account/identities?keyjokertask=unbindDiscord", true)
+                            GM_openInTab("https://www.keyjoker.com/account/identities?keyjokertask=unbindDiscord", false)
                         }
                     }
                     if(jq(".list-complete-item").length == 0)
