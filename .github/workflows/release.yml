@@ -11,7 +11,6 @@ on:
     push:
         tags:
         - 'v*'
-        branches: [test]
 
 jobs:
     build-release: #job名称
@@ -34,7 +33,7 @@ jobs:
               id: generate_notes
               uses: anmarkoulis/commitizen-changelog-reader@master
               with:
-                tag_name: ${{ github.ref }}
+                tag_name: v1.0.0
                 changelog: CHANGELOG.md
                 # https://github.com/marketplace/actions/get-release-notes
 
@@ -44,7 +43,7 @@ jobs:
                   node-version: ${{ matrix.node-version }}
 
             - name: Dump Steps Context
-              run: echo "${{ fromJson(steps) }}"
+              run: echo "${{ toJSON(steps) }}"
 
             - name: Make API
               run: |
