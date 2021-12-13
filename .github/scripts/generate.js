@@ -1,7 +1,7 @@
 const fs = require('fs');
 const changeLog = fs.readFileSync("CHANGELOG.md", 'utf-8')
-// console.log(changeLog)
-const logList = changeLog.split("\r\n## ")
+console.log(changeLog)
+const logList = changeLog.split("\n## ")
 const logObject = {}
 let latestVersion = null
 for (const log of logList) {
@@ -9,7 +9,7 @@ for (const log of logList) {
     let version = log.match(versionExp)
     const logOfVer = logObject[version[1]] = []
     const changeDetail = version[2]
-    const changeArr = changeDetail.split("\r\n### ")
+    const changeArr = changeDetail.split("\n### ")
     
     for (const change of changeArr) {
         parseChengeLogByType(change, logOfVer)
@@ -25,12 +25,12 @@ fs.writeFileSync("changelog/latestVersion.json", JSON.stringify(latestVersion))
 
 // Refactor\r\n- **version**: 稳定测试版本\r\n
 function parseChengeLogByType(detail, logOfVer){
-    const changeTypeExp = new RegExp(/(.*?)\r\n([\s\S]+)/)
+    const changeTypeExp = new RegExp(/(.*?)\n([\s\S]+)/)
     if(!changeTypeExp.test(detail))return
 
     let changeType = detail.match(changeTypeExp)
 
-    const changesExp = new RegExp(/- \*\*([a-zA-Z]+)\*\*: (.*?)\r/g)
+    const changesExp = new RegExp(/- \*\*([a-zA-Z]+)\*\*: (.*)/g)
     let changes = changeType[2].matchAll(changesExp)
     for (const change of changes) {
         logOfVer.push(`${changeType[1]}(${change[1]}): ${change[2]}`)
@@ -38,11 +38,11 @@ function parseChengeLogByType(detail, logOfVer){
 }
 
 
-let a = {
-    "v1.0.0": {
-        "refactor": {
-            "test": "测试",
-            "discord": "xxx"
-        }
-    }
-}
+// let a = {
+//     "v1.0.0": {
+//         "refactor": {
+//             "test": "测试",
+//             "discord": "xxx"
+//         }
+//     }
+// }
