@@ -1,0 +1,54 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Release
+
+#写法一：在push事件时触发构建
+#on: [push]
+
+#写法二：在master分支的push操作时触发构建
+on:
+    push:
+        tags:
+        - 'v*'
+        branches: [test]
+
+jobs:
+    build-release: #job名称
+        timeout-minutes: 20    #设置超时时间
+        runs-on: ubuntu-latest #运行环境
+
+        strategy:
+            matrix:
+                node-version: [16.x]
+
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Get version
+              id: get_version
+              uses: battila7/get-version-action@v2
+              # https://github.com/marketplace/actions/get-version
+
+            - name: Get notes
+              id: generate_notes
+              uses: anmarkoulis/commitizen-changelog-reader@master
+              with:
+                tag_name: ${{ github.ref }}
+                changelog: CHANGELOG.md
+                # https://github.com/marketplace/actions/get-release-notes
+
+            - name: Use Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v1
+              with:
+                  node-version: ${{ matrix.node-version }}
+
+            - name: Dump Steps Context
+              run: echo "${{ fromJson(steps) }}"
+
+            - name: Make API
+              run: |
+                    mkdir api
+                    cd api
+                    echo "${{ steps.get_version.outputs.version-without-v }}" > ./api/latest_ver
+                    ls -l
