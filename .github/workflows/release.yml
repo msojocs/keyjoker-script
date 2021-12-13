@@ -1,0 +1,46 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Release
+
+#写法一：在push事件时触发构建
+#on: [push]
+
+#写法二：在master分支的push操作时触发构建
+on:
+    push:
+        tags:
+        - 'v*'
+
+jobs:
+    build-release: #job名称
+        timeout-minutes: 20    #设置超时时间
+        runs-on: ubuntu-latest #运行环境
+
+        strategy:
+            matrix:
+                node-version: [16.x]
+
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Use Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v1
+              with:
+                  node-version: ${{ matrix.node-version }}
+
+            - name: Dump Steps Context
+              run: echo "${{ toJSON(steps) }}"
+
+            - name: Generate ChangeLog
+              run: |
+                mkdir changelog
+                node ./.github/scripts/generate.js
+
+            - name: Deploy to GitHub Pages
+              uses: crazy-max/ghaction-github-pages@v2
+              with:
+                target_branch: changelog
+                build_dir: changelog
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
