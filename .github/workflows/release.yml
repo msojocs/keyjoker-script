@@ -33,7 +33,7 @@ jobs:
               id: generate_notes
               uses: anmarkoulis/commitizen-changelog-reader@master
               with:
-                tag_name: v1.0.0
+                tag_name: ${{ github.ref }}
                 changelog: CHANGELOG.md
                 # https://github.com/marketplace/actions/get-release-notes
 
