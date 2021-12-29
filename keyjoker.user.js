@@ -73,7 +73,7 @@
         spotify: false,
         steamStore: 0,
         steamCom: 0,
-        tumblr: false,
+        // tumblr: false,
         twitch: false,
         twitter: 0
     }
@@ -347,7 +347,7 @@ style="display: none;"></sup></div>
                 getAuthStatus.spotify = false;
                 getAuthStatus.steamStore = 0;
                 getAuthStatus.steamCom = 0;
-                getAuthStatus.tumblr = false;
+                // getAuthStatus.tumblr = false;
                 getAuthStatus.twitch = false;
                 getAuthStatus.twitter = 0;
                 let time = GM_getValue("time");
@@ -841,80 +841,6 @@ style="display: none;"></sup></div>
                 AddWishlist: AddWishlistAuto
             }
         })();
-        const TUMBLR = (()=>{
-            const FollowAuto = async function(r, name){
-                try{
-                    r(603)
-                    const key = await AuthUpdate()
-                    HTTP.POST( 'https://www.tumblr.com/svc/follow', jq.param({'data[tumblelog]': name}), {
-                        headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
-                    }).then(res=>{
-                        if(res.status == 200)
-                        {
-                            r(200);
-                        }else{
-                            log.error(res);
-                            r(601);
-                        }
-                    })
-                }catch(e){
-                    r(e);
-                    return;
-                }
-            }
-            const UnfollowAuto = function(r, name){
-                AuthUpdate((status, key = false)=>{
-                    if(status != 200)
-                    {
-                        r(status);
-                        return;
-                    }
-                    if(false != key){
-                        HTTP.POST('https://www.tumblr.com/svc/unfollow', jq.param({'data[tumblelog]': name}), {
-                            headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
-                        }).then(res=>{
-                            if(res.status == 200)
-                            {
-                                r(200);
-                            }else{
-                                log.error(res);
-                                r(601);
-                            }
-                        })
-                    }else{
-                        r(601);
-                    }
-                })
-            }
-            const AuthUpdate = function(update = false){
-                return HTTP.GET('https://www.tumblr.com/dashboard/iframe')
-                    .then(res=>{
-                    if(res.status == 200)
-                    {
-                        let key = res.responseText.match(/id="tumblr_form_key" content="(.+?)">/)
-                        if(key){
-                            key = key[1]
-                            if(-1 != key.indexOf("!123") && -1 !=key.indexOf("|") )
-                            {
-                                return Promise.reject(401);
-                            }else return Promise.resolve(key);
-                        }
-                        else{
-                            log.error("tumblrGetKey->get key failed.", res);
-                            return Promise.reject(601);
-                        }
-                    }else{
-                        log.error(res);
-                        return Promise.reject(601);
-                    }
-                })
-            }
-            return {
-                AuthUpdate: AuthUpdate,
-                Follow: FollowAuto,
-                UnfollowAuto: UnfollowAuto
-            }
-        })();
         const TWITCH = (()=>{
             const FollowAuto = async function(r, channelId){
                 try{
@@ -1248,7 +1174,7 @@ style="display: none;"></sup></div>
                 noticeFrame.addNotice("检查各项凭证");
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://accounts.spotify.com/login/\" target=\"_blank\">Spotify</a> Auth&nbsp;", status:{id: "spotify", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://steamcommunity.com/login/\" target=\"_blank\">Steam</a> Auth&nbsp;&nbsp;", status:{id: "steam", class: "wait", text:"ready"}});
-                noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.tumblr.com/login\" target=\"_blank\">Tumblr</a> Auth", status:{id: "tumblr", class: "wait", text:"ready"}});
+                // noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.tumblr.com/login\" target=\"_blank\">Tumblr</a> Auth", status:{id: "tumblr", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.twitch.tv/login\" target=\"_blank\">Twitch</a> Auth&nbsp;", status:{id: "twitch", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://twitter.com/login/\" target=\"_blank\">Twitter</a> Auth", status:{id: "twitter", class: "wait", text:"ready"}});
 
@@ -1264,11 +1190,11 @@ style="display: none;"></sup></div>
                 }).catch(err=>{
                     this.statusReact(err, "steam");
                 });
-                TUMBLR.AuthUpdate(true).then((status)=>{
-                    this.statusReact(200, "tumblr");
-                }).catch(err=>{
-                    this.statusReact(err, "tumblr");
-                });
+                // TUMBLR.AuthUpdate(true).then((status)=>{
+                //     this.statusReact(200, "tumblr");
+                // }).catch(err=>{
+                //     this.statusReact(err, "tumblr");
+                // });
                 TWITCH.AuthUpdate(true).then((status)=>{
                     this.statusReact(status, "twitch");
                 }).catch(err=>{
