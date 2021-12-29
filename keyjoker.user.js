@@ -369,12 +369,12 @@ style="display: none;"></sup></div>
                 log.info("加入discord", data.url)
                 const url = data.url;
                 GM_openInTab(`${url}?keyjokertask=joinDiscord&taskid=${data.id}`, true);
-                let before = JSON.parse(GM_getValue("discord")||"{}")
+                let before = GM_getValue("discord") || {}
                 before[data.id] = 0
-                GM_setValue("discord", JSON.stringify(before))
+                GM_setValue("discord", before)
                 let checkInterval;
                 const checkDiscordTaskStatus = ()=>{
-                    let status = JSON.parse(GM_getValue("discord")||"{}")
+                    let status = GM_getValue("discord") || {}
                     if(status[data.id] !== 0){
                         r(status[data.id])
                         clearInterval(checkInterval)
@@ -384,11 +384,11 @@ style="display: none;"></sup></div>
             }
             const JoinServer2 = ()=>{
                 log.info('JoinServer2')
-                unsafeWindow.onbeforeunload = unsafeWindow.onunload = ()=>{
+                window.onbeforeunload = window.onunload = ()=>{
                     log.info('溜了溜了')
                     window.close()
                 }
-                let status = JSON.parse(GM_getValue("discord")||"{}")
+                let status = GM_getValue("discord") || {}
                 const clickAction = ()=>{
                     let search = location.search
                     if(search == null){
@@ -413,8 +413,9 @@ style="display: none;"></sup></div>
                         status[id]= 200
                         log.info("discord", "加入服务器")
                         jq('button').click()
+                        setTimeout(window.close, 1000)
                     }
-                    GM_setValue("discord", JSON.stringify(status))
+                    GM_setValue("discord", status)
                 }
                 setInterval(clickAction, 1000)
             }
@@ -1640,6 +1641,7 @@ style="display: none;"></sup></div>
         if(location.pathname == "/entries"){
             window.onload=()=>{
                 log.info("KJ main")
+                GM_setValue("discord", {})
                 if(document.getElementsByClassName("nav-item active").length != 0 && document.getElementsByClassName("nav-item active")[0].innerText == "Earn Credits" && document.getElementById("logout-form")){
                     noticeFrame.loadFrame();
                     // 事件绑定
@@ -1675,7 +1677,7 @@ style="display: none;"></sup></div>
             }
         }
         function eventBind(){
-            jq('button#checkUpdate').click(()=>{func.checkUpdate()})
+            jq('button#checkUpdate').click(func.checkUpdate)
             jq('button#fuck').click(function(){
                 checkTask.start(()=>{jq('.card').remove();})
             })
@@ -1704,7 +1706,7 @@ style="display: none;"></sup></div>
                 noticeFrame.addNotice({type:"msg",msg:"目前提供以下反馈渠道："})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/jiyeme/keyjokerScript/issues/new/choose\" target=\"_blank\">GitHub</a>"})
-                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://keylol.com/t660181-1-1\" target=\"_blank\">其乐社区</a>"})
+
             })
             // 版本升级后显示一次更新日志
             if(GM_getValue("currentVer") != GM_info.script.version)
