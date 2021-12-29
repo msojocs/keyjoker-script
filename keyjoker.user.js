@@ -43,7 +43,7 @@
     'use strict';
     const debug = true;
     // steam信息
-    const steamInfo = GM_getValue('steamInfo') || {
+    const steamConfig = GM_getValue('steamInfo') || {
         userName: '',
         steam64Id: '',
         communitySessionID: '',
@@ -51,12 +51,12 @@
         comUpdateTime: 0,
         storeUpdateTime: 0
     }
-    const twitchAuth = GM_getValue('twitchAuth') || {
+    const twitchConfig = GM_getValue('twitchAuth') || {
         "auth-token": "",
         status:0,
         updateTime: 0
     }
-    const twitterAuth = GM_getValue('twitterAuth') || {
+    const twitterConfig = GM_getValue('twitterAuth') || {
         authorization: "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
         ct0: '',
         status: 0,
@@ -570,7 +570,7 @@ style="display: none;"></sup></div>
                 }
             }
             const getComAuth = (forceUpdate = false)=>{
-                if (new Date().getTime() - steamInfo.comUpdateTime > 10 * 60 * 1000 || forceUpdate) {
+                if (new Date().getTime() - steamConfig.comUpdateTime > 10 * 60 * 1000 || forceUpdate) {
                     getAuthStatus.steamCom = 603;
                     HTTP.GET('https://steamcommunity.com/my')
                         .then(res=>{
@@ -582,12 +582,12 @@ style="display: none;"></sup></div>
                                 const steam64Id = res.responseText.match(/g_steamID = "(.+?)";/);
                                 const communitySessionID = res.responseText.match(/g_sessionID = "(.+?)";/);
                                 const userName = res.responseText.match(/steamcommunity.com\/id\/(.+?)\/friends\//);
-                                if (steam64Id) steamInfo.steam64Id = steam64Id[1];
-                                if (communitySessionID) steamInfo.communitySessionID = communitySessionID[1];
-                                if (userName) steamInfo.userName = userName[1];
+                                if (steam64Id) steamConfig.steam64Id = steam64Id[1];
+                                if (communitySessionID) steamConfig.communitySessionID = communitySessionID[1];
+                                if (userName) steamConfig.userName = userName[1];
                                 getAuthStatus.steamCom = 200;
-                                steamInfo.comUpdateTime = new Date().getTime();
-                                GM_setValue('steamInfo', steamInfo);
+                                steamConfig.comUpdateTime = new Date().getTime();
+                                GM_setValue('steamInfo', steamConfig);
                                 return Promise.resolve(200);
                             }
                         } else {
@@ -601,7 +601,7 @@ style="display: none;"></sup></div>
                 }
             }
             const getStoreAuth = (forceUpdate = false)=>{
-                if (new Date().getTime() - steamInfo.storeUpdateTime > 10 * 60 * 1000 || forceUpdate) {
+                if (new Date().getTime() - steamConfig.storeUpdateTime > 10 * 60 * 1000 || forceUpdate) {
                     getAuthStatus.steamStore = 603;
                     return HTTP.GET('https://store.steampowered.com/stats/', null )
                         .then(res=>{
@@ -612,10 +612,10 @@ style="display: none;"></sup></div>
                                 return Promise.reject(401)
                             } else {
                                 const storeSessionID = res.responseText.match(/g_sessionID = "(.+?)";/)
-                                if (storeSessionID) steamInfo.storeSessionID = storeSessionID[1]
+                                if (storeSessionID) steamConfig.storeSessionID = storeSessionID[1]
                                 getAuthStatus.steamStore = 200;
-                                steamInfo.storeUpdateTime = new Date().getTime();
-                                GM_setValue('steamInfo', steamInfo);
+                                steamConfig.storeUpdateTime = new Date().getTime();
+                                GM_setValue('steamInfo', steamConfig);
                                 return Promise.resolve(200);
                             }
                         } else {
@@ -632,7 +632,7 @@ style="display: none;"></sup></div>
             const Rep = async (r, id)=>{
                 try{
                     const check = await RepHisCheck(id)
-                    HTTP.POST('https://steamcommunity.com/comment/Profile/post/' + id + '/-1/',jq.param({comment:'+rep',count:6,sessionid:steamInfo.communitySessionID,feature2:-1}), {
+                    HTTP.POST('https://steamcommunity.com/comment/Profile/post/' + id + '/-1/',jq.param({comment:'+rep',count:6,sessionid:steamConfig.communitySessionID,feature2:-1}), {
                         headers:{'content-type': 'application/x-www-form-urlencoded'},
                     }).then(res=>{
                         if(res.status == 200)
@@ -666,7 +666,7 @@ style="display: none;"></sup></div>
                         log.log(comments);
                         if(comments != null)
                         {
-                            if(comments[1].includes(steamInfo.steam64Id) || steamInfo.userName?comments[1].includes(steamInfo.userName):false)
+                            if(comments[1].includes(steamConfig.steam64Id) || steamConfig.userName?comments[1].includes(steamConfig.userName):false)
                             {
                                 return Promise.resolve(200, true);
                             }
@@ -694,7 +694,7 @@ style="display: none;"></sup></div>
             const JoinGroupAuto = async function (r, url) {
                 try{
                     const auth = await InfoUpdate('community')
-                    HTTP.POST(url, jq.param({ action: 'join', sessionID: steamInfo.communitySessionID }), {
+                    HTTP.POST(url, jq.param({ action: 'join', sessionID: steamConfig.communitySessionID }), {
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
                     }).then(res=>{
                         if (res.status === 200 && !res.responseText.includes('grouppage_join_area')) {
@@ -719,8 +719,8 @@ style="display: none;"></sup></div>
                 let groupName = url.split('s/')[1];
                 GetGroupID(groupName, (groupName, groupId) => {
                     var postUrl = "";
-                    postUrl = (steamInfo.userName) ? 'https://steamcommunity.com/id/' + steamInfo.userName + '/home_process' : 'https://steamcommunity.com/profiles/' + steamInfo.steam64Id + '/home_process'
-                    HTTP.POST(postUrl, jq.param({ sessionID: steamInfo.communitySessionID, action: 'leaveGroup', groupId: groupId }), {
+                    postUrl = (steamConfig.userName) ? 'https://steamcommunity.com/id/' + steamConfig.userName + '/home_process' : 'https://steamcommunity.com/profiles/' + steamConfig.steam64Id + '/home_process'
+                    HTTP.POST(postUrl, jq.param({ sessionID: steamConfig.communitySessionID, action: 'leaveGroup', groupId: groupId }), {
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
                     }).then(res=>{
                         if (res.status === 200 && res.finalUrl.includes('groups') && jq(res.responseText.toLowerCase()).find(`a[href='https://steamcommunity.com/groups/${groupName.toLowerCase()}']`).length === 0) {
@@ -759,7 +759,7 @@ style="display: none;"></sup></div>
                 try{
                     const auth = await InfoUpdate('store')
 
-                    HTTP.POST('https://store.steampowered.com/api/addtowishlist', jq.param({ sessionid: steamInfo.storeSessionID, appid: gameId }), {
+                    HTTP.POST('https://store.steampowered.com/api/addtowishlist', jq.param({ sessionid: steamConfig.storeSessionID, appid: gameId }), {
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
                         dataType: 'json'
                     }).then(res=>{
@@ -795,7 +795,7 @@ style="display: none;"></sup></div>
             const RemoveWishlistAuto = function (r, gameId) {
                 this.steamInfoUpdate(() => {
                     new Promise(resolve => {
-                        HTTP.POST('https://store.steampowered.com/api/removefromwishlist', jq.param({ sessionid: steamInfo.storeSessionID, appid: gameId }), {
+                        HTTP.POST('https://store.steampowered.com/api/removefromwishlist', jq.param({ sessionid: steamConfig.storeSessionID, appid: gameId }), {
                             headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
                             dataType: 'json',
                             onabort: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
@@ -920,12 +920,12 @@ style="display: none;"></sup></div>
                 try{
                     const auth = await AuthUpdate()
                     HTTP.POST( 'https://gql.twitch.tv/gql','[{"operationName":"FollowButton_FollowUser","variables":{"input":{"disableNotifications":false,"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"3efee1acda90efdff9fef6e6b4a29213be3ee490781c5b54469717b6131ffdfe"}}}]', {
-                        headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
+                        headers: { Authorization: "OAuth " + twitchConfig["auth-token"]},
                     }).then(res=>{
                         if (res.status === 200) {
                             r(200);
                         } else if(res.status === 401){
-                            twitchAuth.updateTime = 0;
+                            twitchConfig.updateTime = 0;
                             GM_setValue("twitchAuth", null);
                             r(401);
                         }else{
@@ -946,12 +946,12 @@ style="display: none;"></sup></div>
                         return;
                     }
                     HTTP.POST('https://gql.twitch.tv/gql', '[{"operationName":"FollowButton_UnfollowUser","variables":{"input":{"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"d7fbdb4e9780dcdc0cc1618ec783309471cd05a59584fc3c56ea1c52bb632d41"}}}]', {
-                        headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
+                        headers: { Authorization: "OAuth " + twitchConfig["auth-token"]},
                     }).then(res=>{
                         if (res.status === 200) {
                             r(200);
                         } else if(res.status === 401){
-                            twitchAuth.updateTime = 0;
+                            twitchConfig.updateTime = 0;
                             GM_setValue("twitchAuth", null);
                             r(401);
                         }else{
@@ -977,7 +977,7 @@ style="display: none;"></sup></div>
             }
             const AuthUpdate = function(forceUpdate = false){
                 return new Promise((resolve, reject)=>{
-                    if (new Date().getTime() - twitchAuth.updateTime < 30 * 60 * 1000 && twitchAuth.status === 200 && !forceUpdate) {
+                    if (new Date().getTime() - twitchConfig.updateTime < 30 * 60 * 1000 && twitchConfig.status === 200 && !forceUpdate) {
                         resolve(200)
                         return
                     }
@@ -997,9 +997,9 @@ style="display: none;"></sup></div>
                                 reject(401);
                                 return;
                             }
-                            twitchAuth["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
-                            twitchAuth.updateTime = GM_getValue('twitchAuth').updateTime;
-                            twitchAuth.status = GM_getValue('twitchAuth').status;
+                            twitchConfig["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
+                            twitchConfig.updateTime = GM_getValue('twitchAuth').updateTime;
+                            twitchConfig.status = GM_getValue('twitchAuth').status;
                             clearInterval(check);
                             resolve(200)
                         }
@@ -1036,14 +1036,14 @@ style="display: none;"></sup></div>
                         skip_status: 1,
                         id: userId
                     }), {
-                        headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
+                        headers: { authorization: "Bearer " + twitterConfig.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterConfig.ct0},
                     }).then(res=>{
                         if (res.status === 200) {
                             r(200);
                         } else {
                             log.error(res);
-                            twitterAuth.updateTime = 0;
-                            GM_setValue("twitterAuth", twitterAuth);
+                            twitterConfig.updateTime = 0;
+                            GM_setValue("twitterAuth", twitterConfig);
                             r(601);
                         }
                     })
@@ -1068,14 +1068,14 @@ style="display: none;"></sup></div>
                             return;
                         }
                         HTTP.POST('https://api.twitter.com/1.1/friendships/destroy.json', jq.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}), {
-                            headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
+                            headers: { authorization: "Bearer " + twitterConfig.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterConfig.ct0},
                         }).then(res=>{
                             if (res.status === 200) {
                                 r(200);
                             } else {
                                 log.error(res);
-                                twitterAuth.updateTime = 0;
-                                GM_setValue("twitterAuth", twitterAuth);
+                                twitterConfig.updateTime = 0;
+                                GM_setValue("twitterAuth", twitterConfig);
                                 r(601);
                             }
                         })
@@ -1087,13 +1087,13 @@ style="display: none;"></sup></div>
                 try{
                     const auth = await AuthUpdate()
                     HTTP.POST( 'https://api.twitter.com/1.1/statuses/retweet.json', jq.param({ tweet_mode: "extended",id: retweetId}), {
-                        headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
+                        headers: { authorization: "Bearer " + twitterConfig.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterConfig.ct0},
                     }).then(res=>{
                         if (res.status === 200 || (res.status === 403 && res.responseText == '{"errors":[{"code":327,"message":"You have already retweeted this Tweet."}]}')) {
                             r(200);
                         } else {
-                            twitterAuth.updateTime = 0;
-                            GM_setValue("twitterAuth", twitterAuth);
+                            twitterConfig.updateTime = 0;
+                            GM_setValue("twitterAuth", twitterConfig);
                             r(601);
                         }
                     })
@@ -1106,7 +1106,7 @@ style="display: none;"></sup></div>
             const GetUserInfo = function(userName){
                 if(debug)log.log("====twitterGetUserInfo====");
                 return HTTP.GET('https://api.twitter.com/graphql/-xfUfZsnR_zqjFd-IfrN5A/UserByScreenName?variables=%7B%22screen_name%22%3A%22' + userName + '%22%2C%22withHighlightedLabel%22%3Atrue%7D', null, {
-                    headers: { authorization: "Bearer " + twitterAuth.authorization, "content-type": "application/json"},
+                    headers: { authorization: "Bearer " + twitterConfig.authorization, "content-type": "application/json"},
                     anonymous:true
                 }).then(res=>{
                     if (res.status === 200) {
@@ -1119,7 +1119,7 @@ style="display: none;"></sup></div>
             }
             const AuthUpdate = function(update = false){
                 return new Promise((resolve, reject)=>{
-                    if(new Date().getTime() - twitterAuth.updateTime < 30 * 60 * 1000 && !update){
+                    if(new Date().getTime() - twitterConfig.updateTime < 30 * 60 * 1000 && !update){
                         // 未过期，不强制更新
                         resolve(200)
                         return;
@@ -1141,11 +1141,11 @@ style="display: none;"></sup></div>
                                 reject(GM_getValue("twitterAuth").status)
                                 return;
                             }
-                            twitterAuth.ct0 = GM_getValue("twitterAuth").ct0;
-                            twitterAuth.updateTime = GM_getValue("twitterAuth").updateTime
-                            twitterAuth.status = GM_getValue("twitterAuth").status;
+                            twitterConfig.ct0 = GM_getValue("twitterAuth").ct0;
+                            twitterConfig.updateTime = GM_getValue("twitterAuth").updateTime
+                            twitterConfig.status = GM_getValue("twitterAuth").status;
                             clearInterval(check);
-                            resolve(twitterAuth.status)
+                            resolve(twitterConfig.status)
                         }
                         if(i >= 10)
                         {
@@ -1187,14 +1187,14 @@ style="display: none;"></sup></div>
                         if(location.search == "?keyjokertask=storageAuth")
                         {
                             let cookie = document.cookie + ";"
-                            twitchAuth.updateTime = new Date().getTime();
+                            twitchConfig.updateTime = new Date().getTime();
                             if(cookie.match(/auth-token=(.+?);/) != null)
                             {
-                                twitchAuth["auth-token"] = cookie.match(/auth-token=(.+?);/)[1]
-                                twitchAuth.status = 200;
-                            }else twitchAuth.status = 401;
-                            GM_setValue("twitchAuth", twitchAuth)
-                            log.log(twitchAuth)
+                                twitchConfig["auth-token"] = cookie.match(/auth-token=(.+?);/)[1]
+                                twitchConfig.status = 200;
+                            }else twitchConfig.status = 401;
+                            GM_setValue("twitchAuth", twitchConfig)
+                            log.log(twitchConfig)
                             window.close();
                         }
                         window.close();
@@ -1212,13 +1212,13 @@ style="display: none;"></sup></div>
                             let m = document.cookie.match(/ct0=(.+?);/);
                             if(m != null && m[1])
                             {
-                                twitterAuth.status = 200;
-                                twitterAuth.ct0 = m[1];
-                                twitterAuth.updateTime = new Date().getTime()
+                                twitterConfig.status = 200;
+                                twitterConfig.ct0 = m[1];
+                                twitterConfig.updateTime = new Date().getTime()
                             }else{
-                                twitterAuth.status = 401;
+                                twitterConfig.status = 401;
                             }
-                            GM_setValue("twitterAuth", twitterAuth)
+                            GM_setValue("twitterAuth", twitterConfig)
                             window.close();
                         }
                         break;
