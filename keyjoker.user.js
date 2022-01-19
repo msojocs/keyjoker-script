@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.0.10
+// @version      1.1.0
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -9,7 +9,7 @@
 // @include      *://assets.hcaptcha.com/*
 // @include      *?keyjokertask=*
 // @include      http://localhost:3001/*
-// @include      https://jiyeme.github.io/keyjokerScript/*
+// @include      https://jiyeme.github.io/keyjokerScript*
 // @updateURL    https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @downloadURL  https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @supportURL   https://www.jysafe.cn/4332.air
@@ -38,12 +38,13 @@
 // @connect      spotify.com
 // @connect      jysafe.cn
 // @require      https://cdn.staticfile.org/jquery/3.3.1/jquery.min.js
-// @require      https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@e1f9bc6ca24cf7e8f734bd910306737449a26830/keyjoker.ext.js
+// @require      https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@9a84040672898ece9d677e72c7617f95d7c92c86/keyjoker.ext.js
 // ==/UserScript==
+// @require      http://task.jysafe.cn/keyjoker/script/keyjoker6.ext.js
 
 (function() {
     'use strict';
-    const debug = true;
+    const debug = false;
     // steam信息
     const steamConfig = GM_getValue('steamInfo') || {
         userName: '',
@@ -67,6 +68,7 @@
     const ignoreList = GM_getValue('ignoreList') || [];
 
     const jq = $;
+    const kjData = offlineData;
     unsafeWindow.jq = jq
     let completeCheck = null;
 
@@ -126,29 +128,44 @@ font.wait{color:#9c27b0;}
 <div role="alert" class="el-notification fuck-task-logs right" style="bottom: 16px; z-index: 2000;">
 <div class="el-notification__group">
 <h2 id="extraBtn" class="el-notification__title">
+
 <div class="el-badge item"><button id="checkUpdate" type="button" class="el-button el-button--default is-circle"
 title="检查更新">
 <i class="el-icon-refresh"></i>
 </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
 style="display: none;"></sup></div>
+
 <div class="el-badge item"><button id="fuck" type="button" class="el-button el-button--default is-circle" title="强制做任务">
 <i class="el-icon-video-play"></i>
 </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
 </div>
+
 <div class="el-badge item"><button id="changeLog" type="button" class="el-button el-button--default is-circle"
 title="查看更新内容">
 <i class="el-icon-document"></i>
 </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup></div>
+
+<div class="el-badge item">
+<a href="https://jiyeme.github.io/keyjokerScript/" target="_blank">
+<button type="button" class="el-button el-button--default is-circle" title="设置">
+<i class="el-icon-setting"></i>
+</button>
+</a>
+<sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
+</div>
+
 <div class="el-badge item"><button id="clearNotice" type="button" class="el-button el-button--default is-circle"
 title="清空执行日志">
 <i class="el-icon-brush"></i>
 </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
 style="display: none;"></sup></div>
+
 <div class="el-badge item"><button id="report" type="button" class="el-button el-button--default is-circle"
 title="提交建议/BUG">
 <i class="el-icon-s-promotion"></i>
 </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
 style="display: none;"></sup></div>
+
 </h2>
 <h2 class="el-notification__title">任务执行日志</h2>
 <div class="el-notification__content" style="">
@@ -291,7 +308,11 @@ style="display: none;"></sup></div>
                         type:"get",
                         headers:{'x-csrf-token': jq('meta[name="csrf-token"]').attr('content')},
                         success:(data,status,xhr)=>{
-                            data.actions = data.actions.filter(e=>ignoreList.indexOf(e.id)===-1)
+                            // 忽略处理，不做的任务处理
+                            const disabledTask = GM_getValue('taskDisabled') || {}
+                            // 过滤出不再忽略列表且要做的任务
+                            data.actions = data.actions.filter(e=>ignoreList.indexOf(e.id)===-1 && !disabledTask[e.task.icon])
+
                             log.info("检测是否新增")
                             if(data && (data.actions && (data.actions.length > sum) )){
                                 log.info("检测是否新增", "是")
@@ -300,11 +321,22 @@ style="display: none;"></sup></div>
                                 let hour=date.getHours();
                                 let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                                 jq(".border-bottom").text(hour+":"+min+" 检测到新任务（暂停检测）");
-                                // 重载列表
+
+                                // 清空提示
                                 noticeFrame.clearNotice();
+                                // 关闭检测开关
                                 GM_setValue("start", 0);
+                                // 菜单显示更新
                                 checkSwitch();
-                                log.info("重载列表")
+
+                                log.info("更新列表")
+                                kjData.loadData.actions = data.actions
+                                kjData.loadData.reward = data.reward
+                                kjData.loadData.isLoading = false
+
+                                log.info("做任务")
+                                func.do_task(data);
+                                /*
                                 func.reLoadTaskList().then(()=>{
                                     log.info("忽略处理")
                                     ignoreList.forEach(id=>{
@@ -315,7 +347,7 @@ style="display: none;"></sup></div>
                                     })
                                     log.info("做任务")
                                     func.do_task(data);
-                                });
+                                });*/
                             }else{
                                 log.info("检测是否新增", "否")
                                 setTimeout(()=>this.reLoad(time,sum),time);
@@ -345,6 +377,7 @@ style="display: none;"></sup></div>
                 }
             },
             next: function (){
+                kjData.loadData.isLoading = true
                 // 初始化凭证获取状态
                 getAuthStatus.spotify = false;
                 getAuthStatus.steamStore = 0;
@@ -1358,9 +1391,9 @@ style="display: none;"></sup></div>
                         case "Follow Twitch Channel":
                             TWITCH.FollowAuto(react, task.data.id);
                             break;
-                        case "Follow Tumblr Blog":
-                            TUMBLR.Follow(react, task.data.name);
-                            break;
+                        //case "Follow Tumblr Blog":
+                            //TUMBLR.Follow(react, task.data.name);
+                            //break;
                         default:
                             noticeFrame.updateNotice(task.id, {class:"error", text:"Unknow Type:" + task.task.name})
                             log.error("未指定操作" + task.task.name)
@@ -1523,18 +1556,19 @@ style="display: none;"></sup></div>
             reLoadTaskList: function(r){
                 return new Promise((resolve, reject)=>{
                     // 重载任务列表
-                    if(2 == document.getElementsByClassName('row').length)
+                    if(2 === document.getElementsByClassName('row').length)
                     {
                         jq('.row')[1].remove();
                         jq('.layout-container').append('<entries-component></entries-component>');
-                        if(true == GM_getValue("offlineMode") && typeof offlineData === "object")
+                        if(true == GM_getValue("offlineMode") && typeof kjData === "object")
                         {
-                            offlineData["app.js"]();
+                            kjData["app.js"]();
                             resolve();
                         }else{
                             jq.getScript("/js/app.js", (rep,status)=>{
-                                if("success" == status)resolve();
-                                else {
+                                if("success" == status){
+                                    resolve();
+                                }else {
                                     log.error(status, rep);
                                     reject()
                                 }
@@ -1575,16 +1609,24 @@ style="display: none;"></sup></div>
                 log.info("KJ main")
                 GM_setValue("discord", {})
                 if(document.getElementsByClassName("nav-item active").length != 0 && document.getElementsByClassName("nav-item active")[0].innerText == "Earn Credits" && document.getElementById("logout-form")){
+                    if(typeof kjData === "object")
+                    {
+                        log.log("加载app.js.....")
+                        jq('.row')[1].remove();
+                        jq('.layout-container').append('<entries-component></entries-component>');
+                        kjData["app.js"]();
+                        unsafeWindow.test = kjData
+                    }
                     noticeFrame.loadFrame();
                     // 事件绑定
                     eventBind();
+                    checkUpdate();
                     //let isStart=setInterval(()=>{
                     if(GM_getValue("start")==1){
                         //clearInterval(isStart);
-                        checkTask.next();
+                        setTimeout(()=>{checkTask.next()}, 1000);
                     }
                     //},1000);
-                    checkUpdate();
                 }else{
                     if(jq('.container').length > 0)
                     {
@@ -1699,8 +1741,10 @@ style="display: none;"></sup></div>
                 });
             }
         }
+        // 检测开关
         checkSwitch(null);
-        offlineSwitch(null);
+        // 离线模式切换菜单
+        // offlineSwitch(null);
         if(debug)
         {
             GM_registerMenuCommand("Test",()=>{
