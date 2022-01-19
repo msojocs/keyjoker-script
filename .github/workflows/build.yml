@@ -31,19 +31,16 @@ jobs:
             - name: Dump Steps Context
               run: echo "${{ toJSON(steps) }}"
 
-            - name: Open Directory
-              run: cd SettingPage
-
             - name: Install Dependencies
-              run: npm install
+              run: cd SettingPage && npm install
 
             - name: Build Production
-              run: npm run build
+              run: cd SettingPage && npm run build
 
             - name: Deploy to GitHub Pages
               uses: crazy-max/ghaction-github-pages@v2
               with:
                 target_branch: setting-page
-                build_dir: dist
+                build_dir: SettingPage/dist
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
