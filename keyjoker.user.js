@@ -8,6 +8,8 @@
 // @include      *://www.keyjoker.com/entries*
 // @include      *://assets.hcaptcha.com/*
 // @include      *?keyjokertask=*
+// @include      http://localhost:3001/*
+// @include      https://jiyeme.github.io/keyjokerScript/*
 // @updateURL    https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @downloadURL  https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @supportURL   https://www.jysafe.cn/4332.air
@@ -1166,6 +1168,10 @@ style="display: none;"></sup></div>
                         func.hcaptcha2();
                         break;
                     default :
+                        unsafeWindow.kj = {
+                            get: GM_getValue,
+                            set: GM_setValue
+                        }
                         break;
                 }
             },

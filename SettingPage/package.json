@@ -1,0 +1,21 @@
+{
+  "name": "kj-config",
+  "version": "0.0.5",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "element-plus": "^1.2.0-beta.6",
+    "vue": "^3.2.25",
+    "vue-i18n": "^9.1.9"
+  },
+  "devDependencies": {
+    "@intlify/vite-plugin-vue-i18n": "^3.2.1",
+    "@vitejs/plugin-vue": "^2.0.0",
+    "unplugin-auto-import": "^0.5.5",
+    "unplugin-vue-components": "^0.17.11",
+    "vite": "^2.7.2"
+  }
+}
