@@ -316,8 +316,10 @@ style="display: none;"></sup></div>
                         success:(data,status,xhr)=>{
                             // 忽略处理，不做的任务处理
                             const disabledTask = GM_getValue('taskDisabled') || {}
-                            // 过滤出不再忽略列表且要做的任务
-                            data.actions = data.actions.filter(e=>ignoreList.indexOf(e.id)===-1 && !disabledTask[e.task.icon])
+                            log.log(disabledTask)
+                            // 过滤出不在忽略列表且要做的任务
+                            data.actions = data.actions.filter(e=>ignoreList.indexOf(e.id)===-1 && !disabledTask[e.task.provider.icon])
+                            log.log(data.actions)
 
                             log.info("检测是否新增")
                             if(data && (data.actions && (data.actions.length > sum) )){
@@ -383,6 +385,7 @@ style="display: none;"></sup></div>
                 }
             },
             next: function (){
+                kjData.loadData.actions = []
                 kjData.loadData.isLoading = true
                 // 初始化凭证获取状态
                 getAuthStatus.spotify = false;
