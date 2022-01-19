@@ -44,7 +44,7 @@
 
 (function() {
     'use strict';
-    const debug = false;
+    const debug = true;
     const discordAuth = GM_getValue('discordAuth') || {
         authorization: "",
         status:0,
@@ -470,7 +470,7 @@ style="display: none;"></sup></div>
             }
         })();
         // 自动化
-        const DISCORD2 = (()=>{
+        const DISCORD3 = (()=>{
             const AuthUpdate = (update = false)=>{
                 return new Promise((resolve, reject)=>{
                     if (new Date().getTime() - discordAuth.updateTime < 30 * 60 * 1000 && discordAuth.status == 200 && !update) {
@@ -1343,18 +1343,18 @@ style="display: none;"></sup></div>
             authVerify:function(){
                 // noticeFrame.loadFrame();
                 noticeFrame.addNotice("检查各项凭证");
-                noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://discord.com/login/\" target=\"_blank\">Discord</a> Auth", status:{id: "discord", class: "wait", text:"ready"}});
+                //noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://discord.com/login/\" target=\"_blank\">Discord</a> Auth", status:{id: "discord", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://accounts.spotify.com/login/\" target=\"_blank\">Spotify</a> Auth&nbsp;", status:{id: "spotify", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://steamcommunity.com/login/\" target=\"_blank\">Steam</a> Auth&nbsp;&nbsp;", status:{id: "steam", class: "wait", text:"ready"}});
                 // noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.tumblr.com/login\" target=\"_blank\">Tumblr</a> Auth", status:{id: "tumblr", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.twitch.tv/login\" target=\"_blank\">Twitch</a> Auth&nbsp;", status:{id: "twitch", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://twitter.com/login/\" target=\"_blank\">Twitter</a> Auth", status:{id: "twitter", class: "wait", text:"ready"}});
 
-                DISCORD2.AuthUpdate(true).then(res=>{
-                    this.statusReact(res, "discord");
-                }).catch(err=>{
-                    this.statusReact(err, "discord");
-                });
+                //DISCORD2.AuthUpdate(true).then(res=>{
+                //    this.statusReact(res, "discord");
+                //}).catch(err=>{
+                //   this.statusReact(err, "discord");
+                //});
                 SPOTIFY.GetAccessToken().then((res)=>{
                     log.info("spotify", res)
                     this.statusReact(200, "spotify");
@@ -1570,7 +1570,7 @@ style="display: none;"></sup></div>
                             jq('.card').remove();
                         }
                         // check discord error [Could not refresh Discord information, please try again.]
-                        if(discordCheck == true && document.getElementById("toast-container").textContent == "Could not refresh Discord information, please try again.")
+                        if(discordCheck == true && document.getElementById("toast-container").textContent == "Could not verify server information from Discord, please try again.")
                         {
                             log.info("Discord 身份过期")
                             discordCheck = false;
