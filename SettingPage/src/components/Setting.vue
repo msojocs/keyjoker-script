@@ -1,6 +1,24 @@
 <script setup>
 import { ref, watch, reactive } from "vue";
 import { useI18n } from "vue-i18n";
+const configList = [
+  {
+    id: "steam",
+    text: "Steam"
+  },
+  {
+    id: "discord",
+    text: "Discord"
+  },
+  {
+    id: "twitter",
+    text: "Twitter"
+  },
+  {
+    id: "twitch",
+    text: "Twitch"
+  },
+]
 const props = defineProps({
   lang: String,
 });
@@ -14,20 +32,17 @@ watch(lang1, (newVal, oldVal) => {
 });
 
 // //////////////任务忽略设置////////////////////
-let disabledData = {
-  discord: false,
-  steam: false,
-};
+const disabledData = {};
 if (typeof kj === "undefined") {
   ElMessage({
     message: t('Plugin Lost'),
     type: "error",
   });
 } else {
-  disabledData = kj.get("taskDisabled") || {
-    discord: false,
-    steam: false,
-  };
+  const temp = kj.get("taskDisabled") || {};
+  for(let task of configList){
+    disabledData[task.id] = temp[task.id] ?? false
+  }
 }
 const disabled = ref(disabledData);
 
@@ -59,33 +74,15 @@ function saveDisabled() {
             <el-button class="button" type="text" @click="saveDisabled">{{t('save')}}</el-button>
           </div>
         </template>
-        <el-row>
-          <el-col :span="12">Discord</el-col>
-          <el-col :span="12">
-            <el-switch v-model="disabled.discord" />
-          </el-col>
-        </el-row>
-        <el-divider></el-divider>
-        <el-row>
-          <el-col :span="12">Steam</el-col>
-          <el-col :span="12">
-            <el-switch v-model="disabled.steam" />
-          </el-col>
-        </el-row>
-        <el-divider></el-divider>
-        <el-row>
-          <el-col :span="12">Twitter</el-col>
-          <el-col :span="12">
-            <el-switch v-model="disabled.twitter" />
-          </el-col>
-        </el-row>
-        <el-divider></el-divider>
-        <el-row>
-          <el-col :span="12">Twitch</el-col>
-          <el-col :span="12">
-            <el-switch v-model="disabled.twitch" />
-          </el-col>
-        </el-row>
+        <div v-for="task in configList" v-bind:key="task.id">
+          <el-row>
+            <el-col :span="12">{{task.text}}</el-col>
+            <el-col :span="12">
+              <el-switch v-model="disabled[task.id]" />
+            </el-col>
+          </el-row>
+          <el-divider></el-divider>
+        </div>
       </el-card>
     </div>
   </div>
