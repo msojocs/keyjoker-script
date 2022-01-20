@@ -1,3 +1,17 @@
+## v1.5.1 (2022-01-21)
+
+### Enhance
+- **HTTP**: 优化HTTP请求封装
+
+### Feature
+- **I18N**: 国际化初步支持
+- **TASK**: 自动禁用提示弹窗
+- **DISCORD**: 新增DISCORD API模式切换功能
+- **SETTING**: 新增设置页面
+
+### Fix
+- **SPOTIFY**: 修复AccessToken获取
+
 ## v1.1.1 (2022-01-19)
 
 ### Fix

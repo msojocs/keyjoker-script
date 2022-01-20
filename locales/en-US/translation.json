@@ -23,6 +23,6 @@
   },
   "message": {
     "executing": "Checking for new task",
-    "newTaskAvailable": "Detect New Task!(paused)"
+    "newTaskAvailable": "New Task Detected!(paused)"
   }
 }
