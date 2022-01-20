@@ -18,6 +18,11 @@
     "youAreInLatest": "It is the latest version now!",
     "errGoConsole": "ERROR ! Please go to the console for details!",
     "getChangeLog": "Getting changelog of this version...",
-    "checkAuth": "Checking Auth of Accounts..."
+    "checkAuth": "Checking Auth of Accounts...",
+    "taskOK": "All tasks have been completed, continue to detect."
+  },
+  "message": {
+    "executing": "Checking for new task",
+    "newTaskAvailable": "Detect New Task!(paused)"
   }
 }

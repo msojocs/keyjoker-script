@@ -214,7 +214,7 @@ font.wait{color:#9c27b0;}
                     jq('.el-notification__content').append("<li>" + data + "</li>");
                     break;
             }
-            jq('.notification').localize();
+            if(jq('.notification').localize)jq('.notification').localize();
         },
         clearNotice:()=>{
             jq('.el-notification__content li').remove();
@@ -320,7 +320,7 @@ font.wait{color:#9c27b0;}
                 let hour=date.getHours();
                 let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                 if(GM_getValue("start")==1){
-                    jq(".border-bottom").text(hour+":"+min+" 执行新任务检测");
+                    jq(".border-bottom > #checkTime").text(`${hour}:${min}`);
                     log.info(`检测：${parseInt(new Date().getTime()/1000)}`)
                     jq.ajax({
                         url:"/entries/load",
@@ -332,7 +332,6 @@ font.wait{color:#9c27b0;}
                             log.log(disabledTask)
                             // 过滤出不在忽略列表且要做的任务
                             data.actions = data.actions.filter(e=>ignoreList.indexOf(e.id)===-1 && !disabledTask[e.task.provider.icon])
-                            log.log(data.actions)
 
                             log.info("检测是否新增")
                             if(data && (data.actions && (data.actions.length > sum) )){
@@ -341,7 +340,7 @@ font.wait{color:#9c27b0;}
                                 let date=new Date();
                                 let hour=date.getHours();
                                 let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
-                                jq(".border-bottom").text(hour+":"+min+" 检测到新任务（暂停检测）");
+                                jq(".border-bottom").html(`${hour}:${min} <span data-i18n='message.newTaskAvailable'>检测到新任务（暂停检测）</span>`);
 
                                 // 清空提示
                                 noticeFrame.clearNotice();
@@ -400,8 +399,10 @@ font.wait{color:#9c27b0;}
             next: function (){
                 kjData.loadData.actions = []
                 //kjData.loadData.isLoading = true
+                jq(".border-bottom").html("<span id='checkTime'></span><span data-i18n='message.exeuting'>执行新任务检测</span>");
+                jq(".border-bottom").localize()
                 // 关闭弹窗提示
-                document.cookie = "fraud_warning_notice=1"
+                document.cookie = "fraud_warning_notice=1; expires=Sun, 1 Jan 2030 00:00:00 UTC; path=/"
                 // 初始化凭证获取状态
                 getAuthStatus.spotify = false;
                 getAuthStatus.steamStore = 0;
@@ -1611,14 +1612,14 @@ font.wait{color:#9c27b0;}
                     //if(i >= 50)clearInterval(completeCheck);
                     //else
                     log.info("点击redeem按钮")
-                    jq('button[class="btn btn-primary"]').click();
+                    jq('.card-body button[class="btn btn-primary"]').click();
 
-                    jq(".modal-backdrop, .fade, .show").remove();
+                    /*jq(".modal-backdrop, .fade, .show").remove();
                     if(1 == jq('#fraud-warning-modal[style!="display: none;"]').length){
                         log.info("有弹窗，模拟点击OK")
                         const ele = jq('button.btn.btn-secondary[type!="button"]')
                         if(ele.length > 0)ele[0].click();
-                    }
+                    }*/
                     if( document.getElementById("toast-container")){
                         if(document.getElementById("toast-container").textContent == "This action does not exist."){
                             log.info("任务操作不存在")
@@ -1635,7 +1636,7 @@ font.wait{color:#9c27b0;}
                     if(jq(".list-complete-item").length == 0)
                     {
                         clearInterval(completeCheck);
-                        noticeFrame.addNotice({type:"msg", msg:"任务似乎已完成，恢复监测!"});
+                        noticeFrame.addNotice({type:"msg", msg:"<span data-i18n='notification.taskOK'>任务似乎已完成，恢复监测!</span>"});
                         GM_setValue("start", 1);
                         checkSwitch();
                         checkTask.next();
@@ -1962,6 +1963,7 @@ font.wait{color:#9c27b0;}
                     i18next.changeLanguage(KJConfig.language, (err, t) => {
                         if (err) console.log('something went wrong loading', err);
                         jq('.notification').localize()
+                        jq('.border-bottom').localize()
                     });
                 }
             })
