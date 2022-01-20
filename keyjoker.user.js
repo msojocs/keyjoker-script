@@ -397,8 +397,8 @@ font.wait{color:#9c27b0;}
             next: function (){
                 kjData.loadData.actions = []
                 //kjData.loadData.isLoading = true
-                jq(".border-bottom").html("<span id='checkTime'></span><span data-i18n='message.exeuting'>执行新任务检测</span>");
-                jq(".border-bottom").localize()
+                jq(".border-bottom").html("<span id='checkTime'></span><span data-i18n='message.executing'>执行新任务检测</span>");
+                jq(".border-bottom").localize && jq(".border-bottom").localize()
                 // 关闭弹窗提示
                 document.cookie = "fraud_warning_notice=1; expires=Sun, 1 Jan 2030 00:00:00 UTC; path=/"
                 // 初始化凭证获取状态
@@ -1877,7 +1877,7 @@ font.wait{color:#9c27b0;}
                         i18next.use(i18nextHttpBackend).init({
                             lng: KJConfig.language || navigator.language, // evtl. use language-detector https://github.com/i18next/i18next-browser-languageDetector
                             backend:{
-                                loadPath : languagePrefix + '/{{lng}}/{{ns}}.json',
+                                loadPath : languagePrefix + '/{{lng}}/{{ns}}.json?v=' + GM_info.script.version,
                             },
                             ns: ['translation','message'],
                             defaultNS: 'translation' //默认使用的，不指定namespace时
@@ -1889,6 +1889,10 @@ font.wait{color:#9c27b0;}
                             // start localizing, details:
                             // https://github.com/i18next/jquery-i18next#usage-of-selector-function
                             jq('.notification').localize();
+                            jq(".border-bottom").localize()
+                            if(GM_getValue("start")==1){
+                                setTimeout(()=>{checkTask.next()}, 1000);
+                            }
                             //jq('.nav').localize();
                             //jq('.content').localize();
                         });
@@ -1897,12 +1901,6 @@ font.wait{color:#9c27b0;}
                     }
                     log.log("i18n初始化END")
 
-                    //let isStart=setInterval(()=>{
-                    if(GM_getValue("start")==1){
-                        //clearInterval(isStart);
-                        setTimeout(()=>{checkTask.next()}, 2000);
-                    }
-                    //},1000);
                 }else{
                     if(jq('.container').length > 0)
                     {
