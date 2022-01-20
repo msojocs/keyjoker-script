@@ -4,21 +4,21 @@ import { useI18n } from "vue-i18n";
 const configList = [
   {
     id: "steam",
-    text: "Steam"
+    text: "Steam",
   },
   {
     id: "discord",
-    text: "Discord"
+    text: "Discord",
   },
   {
     id: "twitter",
-    text: "Twitter"
+    text: "Twitter",
   },
   {
     id: "twitch",
-    text: "Twitch"
+    text: "Twitch",
   },
-]
+];
 const props = defineProps({
   lang: String,
 });
@@ -31,31 +31,48 @@ watch(lang1, (newVal, oldVal) => {
   locale.value = lang1.lang;
 });
 
+const checkPluginLoaded = () => {
+  if (typeof kj === "undefined") {
+    ElMessage({
+      message: t("Plugin Lost"),
+      type: "error",
+    });
+    return false;
+  }
+  return true;
+};
+// //////////////DISCORD
+const discord = ref({
+  enable: false,
+});
+if (checkPluginLoaded()) {
+  const temp = kj.get("discordAuth") || {};
+  discord.enable = temp.enable || false;
+}
+// //////////////END DISCORD
+
 // //////////////任务忽略设置////////////////////
 const disabledData = {};
-if (typeof kj === "undefined") {
-  ElMessage({
-    message: t('Plugin Lost'),
-    type: "error",
-  });
-} else {
+if (checkPluginLoaded()) {
   const temp = kj.get("taskDisabled") || {};
-  for(let task of configList){
-    disabledData[task.id] = temp[task.id] ?? false
+  for (let task of configList) {
+    disabledData[task.id] = temp[task.id] ?? false;
   }
 }
 const disabled = ref(disabledData);
 
-function saveDisabled() {
-  if (typeof kj === "undefined") {
+function saveData(key, value) {
+  if (checkPluginLoaded()) {
+    switch (key) {
+      case "discordAuth":
+        const temp = kj.get("discordAuth") || {};
+        temp.enable = value;
+        value = temp;
+        break;
+    }
+    kj.set(key, value);
     ElMessage({
-      message: t('Plugin Lost'),
-      type: "error",
-    });
-  } else {
-    kj.set("taskDisabled", disabledData);
-    ElMessage({
-      message: t('save success'),
+      message: t("save success"),
       type: "success",
     });
   }
@@ -70,8 +87,27 @@ function saveDisabled() {
       <el-card class="box-card">
         <template #header>
           <div class="card-header">
+            <span>{{t('Discord')}}</span>
+          </div>
+        </template>
+        <div>
+          <el-row>
+            <el-col :span="12">{{ t('USE API MODE') }}</el-col>
+            <el-col :span="12">
+              <el-switch v-model="discord.enable" @change="saveData('discordAuth', $event)" />
+            </el-col>
+          </el-row>
+        </div>
+      </el-card>
+      <el-card class="box-card">
+        <template #header>
+          <div class="card-header">
             <span>{{t('Ignored Task')}}</span>
-            <el-button class="button" type="text" @click="saveDisabled">{{t('save')}}</el-button>
+            <el-button
+              class="button"
+              type="text"
+              @click="saveData('taskDisabled', disabledData)"
+            >{{t('save')}}</el-button>
           </div>
         </template>
         <div v-for="task in configList" v-bind:key="task.id">
@@ -113,6 +149,7 @@ a {
     "language": "Language",
     "hello": "hello, world!",
     "save": "save",
+    "USE API MODE": "USE API MODE",
     "Ignored Task": "Ignored Task",
     "Plugin Lost": "Plugin not detected!!!",
     "save success": "Saved!",
@@ -121,6 +158,7 @@ a {
     "language": "语言",
     "hello": "你好，世界！",
     "save": "保存",
+    "USE API MODE": "使用API模式",
     "Ignored Task": "忽略的任务",
     "Plugin Lost": "未检测到插件！！！",
     "save success": "保存成功!",

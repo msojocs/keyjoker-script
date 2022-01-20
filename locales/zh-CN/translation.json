@@ -1,0 +1,17 @@
+{
+  "notification": {
+    "home": "Home",
+    "page1": "PageOne",
+    "page2": "PageTwo",
+    "button": "Search",
+    "input": "Input your name",
+    
+    "checkUpdate": "检查更新",
+    "forceToTask": "强制做任务",
+    "viewChangelog": "更新日志",
+    "setting": "打开设置页面",
+    "clearLog": "清空日志",
+    "bugReport": "BUG反馈",
+    "logForRunning": "运行日志"
+  }
+}

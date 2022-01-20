@@ -1,0 +1,17 @@
+{
+  "notification": {
+    "home": "Home",
+    "page1": "PageOne",
+    "page2": "PageTwo",
+    "button": "Search",
+    "input": "Input your name",
+    
+    "checkUpdate": "Check for update",
+    "forceToTask": "Force to do task",
+    "viewChangelog": "To view changelog of current version",
+    "setting": "Open the setting page",
+    "clearLog": "Clear log",
+    "bugReport": "Report Bugs",
+    "logForRunning": "Log of running"
+  }
+}

@@ -26,26 +26,8 @@
 
 2. 安装脚本：[GitHub](https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js) | [GreasyFork](https://greasyfork.org/zh-CN/scripts/406476)（更新有延迟）
 
-# 食用
-1. 点击设置时间间隔
-
-![点击设置时间间隔](pics/1.png)
-
-2. 点击“开始检测”（点击之后选项会变成“停止检测”）
-
-![开始检测](pics/2.png)
-
-3. 出现确认框，点击确定
-
-![确认框](pics/3.png)
-
-4. 出现如下情形即可
-
-![正在检测](pics/4.png)
-
-# 部分功能说明
-1. 极速/稳定模式：在检测到新任务后，需要加载js重载列表，稳定模式加载官方线上js，极速模式加载嵌套在脚本中的js（版本非最新，但省去网络请求时间、速度快）
-2. 凭证检测：在空闲时，可点击脚本管理器中的菜单执行该操作，用以检查各个站点的登录情况。
+# 帮助|HELP
+[HELP.MD](./docs/HELP.MD)
 
 # 演示
 ![steamRep](pics/steamRep.gif)

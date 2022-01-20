@@ -1,15 +1,15 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.0.0
+// @version      1.1.1
 // @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
 // @include      *://www.keyjoker.com/entries*
 // @include      *://assets.hcaptcha.com/*
-// @include      *://discord.com/channels/@me?keyjokertask=storageAuth
-// @include      *://www.twitch.tv/settings/profile?keyjokertask=storageAuth
-// @include      *://twitter.com/settings/account?keyjokertask=storageAuth
+// @include      *?keyjokertask=*
+// @include      http://localhost:3001*
+// @include      https://jiyeme.github.io/keyjokerScript*
 // @updateURL    https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @downloadURL  https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
 // @supportURL   https://www.jysafe.cn/4332.air
@@ -24,9 +24,10 @@
 // @grant        GM_getValue
 // @grant        GM_listValues
 // @grant        GM_deleteValue
+// @grant        GM_getResourceURL
 // @grant        GM_openInTab
 // @grant        GM_log
-// @grant       GM_notification
+// @grant        GM_notification
 // @connect      hcaptcha.com
 // @connect      store.steampowered.com
 // @connect      steamcommunity.com
@@ -36,21 +37,27 @@
 // @connect      twitch.tv
 // @connect      tumblr.com
 // @connect      spotify.com
-// @connect      jysafe.cn
+// @connect      task.jysafe.cn
 // @require      https://cdn.staticfile.org/jquery/3.3.1/jquery.min.js
-// @require      https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@e1f9bc6ca24cf7e8f734bd910306737449a26830/keyjoker.ext.js
+// @require      https://cdn.staticfile.org/i18next/8.1.0/i18next.min.js
+// @require      https://cdn.jsdelivr.net/gh/i18next/jquery-i18next@1.2.1/jquery-i18next.min.js
+// @require      https://cdn.jsdelivr.net/gh/i18next/i18next-http-backend@1.3.1/i18nextHttpBackend.min.js
+// @require      https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@9a84040672898ece9d677e72c7617f95d7c92c86/keyjoker.ext.js
 // ==/UserScript==
+// @require      http://task.jysafe.cn/keyjoker/script/keyjoker6.ext.js
 
 (function() {
     'use strict';
     const debug = true;
+    const languagePrefix = "http://127.0.0.1:5500/locales"
     const discordAuth = GM_getValue('discordAuth') || {
+        enable: false,
         authorization: "",
         status:0,
         updateTime: 0
     }
     // steam信息
-    const steamInfo = GM_getValue('steamInfo') || {
+    const steamConfig = GM_getValue('steamInfo') || {
         userName: '',
         steam64Id: '',
         communitySessionID: '',
@@ -58,18 +65,22 @@
         comUpdateTime: 0,
         storeUpdateTime: 0
     }
-    const twitchAuth = GM_getValue('twitchAuth') || {
+    const twitchConfig = GM_getValue('twitchAuth') || {
         "auth-token": "",
         status:0,
         updateTime: 0
     }
-    const twitterAuth = GM_getValue('twitterAuth') || {
+    const twitterConfig = GM_getValue('twitterAuth') || {
         authorization: "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
         ct0: '',
         status: 0,
         updateTime: 0
     }
+    const ignoreList = GM_getValue('ignoreList') || [];
+
     const jq = $;
+    const kjData = offlineData;
+    unsafeWindow.jq = jq
     let completeCheck = null;
 
     // 0-未动作|200-成功取得|401未登录|603正在取得
@@ -78,14 +89,14 @@
         spotify: false,
         steamStore: 0,
         steamCom: 0,
-        tumblr: false,
+        // tumblr: false,
         twitch: false,
         twitter: 0
     }
     var checkSwitchId = null;
     const noticeFrame = {
         loadFrame: ()=>{
-            if(debug)console.log("loadFrame");
+            log.log("loadFrame");
             jq('body').append(`<style>
 .fuck-task-logs li{display:list-item !important;float:none !important}
 #extraBtn .el-badge.item{margin-bottom:4px !important}
@@ -126,40 +137,60 @@ font.wait{color:#9c27b0;}
 #extraBtn .el-button.is-circle{padding:8px !important}
 @font-face{font-family:element-icons;src:url(https://cdn.bootcss.com/element-ui/2.12.0/theme-chalk/fonts/element-icons.woff) format("woff"),url(https://cdn.bootcss.com/element-ui/2.12.0/theme-chalk/fonts/element-icons.ttf) format("truetype");font-weight:400;font-display:auto;font-style:normal}
 </style>
+
 <div role="alert" class="el-notification fuck-task-logs right" style="bottom: 16px; z-index: 2000;">
-<div class="el-notification__group">
-<h2 id="extraBtn" class="el-notification__title">
-<div class="el-badge item"><button id="checkUpdate" type="button" class="el-button el-button--default is-circle"
-title="检查更新">
-<i class="el-icon-refresh"></i>
-</button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
-style="display: none;"></sup></div>
-<div class="el-badge item"><button id="fuck" type="button" class="el-button el-button--default is-circle" title="强制做任务">
-<i class="el-icon-video-play"></i>
-</button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
+    <div class="notification el-notification__group">
+        <h2 id="extraBtn" class="el-notification__title">
+
+            <div class="el-badge item"><button id="checkUpdate" type="button"
+                    class="el-button el-button--default is-circle" data-i18n="[title]notification.checkUpdate" title="检查更新">
+                    <i class="el-icon-refresh"></i>
+                </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
+                    style="display: none;"></sup></div>
+
+            <div class="el-badge item"><button id="fuck" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.forceToTask"
+                    title="强制做任务">
+                    <i class="el-icon-video-play"></i>
+                </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
+                    style="display: none;"></sup>
+            </div>
+
+            <div class="el-badge item"><button id="changeLog" type="button"
+                    class="el-button el-button--default is-circle" data-i18n="[title]notification.viewChangelog" title="查看更新内容">
+                    <i class="el-icon-document"></i>
+                </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
+                    style="display: none;"></sup></div>
+
+            <div class="el-badge item">
+                <a href="https://jiyeme.github.io/keyjokerScript/" target="_blank">
+                    <button type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.setting" title="设置">
+                        <i class="el-icon-setting"></i>
+                    </button>
+                </a>
+                <sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
+                    style="display: none;"></sup>
+            </div>
+
+            <div class="el-badge item"><button id="clearNotice" type="button"
+                    class="el-button el-button--default is-circle" data-i18n="[title]notification.clearLog" title="清空执行日志">
+                    <i class="el-icon-brush"></i>
+                </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
+                    style="display: none;"></sup></div>
+
+            <div class="el-badge item"><button id="report" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.bugReport"
+                    title="提交建议/BUG">
+                    <i class="el-icon-s-promotion"></i>
+                </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
+                    style="display: none;"></sup></div>
+
+        </h2>
+        <h2 class="el-notification__title"  data-i18n="notification.logForRunning">任务执行日志</h2>
+        <div class="el-notification__content">
+            <p></p>
+        </div>
+    </div>
 </div>
-<div class="el-badge item"><button id="changeLog" type="button" class="el-button el-button--default is-circle"
-title="查看更新内容">
-<i class="el-icon-document"></i>
-</button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup></div>
-<div class="el-badge item"><button id="clearNotice" type="button" class="el-button el-button--default is-circle"
-title="清空执行日志">
-<i class="el-icon-brush"></i>
-</button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
-style="display: none;"></sup></div>
-<div class="el-badge item"><button id="report" type="button" class="el-button el-button--default is-circle"
-title="提交建议/BUG">
-<i class="el-icon-s-promotion"></i>
-</button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
-style="display: none;"></sup></div>
-</h2>
-<h2 class="el-notification__title">任务执行日志</h2>
-<div class="el-notification__content" style="">
-<p></p>
-</li>
-</div>
-</div>
-</div>`)
+`)
         },
         addNotice: function(data){
             switch(data.type)
@@ -188,12 +219,25 @@ style="display: none;"></sup></div>
         },
     }
 
-    const log = ((...data)=>{
+    const log = (()=>{
 
-        if(debug){
-            return console
-        }else{
-            return {}
+        const log = (...data)=>{
+            if(debug)console.log("KJ", ...data)
+        }
+        const info = (...data)=>{
+            if(debug)console.info("KJ", ...data)
+        }
+        const error = (...data)=>{
+            console.error("KJ", ...data)
+        }
+        const warn = (...data)=>{
+            if(debug)console.warn("KJ", ...data)
+        }
+        return {
+            log,
+            info,
+            warn,
+            error
         }
     })();
     const HTTP = (function(){
@@ -203,7 +247,6 @@ style="display: none;"></sup></div>
             requestObj.url = e.url
             requestObj.method = e.method.toUpperCase()
             requestObj.timeout = e.timeout || 30000
-            if (e.dataType) requestObj.dataType = e.dataType
             if (e.responseType) requestObj.responseType = e.responseType
             if (e.headers) requestObj.headers = e.headers
             if (e.binary) requestObj.binary = e.binary;
@@ -275,37 +318,57 @@ style="display: none;"></sup></div>
                 let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                 if(GM_getValue("start")==1){
                     jq(".border-bottom").text(hour+":"+min+" 执行新任务检测");
+                    log.info(`检测：${parseInt(new Date().getTime()/1000)}`)
                     jq.ajax({
                         url:"/entries/load",
                         type:"get",
                         headers:{'x-csrf-token': jq('meta[name="csrf-token"]').attr('content')},
                         success:(data,status,xhr)=>{
+                            // 忽略处理，不做的任务处理
+                            const disabledTask = GM_getValue('taskDisabled') || {}
+                            log.log(disabledTask)
+                            // 过滤出不在忽略列表且要做的任务
+                            data.actions = data.actions.filter(e=>ignoreList.indexOf(e.id)===-1 && !disabledTask[e.task.provider.icon])
+                            log.log(data.actions)
+
+                            log.info("检测是否新增")
                             if(data && (data.actions && (data.actions.length > sum) )){
-                                if(debug)console.log(data);
+                                log.info("检测是否新增", "是")
+                                log.log(data);
                                 let date=new Date();
                                 let hour=date.getHours();
                                 let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                                 jq(".border-bottom").text(hour+":"+min+" 检测到新任务（暂停检测）");
-                                GM_notification({
-                                    title: "keyjoker新任务",
-                                    text: "keyjoker网站更新"+(data.actions.length-sum)+"个新任务！",
-                                    image: "https://www.keyjoker.com/favicon-32x32.png",
-                                    timeout: 0,
-                                    onclick: function(){
-                                        //location.reload(true);
-                                    }
-                                });
-                                // 重载列表
+
+                                // 清空提示
                                 noticeFrame.clearNotice();
-                                func.reLoadTaskList(()=>{
-                                    func.do_task(data);
-                                });
+                                // 关闭检测开关
                                 GM_setValue("start", 0);
+                                // 菜单显示更新
                                 checkSwitch();
+
+                                log.info("更新列表")
+                                kjData.loadData.actions = data.actions
+                                kjData.loadData.reward = data.reward
+                                kjData.loadData.isLoading = false
+
+                                log.info("做任务")
+                                func.do_task(data);
+                                /*
+                                func.reLoadTaskList().then(()=>{
+                                    log.info("忽略处理")
+                                    ignoreList.forEach(id=>{
+                                        const ele = jq(`a[href='https://www.keyjoker.com/entries/open/${id}']`)
+                                        if(ele.length > 0){
+                                            ele[0].parentNode.parentNode.parentNode.parentNode.remove()
+                                        }
+                                    })
+                                    log.info("做任务")
+                                    func.do_task(data);
+                                });*/
                             }else{
-                                setTimeout(()=>{
-                                    this.reLoad(time,sum);
-                                },time);
+                                log.info("检测是否新增", "否")
+                                setTimeout(()=>this.reLoad(time,sum),time);
                             }
                         },
                         error:(err)=>{
@@ -332,12 +395,15 @@ style="display: none;"></sup></div>
                 }
             },
             next: function (){
+                kjData.loadData.actions = []
+                //kjData.loadData.isLoading = true
+                // 关闭弹窗提示
+                document.cookie = "fraud_warning_notice=1"
                 // 初始化凭证获取状态
-                getAuthStatus.discord = false;
                 getAuthStatus.spotify = false;
                 getAuthStatus.steamStore = 0;
                 getAuthStatus.steamCom = 0;
-                getAuthStatus.tumblr = false;
+                // getAuthStatus.tumblr = false;
                 getAuthStatus.twitch = false;
                 getAuthStatus.twitter = 0;
                 let time = GM_getValue("time");
@@ -346,13 +412,77 @@ style="display: none;"></sup></div>
                 }
                 let sum=jq(".list-complete-item").length;
                 if(sum>0){
-                    this.reLoad(time*1000,sum);
+                    this.reLoad(time*1000, sum);
                 }else{
-                    this.reLoad(time*1000,0);
+                    this.reLoad(time*1000, 0);
                 }
             }
         }
+        // 模拟点击
         const DISCORD = (()=>{
+            // KJ界面执行
+            const JoinServer = (r, data)=>{
+                log.info("加入discord", data.url)
+                const url = data.url;
+                GM_openInTab(`${url}?keyjokertask=joinDiscord&taskid=${data.id}`, true);
+                let before = GM_getValue("discord") || {}
+                before[data.id] = 0
+                GM_setValue("discord", before)
+                let checkInterval;
+                const checkDiscordTaskStatus = ()=>{
+                    let status = GM_getValue("discord") || {}
+                    if(status[data.id] !== 0){
+                        r(status[data.id])
+                        clearInterval(checkInterval)
+                    }
+                }
+                checkInterval = setInterval(checkDiscordTaskStatus, 1000)
+            }
+            // Discord邀请页面执行
+            const JoinServer2 = ()=>{
+                log.info('JoinServer2')
+                window.onbeforeunload = window.onunload = ()=>{
+                    log.info('溜了溜了')
+                    window.close()
+                }
+                let status = GM_getValue("discord") || {}
+                const clickAction = ()=>{
+                    let search = location.search
+                    if(search == null){
+                        log.info("discord", "search获取失败")
+                        return;
+                    }
+                    let match = search.match(/taskid=(\d+)/)
+                    if(match == null){
+                        log.info("discord", "taskid获取失败")
+                        return;
+                    }
+                    let id = match[1]
+
+                    if(jq("input[name='username']").length === 1 || jq("input[name='email']").length === 1){
+                        // 未登录
+                        log.info("discord", "未登录")
+                        status[id]= 401
+                    }else if(jq('button').length === 2){
+                        status[id]= 404
+                        log.info("discord", "服务器不存在")
+                    }else if(jq('button').length === 1){
+                        status[id]= 200
+                        log.info("discord", "加入服务器")
+                        jq('button').click()
+                        setTimeout(window.close, 1000)
+                    }
+                    GM_setValue("discord", status)
+                }
+                setInterval(clickAction, 1000)
+            }
+            return {
+                JoinServer: JoinServer,
+                JoinServer2: JoinServer2,
+            }
+        })();
+        // 自动化
+        const DISCORD2 = (()=>{
             const AuthUpdate = (update = false)=>{
                 return new Promise((resolve, reject)=>{
                     if (new Date().getTime() - discordAuth.updateTime < 30 * 60 * 1000 && discordAuth.status == 200 && !update) {
@@ -390,13 +520,41 @@ style="display: none;"></sup></div>
                     }, 1000)
                     })
             }
-            const doJoinServer = (server)=>{
-                return HTTP.POST('https://discord.com/api/v9/invites/' + server, null, {
+            const getServerInfo = async(server)=>{
+                // https://discord.com/api/v9/invites/h9frErUaV4?with_counts=true&with_expiration=true
+                return HTTP.GET(`https://discord.com/api/v9/invites/${server}`, {
+                    with_counts: true,
+                    with_expiration: true
+                }, {
                     headers: {
                         referer: 'https://discord.com/invite/' + server,
-                        authorization: discordAuth.authorization
+                        authorization: discordAuth.authorization,
+                        'x-super-properties': discordAuth.xSuperProperties,
+                        'x-fingerprint': discordAuth.xFingerprint,
                     },
-                    anonymous: true,
+                    responseType: 'json'
+                }).then(res=>{
+                    if(res.status == 200)return Promise.resolve(res.response)
+                    else return Promise.reject(res)
+                })
+            }
+            const doJoinServer = (server, info)=>{
+                const xContextProperties = {
+                    "location":"Accept Invite Page",
+                    "location_guild_id":info.guild.id,
+                    "location_channel_id":info.channel.id,
+                    "location_channel_type":info.channel.type
+                };
+                return HTTP.POST(`https://discord.com/api/v6/invites/${server}`, "{}", {
+                    headers: {
+                        'content-type': 'application/json',
+                        referer: 'https://discord.com/invite/' + server,
+                        authorization: discordAuth.authorization,
+                        'x-super-properties': discordAuth.xSuperProperties,
+                        'x-fingerprint': discordAuth.xFingerprint,
+                        'x-context-properties': window.btoa(JSON.stringify(xContextProperties))
+                    },
+                    overrideMimeType: 'application/json',
                     responseType: 'json'
                 }).then(res=>{
                     if (res.status === 200) {
@@ -415,9 +573,9 @@ style="display: none;"></sup></div>
                     log.info("DISCORD: 更新凭证：", server)
                     const auth = await AuthUpdate()
 
-                    // https://discord.com/api/v9/invites/EVgxm7TTvD
                     log.info("DISCORD: 加入服务器：", server)
-                    const ret = await doJoinServer(server)
+                    const serverInfo = await getServerInfo(server)
+                    const ret = await doJoinServer(server, serverInfo)
                     log.info('DISCORD: ret', ret)
                     r(ret)
                 }catch(e){
@@ -439,15 +597,15 @@ style="display: none;"></sup></div>
                         headers: { authorization: discordAuth.authorization, "content-type": "application/json"},
                         onload: (response) => {
                             if (response.status === 604) {
-                                if(debug)console.log({ result: 'success', statusText: response.statusText, status: response.status })
+                                log.log({ result: 'success', statusText: response.statusText, status: response.status })
                                 r(604);
                             } else {
-                                console.error(response);
+                                log.error(response);
                                 r(601);
                             }
                         },
                         error:(res)=>{
-                            console.error(res);
+                            log.error(res);
                             r(601);
                         },
                         anonymous:true
@@ -463,7 +621,7 @@ style="display: none;"></sup></div>
         const SPOTIFY = (()=>{
             const GetUserInfo = async (r)=>{
                 r(603)
-                const accessToken = GetAccessToken()
+                const accessToken = await GetAccessToken()
                 return HTTP.GET('https://api.spotify.com/v1/me', null, {
                     headers:{authorization: "Bearer " + accessToken},
                     anonymous:true
@@ -477,12 +635,17 @@ style="display: none;"></sup></div>
                 })
             }
             const GetAccessToken = function(){
-                return HTTP.GET('https://open.spotify.com/get_access_token?reason=transport&productType=web_player', null)
+                return HTTP.GET('https://open.spotify.com/get_access_token?reason=transport&productType=web_player', null, {responseType: 'json'})
                     .then(res=>{
-                    if (res.status === 200) {
+                    //log.log(res)
+                    if(res.status != 200){
+                        return Promise.reject(401);
+                    }
+                    const resp = res.response
+                    if (!resp.isAnonymous) {
                         return Promise.resolve(JSON.parse(res.responseText).accessToken);
                     } else {
-                        console.log(res);
+                        log.error(res);
                         return Promise.reject(401);
                     }
                 })
@@ -518,28 +681,28 @@ style="display: none;"></sup></div>
                                         reject(601);
                                     }
                                 }).catch(err=>{
-                                    console.error(err);
+                                    log.error(err);
                                     reject(601);
                                 })
                                 break;
                             default:
-                                console.error("spotifySaveAuto未知类型：", data);
+                                log.error("spotifySaveAuto未知类型：", data);
                                 r(601);
                                 return;
                                 break;
                         }
                     }).then((putUrl)=>{
-                        if(debug)console.log(putUrl)
+                        log.log(putUrl)
                         jq.ajax({
                             type: !del?'PUT':"DELETE",
                             url: putUrl,
                             headers: {authorization: "Bearer " + accessToken},
                             success: function(data){
-                                console.log(data);
+                                log.log(data);
                                 r(200);
                             },
                             error: function(data){
-                                console.error(data);
+                                log.error(data);
                                 r(601);
                             },
                             anonymous:true
@@ -567,7 +730,7 @@ style="display: none;"></sup></div>
                             putUrl = "https://api.spotify.com/v1/me/following?type=user&ids=" + data.id;
                             break;
                         default:
-                            console.error(data);
+                            log.error(data);
                             r(601);
                             return;
                             break;
@@ -580,7 +743,7 @@ style="display: none;"></sup></div>
                             r(200);
                         },
                         error: function(data){
-                            console.error(data);
+                            log.error(data);
                             r(604);
                         },
                         anonymous:true
@@ -603,7 +766,7 @@ style="display: none;"></sup></div>
                 }
             }
             const getComAuth = (forceUpdate = false)=>{
-                if (new Date().getTime() - steamInfo.comUpdateTime > 10 * 60 * 1000 || forceUpdate) {
+                if (new Date().getTime() - steamConfig.comUpdateTime > 10 * 60 * 1000 || forceUpdate) {
                     getAuthStatus.steamCom = 603;
                     HTTP.GET('https://steamcommunity.com/my')
                         .then(res=>{
@@ -615,12 +778,12 @@ style="display: none;"></sup></div>
                                 const steam64Id = res.responseText.match(/g_steamID = "(.+?)";/);
                                 const communitySessionID = res.responseText.match(/g_sessionID = "(.+?)";/);
                                 const userName = res.responseText.match(/steamcommunity.com\/id\/(.+?)\/friends\//);
-                                if (steam64Id) steamInfo.steam64Id = steam64Id[1];
-                                if (communitySessionID) steamInfo.communitySessionID = communitySessionID[1];
-                                if (userName) steamInfo.userName = userName[1];
+                                if (steam64Id) steamConfig.steam64Id = steam64Id[1];
+                                if (communitySessionID) steamConfig.communitySessionID = communitySessionID[1];
+                                if (userName) steamConfig.userName = userName[1];
                                 getAuthStatus.steamCom = 200;
-                                steamInfo.comUpdateTime = new Date().getTime();
-                                GM_setValue('steamInfo', steamInfo);
+                                steamConfig.comUpdateTime = new Date().getTime();
+                                GM_setValue('steamInfo', steamConfig);
                                 return Promise.resolve(200);
                             }
                         } else {
@@ -634,7 +797,7 @@ style="display: none;"></sup></div>
                 }
             }
             const getStoreAuth = (forceUpdate = false)=>{
-                if (new Date().getTime() - steamInfo.storeUpdateTime > 10 * 60 * 1000 || forceUpdate) {
+                if (new Date().getTime() - steamConfig.storeUpdateTime > 10 * 60 * 1000 || forceUpdate) {
                     getAuthStatus.steamStore = 603;
                     return HTTP.GET('https://store.steampowered.com/stats/', null )
                         .then(res=>{
@@ -645,10 +808,10 @@ style="display: none;"></sup></div>
                                 return Promise.reject(401)
                             } else {
                                 const storeSessionID = res.responseText.match(/g_sessionID = "(.+?)";/)
-                                if (storeSessionID) steamInfo.storeSessionID = storeSessionID[1]
+                                if (storeSessionID) steamConfig.storeSessionID = storeSessionID[1]
                                 getAuthStatus.steamStore = 200;
-                                steamInfo.storeUpdateTime = new Date().getTime();
-                                GM_setValue('steamInfo', steamInfo);
+                                steamConfig.storeUpdateTime = new Date().getTime();
+                                GM_setValue('steamInfo', steamConfig);
                                 return Promise.resolve(200);
                             }
                         } else {
@@ -665,7 +828,7 @@ style="display: none;"></sup></div>
             const Rep = async (r, id)=>{
                 try{
                     const check = await RepHisCheck(id)
-                    HTTP.POST('https://steamcommunity.com/comment/Profile/post/' + id + '/-1/',jq.param({comment:'+rep',count:6,sessionid:steamInfo.communitySessionID,feature2:-1}), {
+                    HTTP.POST('https://steamcommunity.com/comment/Profile/post/' + id + '/-1/',jq.param({comment:'+rep',count:6,sessionid:steamConfig.communitySessionID,feature2:-1}), {
                         headers:{'content-type': 'application/x-www-form-urlencoded'},
                     }).then(res=>{
                         if(res.status == 200)
@@ -699,7 +862,7 @@ style="display: none;"></sup></div>
                         log.log(comments);
                         if(comments != null)
                         {
-                            if(comments[1].includes(steamInfo.steam64Id) || steamInfo.userName?comments[1].includes(steamInfo.userName):false)
+                            if(comments[1].includes(steamConfig.steam64Id) || steamConfig.userName?comments[1].includes(steamConfig.userName):false)
                             {
                                 return Promise.resolve(200, true);
                             }
@@ -727,7 +890,7 @@ style="display: none;"></sup></div>
             const JoinGroupAuto = async function (r, url) {
                 try{
                     const auth = await InfoUpdate('community')
-                    HTTP.POST(url, jq.param({ action: 'join', sessionID: steamInfo.communitySessionID }), {
+                    HTTP.POST(url, jq.param({ action: 'join', sessionID: steamConfig.communitySessionID }), {
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
                     }).then(res=>{
                         if (res.status === 200 && !res.responseText.includes('grouppage_join_area')) {
@@ -752,8 +915,8 @@ style="display: none;"></sup></div>
                 let groupName = url.split('s/')[1];
                 GetGroupID(groupName, (groupName, groupId) => {
                     var postUrl = "";
-                    postUrl = (steamInfo.userName) ? 'https://steamcommunity.com/id/' + steamInfo.userName + '/home_process' : 'https://steamcommunity.com/profiles/' + steamInfo.steam64Id + '/home_process'
-                    HTTP.POST(postUrl, jq.param({ sessionID: steamInfo.communitySessionID, action: 'leaveGroup', groupId: groupId }), {
+                    postUrl = (steamConfig.userName) ? 'https://steamcommunity.com/id/' + steamConfig.userName + '/home_process' : 'https://steamcommunity.com/profiles/' + steamConfig.steam64Id + '/home_process'
+                    HTTP.POST(postUrl, jq.param({ sessionID: steamConfig.communitySessionID, action: 'leaveGroup', groupId: groupId }), {
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
                     }).then(res=>{
                         if (res.status === 200 && res.finalUrl.includes('groups') && jq(res.responseText.toLowerCase()).find(`a[href='https://steamcommunity.com/groups/${groupName.toLowerCase()}']`).length === 0) {
@@ -792,9 +955,9 @@ style="display: none;"></sup></div>
                 try{
                     const auth = await InfoUpdate('store')
 
-                    HTTP.POST('https://store.steampowered.com/api/addtowishlist', jq.param({ sessionid: steamInfo.storeSessionID, appid: gameId }), {
+                    HTTP.POST('https://store.steampowered.com/api/addtowishlist', jq.param({ sessionid: steamConfig.storeSessionID, appid: gameId }), {
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                        dataType: 'json'
+                        response: 'json'
                     }).then(res=>{
                         log.log(res)
                         if (res.status === 200 && res.response && res.response.success === true) {
@@ -828,9 +991,9 @@ style="display: none;"></sup></div>
             const RemoveWishlistAuto = function (r, gameId) {
                 this.steamInfoUpdate(() => {
                     new Promise(resolve => {
-                        HTTP.POST('https://store.steampowered.com/api/removefromwishlist', jq.param({ sessionid: steamInfo.storeSessionID, appid: gameId }), {
+                        HTTP.POST('https://store.steampowered.com/api/removefromwishlist', jq.param({ sessionid: steamConfig.storeSessionID, appid: gameId }), {
                             headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                            dataType: 'json',
+                            responseType: 'json',
                             onabort: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
                             ontimeout: response => { resolve({ result: 'error', statusText: response.statusText, status: response.status }) },
                             r: resolve
@@ -874,95 +1037,21 @@ style="display: none;"></sup></div>
                 AddWishlist: AddWishlistAuto
             }
         })();
-        const TUMBLR = (()=>{
-            const FollowAuto = async function(r, name){
-                try{
-                    r(603)
-                    const key = await AuthUpdate()
-                    HTTP.POST( 'https://www.tumblr.com/svc/follow', jq.param({'data[tumblelog]': name}), {
-                        headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
-                    }).then(res=>{
-                        if(res.status == 200)
-                        {
-                            r(200);
-                        }else{
-                            log.error(res);
-                            r(601);
-                        }
-                    })
-                }catch(e){
-                    r(e);
-                    return;
-                }
-            }
-            const UnfollowAuto = function(r, name){
-                AuthUpdate((status, key = false)=>{
-                    if(status != 200)
-                    {
-                        r(status);
-                        return;
-                    }
-                    if(false != key){
-                        HTTP.POST('https://www.tumblr.com/svc/unfollow', jq.param({'data[tumblelog]': name}), {
-                            headers: {"x-tumblr-form-key": key, "Content-Type": "application/x-www-form-urlencoded"},
-                        }).then(res=>{
-                            if(res.status == 200)
-                            {
-                                r(200);
-                            }else{
-                                log.error(res);
-                                r(601);
-                            }
-                        })
-                    }else{
-                        r(601);
-                    }
-                })
-            }
-            const AuthUpdate = function(update = false){
-                return HTTP.GET('https://www.tumblr.com/dashboard/iframe')
-                    .then(res=>{
-                    if(res.status == 200)
-                    {
-                        let key = res.responseText.match(/id="tumblr_form_key" content="(.+?)">/)
-                        if(key){
-                            key = key[1]
-                            if(-1 != key.indexOf("!123") && -1 !=key.indexOf("|") )
-                            {
-                                return Promise.reject(401);
-                            }else return Promise.resolve(key);
-                        }
-                        else{
-                            log.error("tumblrGetKey->get key failed.", res);
-                            return Promise.reject(601);
-                        }
-                    }else{
-                        log.error(res);
-                        return Promise.reject(601);
-                    }
-                })
-            }
-            return {
-                AuthUpdate: AuthUpdate,
-                Follow: FollowAuto,
-                UnfollowAuto: UnfollowAuto
-            }
-        })();
         const TWITCH = (()=>{
             const FollowAuto = async function(r, channelId){
                 try{
                     const auth = await AuthUpdate()
                     HTTP.POST( 'https://gql.twitch.tv/gql','[{"operationName":"FollowButton_FollowUser","variables":{"input":{"disableNotifications":false,"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"3efee1acda90efdff9fef6e6b4a29213be3ee490781c5b54469717b6131ffdfe"}}}]', {
-                        headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
+                        headers: { Authorization: "OAuth " + twitchConfig["auth-token"]},
                     }).then(res=>{
                         if (res.status === 200) {
                             r(200);
                         } else if(res.status === 401){
-                            twitchAuth.updateTime = 0;
+                            twitchConfig.updateTime = 0;
                             GM_setValue("twitchAuth", null);
                             r(401);
                         }else{
-                            console.error(res);
+                            log.error(res);
                             r(601);
                         }
                     })
@@ -979,12 +1068,12 @@ style="display: none;"></sup></div>
                         return;
                     }
                     HTTP.POST('https://gql.twitch.tv/gql', '[{"operationName":"FollowButton_UnfollowUser","variables":{"input":{"targetID":"' + channelId + '"}},"extensions":{"persistedQuery":{"version":1,"sha256Hash":"d7fbdb4e9780dcdc0cc1618ec783309471cd05a59584fc3c56ea1c52bb632d41"}}}]', {
-                        headers: { Authorization: "OAuth " + twitchAuth["auth-token"]},
+                        headers: { Authorization: "OAuth " + twitchConfig["auth-token"]},
                     }).then(res=>{
                         if (res.status === 200) {
                             r(200);
                         } else if(res.status === 401){
-                            twitchAuth.updateTime = 0;
+                            twitchConfig.updateTime = 0;
                             GM_setValue("twitchAuth", null);
                             r(401);
                         }else{
@@ -1008,14 +1097,13 @@ style="display: none;"></sup></div>
                     }
                 })
             }
-            const AuthUpdate = function(r, update = false){
+            const AuthUpdate = function(forceUpdate = false){
                 return new Promise((resolve, reject)=>{
-                    if (new Date().getTime() - twitchAuth.updateTime < 30 * 60 * 1000 && twitchAuth.status === 200 && !update) {
+                    if (new Date().getTime() - twitchConfig.updateTime < 30 * 60 * 1000 && twitchConfig.status === 200 && !forceUpdate) {
                         resolve(200)
                         return
                     }
-                    r(603)
-                    if(false == getAuthStatus.twitch || true === update)
+                    if(false == getAuthStatus.twitch || true === forceUpdate)
                     {
                         getAuthStatus.twitch = true;
                         GM_openInTab("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth", true);
@@ -1031,9 +1119,9 @@ style="display: none;"></sup></div>
                                 reject(401);
                                 return;
                             }
-                            twitchAuth["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
-                            twitchAuth.updateTime = GM_getValue('twitchAuth').updateTime;
-                            twitchAuth.status = GM_getValue('twitchAuth').status;
+                            twitchConfig["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
+                            twitchConfig.updateTime = GM_getValue('twitchAuth').updateTime;
+                            twitchConfig.status = GM_getValue('twitchAuth').status;
                             clearInterval(check);
                             resolve(200)
                         }
@@ -1070,14 +1158,14 @@ style="display: none;"></sup></div>
                         skip_status: 1,
                         id: userId
                     }), {
-                        headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
+                        headers: { authorization: "Bearer " + twitterConfig.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterConfig.ct0},
                     }).then(res=>{
                         if (res.status === 200) {
                             r(200);
                         } else {
                             log.error(res);
-                            twitterAuth.updateTime = 0;
-                            GM_setValue("twitterAuth", twitterAuth);
+                            twitterConfig.updateTime = 0;
+                            GM_setValue("twitterAuth", twitterConfig);
                             r(601);
                         }
                     })
@@ -1095,21 +1183,21 @@ style="display: none;"></sup></div>
                         return;
                     }
                     GetUserInfo((userId)=>{
-                        if(debug)console.log(userId)
+                        log.log(userId)
                         if("error" == userId)
                         {
                             r(601);
                             return;
                         }
                         HTTP.POST('https://api.twitter.com/1.1/friendships/destroy.json', jq.param({ include_profile_interstitial_type: 1,include_blocking: 1,include_blocked_by: 1,include_followed_by: 1,include_want_retweets: 1,include_mute_edge: 1,include_can_dm: 1,include_can_media_tag: 1,skip_status: 1,id: userId}), {
-                            headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
+                            headers: { authorization: "Bearer " + twitterConfig.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterConfig.ct0},
                         }).then(res=>{
                             if (res.status === 200) {
                                 r(200);
                             } else {
                                 log.error(res);
-                                twitterAuth.updateTime = 0;
-                                GM_setValue("twitterAuth", twitterAuth);
+                                twitterConfig.updateTime = 0;
+                                GM_setValue("twitterAuth", twitterConfig);
                                 r(601);
                             }
                         })
@@ -1121,13 +1209,13 @@ style="display: none;"></sup></div>
                 try{
                     const auth = await AuthUpdate()
                     HTTP.POST( 'https://api.twitter.com/1.1/statuses/retweet.json', jq.param({ tweet_mode: "extended",id: retweetId}), {
-                        headers: { authorization: "Bearer " + twitterAuth.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterAuth.ct0},
+                        headers: { authorization: "Bearer " + twitterConfig.authorization, 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token':twitterConfig.ct0},
                     }).then(res=>{
                         if (res.status === 200 || (res.status === 403 && res.responseText == '{"errors":[{"code":327,"message":"You have already retweeted this Tweet."}]}')) {
                             r(200);
                         } else {
-                            twitterAuth.updateTime = 0;
-                            GM_setValue("twitterAuth", twitterAuth);
+                            twitterConfig.updateTime = 0;
+                            GM_setValue("twitterAuth", twitterConfig);
                             r(601);
                         }
                     })
@@ -1140,7 +1228,7 @@ style="display: none;"></sup></div>
             const GetUserInfo = function(userName){
                 if(debug)log.log("====twitterGetUserInfo====");
                 return HTTP.GET('https://api.twitter.com/graphql/-xfUfZsnR_zqjFd-IfrN5A/UserByScreenName?variables=%7B%22screen_name%22%3A%22' + userName + '%22%2C%22withHighlightedLabel%22%3Atrue%7D', null, {
-                    headers: { authorization: "Bearer " + twitterAuth.authorization, "content-type": "application/json"},
+                    headers: { authorization: "Bearer " + twitterConfig.authorization, "content-type": "application/json"},
                     anonymous:true
                 }).then(res=>{
                     if (res.status === 200) {
@@ -1153,7 +1241,7 @@ style="display: none;"></sup></div>
             }
             const AuthUpdate = function(update = false){
                 return new Promise((resolve, reject)=>{
-                    if(new Date().getTime() - twitterAuth.updateTime < 30 * 60 * 1000 && !update){
+                    if(new Date().getTime() - twitterConfig.updateTime < 30 * 60 * 1000 && !update){
                         // 未过期，不强制更新
                         resolve(200)
                         return;
@@ -1166,22 +1254,23 @@ style="display: none;"></sup></div>
                     }
                     let i = 0;
                     let check = setInterval(()=>{
+                        const auth = GM_getValue("twitterAuth");
                         i++;
-                        if(GM_getValue("twitterAuth") && new Date().getTime() - GM_getValue("twitterAuth").updateTime <= 10 * 1000)
+                        if(GM_getValue("twitterAuth") && new Date().getTime() - auth.updateTime <= 10 * 1000)
                         {
-                            if(GM_getValue("twitterAuth").status != 200)
+                            if(auth.status != 200)
                             {
                                 clearInterval(check);
-                                reject(GM_getValue("twitterAuth").status)
+                                reject(auth.status)
                                 return;
                             }
-                            twitterAuth.ct0 = GM_getValue("twitterAuth").ct0;
-                            twitterAuth.updateTime = GM_getValue("twitterAuth").updateTime
-                            twitterAuth.status = GM_getValue("twitterAuth").status;
+                            twitterConfig.ct0 = auth.ct0;
+                            twitterConfig.updateTime = auth.updateTime
+                            twitterConfig.status = auth.status;
                             clearInterval(check);
-                            resolve(twitterAuth.status)
+                            resolve(twitterConfig.status)
                         }
-                        if(i >= 10)
+                        if(i >= 30)
                         {
                             clearInterval(check);
                             reject(408)
@@ -1213,7 +1302,7 @@ style="display: none;"></sup></div>
             }
         })();
         const func = {
-            // twitch & discord 凭证存储，人机验证处理
+            // 部分站点凭证存储处理，人机验证处理
             appHandle: function(){
                 switch(location.hostname)
                 {
@@ -1221,44 +1310,94 @@ style="display: none;"></sup></div>
                         if(location.search == "?keyjokertask=storageAuth")
                         {
                             let cookie = document.cookie + ";"
-                            twitchAuth.updateTime = new Date().getTime();
+                            twitchConfig.updateTime = new Date().getTime();
                             if(cookie.match(/auth-token=(.+?);/) != null)
                             {
-                                twitchAuth["auth-token"] = cookie.match(/auth-token=(.+?);/)[1]
-                                twitchAuth.status = 200;
-                            }else twitchAuth.status = 401;
-                            GM_setValue("twitchAuth", twitchAuth)
-                            log.log(twitchAuth)
-                            if(!debug)window.close();
+                                twitchConfig["auth-token"] = cookie.match(/auth-token=(.+?);/)[1]
+                                twitchConfig.status = 200;
+                            }else twitchConfig.status = 401;
+                            GM_setValue("twitchAuth", twitchConfig)
+                            log.log(twitchConfig)
+                            window.close();
                         }
-                        if(!debug)window.close();
+                        window.close();
                         break;
                     case "discord.com":
-                        if(location.search == "?keyjokertask=storageAuth")
+                        if(location.search.includes("?keyjokertask=joinDiscord"))
                         {
+                            // 模拟点击
+                            log.info("discord", "ready")
+                            jq(document).ready(DISCORD.JoinServer2);
+                        }else if(location.search == "?keyjokertask=storageAuth"){
+
+                            // test
+                            const temp = JSON.parse(localStorage.getItem("token") || "{}")
+                            const language = navigator.language||navigator.userLanguage;
+                            const browserInfo = func.getBrowserInfo()
+                            const xSuperProperties = {
+                                "os": temp.os || navigator.userAgentData.platform,
+                                "browser": temp.browser || (browserInfo[0].slice(0,1).toUpperCase() + browserInfo[0].slice(1).toLowerCase()),
+                                "device": temp.device || "",
+                                "system_locale": temp.system_locale || language,
+                                "browser_user_agent":navigator.userAgent,
+                                "browser_version":browserInfo[1],
+                                "os_version":"",
+                                "referrer":"",
+                                "referring_domain":"",
+                                "referrer_current":"",
+                                "referring_domain_current":"",
+                                "release_channel":"stable",
+                                "client_build_number":111330,
+                                "client_event_source":null
+                            }
+                            log.log(xSuperProperties)
+
+                            const xFingerprint = localStorage.getItem("fingerprint") || "";
+                            // test
+                            discordAuth.xSuperProperties = window.btoa(JSON.stringify(xSuperProperties))
+                            discordAuth.xFingerprint = xFingerprint.replaceAll('"', '')
+
                             discordAuth.authorization = JSON.parse(localStorage.getItem("token"));
                             if(discordAuth.authorization == null)discordAuth.status = 401;
                             else discordAuth.status = 200;
                             discordAuth.updateTime = new Date().getTime();
                             GM_setValue("discordAuth", discordAuth);
                             log.log(discordAuth)
-                            if(!debug)window.close();
+
+                            window.close();
                         }
                         break;
                     case "twitter.com":
-                        if(location.search == "?keyjokertask=storageAuth")
+                        // https://twitter.com/settings/account?keyjokertask=storageAuth
+                        if(location.search === "?keyjokertask=storageAuth")
                         {
-                            let m = document.cookie.match(/ct0=(.+?);/);
-                            if(m != null && m[1])
-                            {
-                                twitterAuth.status = 200;
-                                twitterAuth.ct0 = m[1];
-                                twitterAuth.updateTime = new Date().getTime()
-                            }else{
-                                twitterAuth.status = 401;
-                            }
-                            GM_setValue("twitterAuth", twitterAuth)
-                            if(!debug)window.close();
+                            setTimeout(()=>{
+                                let m = document.cookie.match(/ct0=(.+?);/);
+                                twitterConfig.updateTime = new Date().getTime()
+                                // 未登录时，页面地址会发生变更
+                                if(location.search === "?keyjokertask=storageAuth" && m != null && m[1])
+                                {
+                                    twitterConfig.status = 200;
+                                    twitterConfig.ct0 = m[1];
+                                }else{
+                                    twitterConfig.status = 401;
+                                }
+                                GM_setValue("twitterAuth", twitterConfig)
+                                unsafeWindow.close();
+                            }, 3000)
+                        }
+                        break;
+                    case "www.keyjoker.com":
+                        if(location.search == "?keyjokertask=unbindDiscord")
+                        {
+                            jq(document).ready(()=>{
+                                log.log("keyjoker unbindDiscord")
+                                const auto = jq("h4:contains('Discord')")[0].parentNode
+                                //auto.nextElementSibling.firstChild.click()
+                                const modal = auto.parentNode.parentNode.parentNode.nextElementSibling
+                                if(modal.id.indexOf('delete-identity-')===0) modal.firstChild.firstChild.lastChild.firstChild.lastChild.click()
+                                else location.href = "https://www.keyjoker.com/socialite/discord"
+                            })
                         }
                         break;
                     case "assets.hcaptcha.com":
@@ -1266,24 +1405,30 @@ style="display: none;"></sup></div>
                         func.hcaptcha2();
                         break;
                     default :
+                        unsafeWindow.kj = {
+                            get: GM_getValue,
+                            set: GM_setValue
+                        }
                         break;
                 }
             },
             authVerify:function(){
-                // noticeFrame.loadFrame();
+                noticeFrame.clearNotice();
                 noticeFrame.addNotice("检查各项凭证");
-                noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://discord.com/login/\" target=\"_blank\">Discord</a> Auth", status:{id: "discord", class: "wait", text:"ready"}});
+                if(discordAuth.enable)noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://discord.com/login/\" target=\"_blank\">Discord</a> Auth", status:{id: "discord", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://accounts.spotify.com/login/\" target=\"_blank\">Spotify</a> Auth&nbsp;", status:{id: "spotify", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://steamcommunity.com/login/\" target=\"_blank\">Steam</a> Auth&nbsp;&nbsp;", status:{id: "steam", class: "wait", text:"ready"}});
-                noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.tumblr.com/login\" target=\"_blank\">Tumblr</a> Auth", status:{id: "tumblr", class: "wait", text:"ready"}});
+                // noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.tumblr.com/login\" target=\"_blank\">Tumblr</a> Auth", status:{id: "tumblr", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://www.twitch.tv/login\" target=\"_blank\">Twitch</a> Auth&nbsp;", status:{id: "twitch", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://twitter.com/login/\" target=\"_blank\">Twitter</a> Auth", status:{id: "twitter", class: "wait", text:"ready"}});
 
-                DISCORD.AuthUpdate(true).then(res=>{
-                    this.statusReact(res, "discord");
-                }).catch(err=>{
-                    this.statusReact(err, "discord");
-                });
+                if(discordAuth.enable){
+                    DISCORD2.AuthUpdate(true).then(res=>{
+                        this.statusReact(res, "discord");
+                    }).catch(err=>{
+                        this.statusReact(err, "discord");
+                    });
+                }
                 SPOTIFY.GetAccessToken().then((res)=>{
                     log.info("spotify", res)
                     this.statusReact(200, "spotify");
@@ -1296,11 +1441,11 @@ style="display: none;"></sup></div>
                 }).catch(err=>{
                     this.statusReact(err, "steam");
                 });
-                TUMBLR.AuthUpdate(true).then((status)=>{
-                    this.statusReact(200, "tumblr");
-                }).catch(err=>{
-                    this.statusReact(err, "tumblr");
-                });
+                // TUMBLR.AuthUpdate(true).then((status)=>{
+                //     this.statusReact(200, "tumblr");
+                // }).catch(err=>{
+                //     this.statusReact(err, "tumblr");
+                // });
                 TWITCH.AuthUpdate(true).then((status)=>{
                     this.statusReact(status, "twitch");
                 }).catch(err=>{
@@ -1343,7 +1488,7 @@ style="display: none;"></sup></div>
                             noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + resp.msg + "</font>"})
                             return;
                         }
-                        if(this.checkVersion(resp.ver))
+                        if(func.checkVersion(resp.ver))
                         {
                             noticeFrame.addNotice({type:"msg", msg:"发现新版本！<font class=\"success\">" + resp.ver + "=>" + resp.msg + "</font>"})
                         }else{
@@ -1373,9 +1518,10 @@ style="display: none;"></sup></div>
             },
             // 做任务
             do_task: function(data){
+                log.info("遍历做任务")
                 for(const task of data.actions)
                 {
-                    noticeFrame.addNotice({type: "taskStatus", task:task, status:'start'});
+                    noticeFrame.addNotice({type: "taskStatus", task:task, status:'wait'});
                     this.runDirectUrl(task.redirect_url);
                     let react = (code)=>{
                         switch(code)
@@ -1391,7 +1537,23 @@ style="display: none;"></sup></div>
                                 noticeFrame.updateNotice(task.id, {class:"error", text:"Not Login"})
                                 break;
                             case 404:
-                                noticeFrame.updateNotice(task.id, {class:"error", text:"目标不存在"})
+                                {
+                                    // 创建一个新的 div 元素
+                                    let ignoreBtn = document.createElement("button");
+                                    ignoreBtn.innerText = '忽略'
+                                    ignoreBtn.style.background = 'red'
+                                    ignoreBtn.style.color = 'white'
+                                    ignoreBtn.className = 'btn'
+                                    ignoreBtn.addEventListener('click', e=>{
+                                        log.info("点击忽略")
+                                        log.log(e)
+                                        log.log(task.id)
+                                        ignoreList.push(task.id)
+                                        GM_setValue('ignoreList', ignoreList)
+                                    })
+                                    jq(`a[href='https://www.keyjoker.com/entries/open/${task.id}']`)[0].parentNode.append(ignoreBtn)
+                                    noticeFrame.updateNotice(task.id, {class:"error", text:"目标不存在"})
+                                }
                                 break;
                             case 408:
                                 noticeFrame.updateNotice(task.id, {class:"error", text:"Time Out"})
@@ -1427,8 +1589,12 @@ style="display: none;"></sup></div>
                             TWITTER.FollowAuto(react, task.data);
                             break;
                         case "Join Discord Server":
-                            var server = task.data.url.split(".gg/")[1];
-                            DISCORD.JoinServer(react, server)
+                            if(!discordAuth.enable){
+                                DISCORD.JoinServer(react, task.data)
+                            }else{
+                                let server = task.data.url.split(".gg/")[1];
+                                DISCORD2.JoinServer(react, server)
+                            }
                             break;
                         case "Retweet Twitter Tweet":
                             TWITTER.RetweetAuto(react, task.data.url);
@@ -1442,40 +1608,47 @@ style="display: none;"></sup></div>
                         case "Follow Twitch Channel":
                             TWITCH.FollowAuto(react, task.data.id);
                             break;
-                        case "Follow Tumblr Blog":
-                            TUMBLR.Follow(react, task.data.name);
-                            break;
+                        //case "Follow Tumblr Blog":
+                            //TUMBLR.Follow(react, task.data.name);
+                            //break;
                         default:
                             noticeFrame.updateNotice(task.id, {class:"error", text:"Unknow Type:" + task.task.name})
-                            console.error("未指定操作" + task.task.name)
+                            log.error("未指定操作" + task.task.name)
                             break;
                     }
                 }
+                log.info("遍历完毕")
 
                 let i = 0;
 
                 // 清除上次残留线程
                 if(null != completeCheck)clearInterval(completeCheck);
                 let discordCheck = true;
-                completeCheck = setInterval(()=>{
+                const completeCheckFunc = ()=>{
+                    log.info("检测任务是否完成", "start")
                     i++;
-                    if(i >= 5)clearInterval(completeCheck);
-                    // click reedem
-                    //jq('button[class="btn btn-primary"]').click();
+                    //if(i >= 50)clearInterval(completeCheck);
+                    //else
+                    log.info("点击redeem按钮")
+                    jq('button[class="btn btn-primary"]').click();
+
+                    jq(".modal-backdrop, .fade, .show").remove();
                     if(1 == jq('#fraud-warning-modal[style!="display: none;"]').length){
-                        // 有弹窗，模拟点击OK
-                        jq('button.btn.btn-secondary[type!="button"]')[0].click();
+                        log.info("有弹窗，模拟点击OK")
+                        const ele = jq('button.btn.btn-secondary[type!="button"]')
+                        if(ele.length > 0)ele[0].click();
                     }
                     if( document.getElementById("toast-container")){
-                        // 操作不存在
                         if(document.getElementById("toast-container").textContent == "This action does not exist."){
+                            log.info("任务操作不存在")
                             jq('.card').remove();
                         }
                         // check discord error [Could not refresh Discord information, please try again.]
-                        if(discordCheck == true && document.getElementById("toast-container").textContent == "Could not refresh Discord information, please try again.")
+                        if(discordCheck == true && document.getElementById("toast-container").textContent == "Could not verify server information from Discord, please try again.")
                         {
+                            log.info("Discord 身份过期")
                             discordCheck = false;
-                            GM_openInTab("https://www.keyjoker.com/account/identities", true)
+                            GM_openInTab("https://www.keyjoker.com/account/identities?keyjokertask=unbindDiscord", false)
                         }
                     }
                     if(jq(".list-complete-item").length == 0)
@@ -1486,7 +1659,9 @@ style="display: none;"></sup></div>
                         checkSwitch();
                         checkTask.next();
                     }
-                }, 5 * 1000)
+                    log.info("检测任务是否完成", "end")
+                }
+                completeCheck = setInterval(completeCheckFunc, 5 * 1000)
             },
             // 人机验证出现图片时的处理
             hC_get_c: function(r){
@@ -1527,7 +1702,7 @@ style="display: none;"></sup></div>
                         let c = rep.generated_pass_UUID
                         r(c);
                     }).catch((err)=>{
-                        console.error(err);
+                        log.error(err);
                         r(false)
                         //let text = document.getElementsByClassName("prompt-text")[0].innerText;
                         //document.getElementsByClassName("prompt-text")[0].innerText = text + "\ngetcaptcha failed!";
@@ -1540,7 +1715,7 @@ style="display: none;"></sup></div>
                     if(document.getElementsByClassName("challenge-container").length != 0 && document.getElementsByClassName("challenge-container")[0].children.length != 0)
                     {
                         clearInterval(hcaptcha2Click);
-                        console.log("open hcaptcha");
+                        log.log("open hcaptcha");
                         let text = document.getElementsByClassName("prompt-text")[0].innerText;
                         document.getElementsByClassName("prompt-text")[0].innerText = text + "\n正在自动获取免验证Cookie";
                         //$(".task-grid").remove();
@@ -1571,7 +1746,7 @@ style="display: none;"></sup></div>
                                         document.getElementsByClassName("prompt-text")[0].innerText = text + "\n未登录hCaptcha";
                                         // setTimeout(()=>{window.open("https://dashboard.hcaptcha.com/welcome_accessibility")}, 3000);
                                     }else{
-                                        console.error(response);
+                                        log.error(response);
                                         document.getElementsByClassName("prompt-text")[0].innerText = text + "\n发生未知错误,已将数据记录至控制台";
                                     }
                                 }).catch(err=>{
@@ -1586,7 +1761,7 @@ style="display: none;"></sup></div>
                             }else{
                                 document.getElementsByClassName("prompt-text")[0].innerText = text + "\n未知错误";
                             }
-                            console.error(err);
+                            log.error(err);
                         });
                     }
                 },1000);
@@ -1595,26 +1770,33 @@ style="display: none;"></sup></div>
             redeemAuto: function(redirect_url){
                 if(0 != jq('a[href="' + redirect_url + '"]').length)jq('a[href="' + redirect_url + '"]').next().click();
             },
+            // Deprecated
             reLoadTaskList: function(r){
-                // 重载任务列表
-                if(2 == document.getElementsByClassName('row').length)
-                {
-                    jq('.row')[1].remove();
-                    jq('.layout-container').append('<entries-component></entries-component>');
-                    if(true == GM_getValue("offlineMode") && typeof offlineData === "object")
+                return new Promise((resolve, reject)=>{
+                    // 重载任务列表
+                    if(2 === document.getElementsByClassName('row').length)
                     {
-                        offlineData["app.js"]();
-                        r();
-                    }else{
-                        jq.getScript("/js/app.js", (rep,status)=>{
-                            if("success" == status)r();
-                            else console.error(status, rep);
-                        });
+                        jq('.row')[1].remove();
+                        jq('.layout-container').append('<entries-component></entries-component>');
+                        if(true == GM_getValue("offlineMode") && typeof kjData === "object")
+                        {
+                            kjData["app.js"]();
+                            resolve();
+                        }else{
+                            jq.getScript("/js/app.js", (rep,status)=>{
+                                if("success" == status){
+                                    resolve();
+                                }else {
+                                    log.error(status, rep);
+                                    reject()
+                                }
+                            });
+                        }
+                    }else
+                    {
+                        resolve();
                     }
-                }else
-                {
-                    r();
-                }
+                })
             },
             reset: function (){
                 if(!confirm("你确定要执行重置操作？"))return;
@@ -1627,7 +1809,55 @@ style="display: none;"></sup></div>
                 }
                 noticeFrame.addNotice({type:"msg",msg:"设置重置完毕"})
             },
+            getBrowserInfo: function() {
+                let agent = navigator.userAgent.toLowerCase();
+                //console.log(agent);
+                // let system = agent.split(' ')[1].split(' ')[0].split('(')[1];
+                let REGSTR_EDGE = /edge\/[\d.]+/gi;
+                let REGSTR_IE = /trident\/[\d.]+/gi;
+                let OLD_IE = /msie\s[\d.]+/gi;
+                let REGSTR_FF = /firefox\/[\d.]+/gi;
+                let REGSTR_CHROME = /chrome\/[\d.]+/gi;
+                let REGSTR_SAF = /safari\/[\d.]+/gi;
+                let REGSTR_OPERA = /opr\/[\d.]+/gi;
+                let REGSTR_QQ = /qqbrowser\/[\d.]+/gi;
+                let REGSTR_METASR = /metasr\+/gi;
+                let REGSTR_WECHAT = /MicroMessenger\/[\d.]+/gi;
 
+                if (agent.indexOf('trident') > 0) {
+                    // IE
+                    return [agent.match(REGSTR_IE)[0].split('/')[0], agent.match(REGSTR_IE)[0].split('/')[1]];
+                } else if (agent.indexOf('msie') > 0) {
+                    // OLD_IE
+                    return [agent.match(OLD_IE)[0].split('/')[0], agent.match(OLD_IE)[0].split('/')[1]];
+                } else if (agent.indexOf('edge') > 0) {
+                    // Edge
+                    return [agent.match(REGSTR_EDGE)[0].split('/')[0], agent.match(REGSTR_EDGE)[0].split('/')[1]];
+                } else if (agent.indexOf('firefox') > 0) {
+                    // firefox
+                    return [agent.match(REGSTR_FF)[0].split('/')[0], agent.match(REGSTR_FF)[0].split('/')[1]];
+                } else if (agent.indexOf('opr') > 0) {
+                    // Opera
+                    return [agent.match(REGSTR_OPERA)[0].split('/')[0], agent.match(REGSTR_OPERA)[0].split('/')[1]];
+                } else if (agent.indexOf('safari') > 0 && agent.indexOf('chrome') < 0) {
+                    // Safari
+                    return [agent.match(REGSTR_SAF)[0].split('/')[0], agent.match(REGSTR_SAF)[0].split('/')[1]];
+                } else if (agent.indexOf('qqbrowse') > 0) {
+                    // qqbrowse
+                    return [agent.match(REGSTR_QQ)[0].split('/')[0], agent.match(REGSTR_QQ)[0].split('/')[1]];
+                } else if (agent.indexOf('metasr') > 0) {
+                    // metasr火狐
+                    return 'metasr';
+                } else if (agent.indexOf('micromessenger') > 0) {
+                    // 微信内置浏览器
+                    return [agent.match(REGSTR_WECHAT)[0].split('/')[0], agent.match(REGSTR_WECHAT)[0].split('/')[1]];
+                } else if (agent.indexOf('chrome') > 0) {
+                    // Chrome
+                    return [agent.match(REGSTR_CHROME)[0].split('/')[0], agent.match(REGSTR_CHROME)[0].split('/')[1]];
+                } else {
+                    return ['chrome', '97.0.4692.71'];
+                }
+            },
             runDirectUrl:function(direct_url){
                 GM_log("====访问跳转链接====")
                 HTTP.GET(direct_url, null, {
@@ -1636,24 +1866,63 @@ style="display: none;"></sup></div>
             },
             test: function(){
                 // GM_openInTab("https://discord.com/channels/@me?keyjokertask=storageAuth", true);
-                DISCORD.JoinServer(log.info, 'QbYvb2qwDT')
+                DISCORD2.JoinServer(log.info, 'h9frErUaV4')
+                //console.log(func.getBrowserVersion())
             }
         }
         // ============Start===========
         if(location.pathname == "/entries"){
             window.onload=()=>{
                 log.info("KJ main")
+                GM_setValue("discord", {})
                 if(document.getElementsByClassName("nav-item active").length != 0 && document.getElementsByClassName("nav-item active")[0].innerText == "Earn Credits" && document.getElementById("logout-form")){
+                    if(typeof kjData === "object")
+                    {
+                        log.log("加载app.js.....")
+                        jq('.row')[1].remove();
+                        jq('.layout-container').append('<entries-component></entries-component>');
+                        kjData["app.js"]();
+                        unsafeWindow.test = kjData
+                    }
                     noticeFrame.loadFrame();
                     // 事件绑定
                     eventBind();
+                    checkUpdate();
+
+                    try{
+                        log.log("i18n初始化")
+                        // i18n初始化 navigator.language
+                        // use plugins and options as needed, for options, detail see
+                        // https://www.i18next.com/overview/configuration-options
+                        i18next.use(i18nextHttpBackend).init({
+                            lng: 'en-US', // evtl. use language-detector https://github.com/i18next/i18next-browser-languageDetector
+                            backend:{
+                                loadPath : languagePrefix + '/{{lng}}/{{ns}}.json',
+                            },
+                            ns: ['translation','message'],
+                            defaultNs: 'translation' //默认使用的，不指定namespace时
+                        }, function(err, t) {
+                            // for options see
+                            // https://github.com/i18next/jquery-i18next#initialize-the-plugin
+                            jqueryI18next.init(i18next, jq);
+
+                            // start localizing, details:
+                            // https://github.com/i18next/jquery-i18next#usage-of-selector-function
+                            jq('.notification').localize();
+                            jq('.nav').localize();
+                            jq('.content').localize();
+                        });
+                    }catch(e){
+                        log.error(e)
+                    }
+                    log.log("i18n初始化END")
+
                     //let isStart=setInterval(()=>{
                     if(GM_getValue("start")==1){
                         //clearInterval(isStart);
-                        checkTask.next();
+                        setTimeout(()=>{checkTask.next()}, 2000);
                     }
                     //},1000);
-                    checkUpdate();
                 }else{
                     if(jq('.container').length > 0)
                     {
@@ -1678,7 +1947,7 @@ style="display: none;"></sup></div>
             }
         }
         function eventBind(){
-            jq('button#checkUpdate').click(()=>{func.checkUpdate()})
+            jq('button#checkUpdate').click(func.checkUpdate)
             jq('button#fuck').click(function(){
                 checkTask.start(()=>{jq('.card').remove();})
             })
@@ -1707,7 +1976,7 @@ style="display: none;"></sup></div>
                 noticeFrame.addNotice({type:"msg",msg:"目前提供以下反馈渠道："})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/jiyeme/keyjokerScript/issues/new/choose\" target=\"_blank\">GitHub</a>"})
-                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://keylol.com/t660181-1-1\" target=\"_blank\">其乐社区</a>"})
+
             })
             // 版本升级后显示一次更新日志
             if(GM_getValue("currentVer") != GM_info.script.version)
@@ -1768,8 +2037,10 @@ style="display: none;"></sup></div>
                 });
             }
         }
+        // 检测开关
         checkSwitch(null);
-        offlineSwitch(null);
+        // 离线模式切换菜单
+        // offlineSwitch(null);
         if(debug)
         {
             GM_registerMenuCommand("Test",()=>{
@@ -1780,6 +2051,6 @@ style="display: none;"></sup></div>
         setTimeout(() => {
             noticeFrame.addNotice({ type: 'msg', msg:"<font class\"error\">任务脚本执行期间发生预期之外的错误，详情见控制台</font>" })
         }, 500)
-        console.log('%c%s', 'color:white;background:red', e.stack)
+        console.log('发生异常：%c%s', 'color:white;background:red', e.stack)
     }
 })();
