@@ -49,7 +49,11 @@
 (function() {
     'use strict';
     const debug = true;
+    //https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@master/locales
     const languagePrefix = "http://127.0.0.1:5500/locales"
+    const KJConfig = GM_getValue('KJConfig') || {
+        language: navigator.language
+    }
     const discordAuth = GM_getValue('discordAuth') || {
         enable: false,
         authorization: "",
@@ -77,6 +81,9 @@
         updateTime: 0
     }
     const ignoreList = GM_getValue('ignoreList') || [];
+
+    //删除旧版数据键
+    GM_deleteValue('offlineMode')
 
     const jq = $;
     const kjData = offlineData;
@@ -162,20 +169,19 @@ font.wait{color:#9c27b0;}
                     style="display: none;"></sup></div>
 
             <div class="el-badge item">
-                <a href="https://jiyeme.github.io/keyjokerScript/" target="_blank">
-                    <button type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.setting" title="设置">
-                        <i class="el-icon-setting"></i>
-                    </button>
-                </a>
+                <button type="button" id="setting" class="el-button el-button--default is-circle" data-i18n="[title]notification.setting" title="设置">
+                    <i class="el-icon-setting"></i>
+                </button>
                 <sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
                     style="display: none;"></sup>
             </div>
 
-            <div class="el-badge item"><button id="clearNotice" type="button"
-                    class="el-button el-button--default is-circle" data-i18n="[title]notification.clearLog" title="清空执行日志">
+            <div class="el-badge item">
+            <button id="clearNotice" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.clearLog" title="清空执行日志">
                     <i class="el-icon-brush"></i>
                 </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
-                    style="display: none;"></sup></div>
+                    style="display: none;"></sup>
+            </div>
 
             <div class="el-badge item"><button id="report" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.bugReport"
                     title="提交建议/BUG">
@@ -208,6 +214,7 @@ font.wait{color:#9c27b0;}
                     jq('.el-notification__content').append("<li>" + data + "</li>");
                     break;
             }
+            jq('.notification').localize();
         },
         clearNotice:()=>{
             jq('.el-notification__content li').remove();
@@ -256,20 +263,16 @@ font.wait{color:#9c27b0;}
             if (e.onload) requestObj.onload = e.onload
             if (e.fetch) requestObj.fetch = e.fetch
             if (e.onreadystatechange) requestObj.onreadystatechange = e.onreadystatechange
+            requestObj.onerror = e.onerror || function (data) {
+                log.info('请求出错:', data)
+            }
             requestObj.ontimeout = e.ontimeout || function (data) {
                 log.info('请求超时:', data)
-                if (e.status) e.status.error('Error:Timeout(0)')
-                if (e.r) e.r({ result: 'error', statusText: 'Timeout', status: 0, option: e })
+                e.onerror({reason: 'ontimeout', status: 408, data})
             }
             requestObj.onabort = e.onabort || function (data) {
                 log.info('请求终止:', data)
-                if (e.status) e.status.error('Error:Aborted(0)')
-                if (e.r) e.r({ result: 'error', statusText: 'Aborted', status: 0, option: e })
-            }
-            requestObj.onerror = e.onerror || function (data) {
-                log.info('请求出错:', data)
-                if (e.status) e.status.error('Error:Error(0)')
-                if (e.r) e.r({ result: 'error', statusText: 'Error', status: 0, option: e })
+                e.onerror({reason: 'abort', data})
             }
             log.info('发送请求:', requestObj)
             GM_xmlhttpRequest(requestObj);
@@ -493,32 +496,23 @@ font.wait{color:#9c27b0;}
                     if(false == getAuthStatus.discord || true === update)
                     {
                         getAuthStatus.discord = true;
-                        GM_openInTab("https://discord.com/channels/@me?keyjokertask=storageAuth", true);
-                    }
-                    let i = 0;
-                    let check = setInterval(()=>{
-                        i++;
-                        if(GM_getValue("discordAuth") && new Date().getTime() - GM_getValue("discordAuth").updateTime <= 10 * 1000)
-                        {
-                            if(GM_getValue("discordAuth").status != 200)
+                        const tab = GM_openInTab("https://discord.com/channels/@me?keyjokertask=storageAuth", {active: false, insert: true, setParent: true});
+                        tab.onclose = ()=>{
+                            if(GM_getValue("discordAuth") && new Date().getTime() - GM_getValue("discordAuth").updateTime <= 10 * 1000)
                             {
-                                clearInterval(check);
-                                reject(GM_getValue("discordAuth").status)
-                                return;
+                                if(GM_getValue("discordAuth").status != 200)
+                                {
+                                    reject(GM_getValue("discordAuth").status)
+                                    return;
+                                }
+                                discordAuth.authorization = GM_getValue("discordAuth").authorization
+                                discordAuth.updateTime = GM_getValue("discordAuth").updateTime
+                                discordAuth.status = GM_getValue("discordAuth").status;
+                                resolve(discordAuth.status)
                             }
-                            discordAuth.authorization = GM_getValue("discordAuth").authorization
-                            discordAuth.updateTime = GM_getValue("discordAuth").updateTime
-                            discordAuth.status = GM_getValue("discordAuth").status;
-                            clearInterval(check);
-                            resolve(discordAuth.status)
                         }
-                        if(i >= 10)
-                        {
-                            clearInterval(check);
-                            reject(408)
-                        }
-                    }, 1000)
-                    })
+                    }
+                })
             }
             const getServerInfo = async(server)=>{
                 // https://discord.com/api/v9/invites/h9frErUaV4?with_counts=true&with_expiration=true
@@ -648,6 +642,9 @@ font.wait{color:#9c27b0;}
                         log.error(res);
                         return Promise.reject(401);
                     }
+                }).catch(err=>{
+                    log.error('SPOTIFY.GetAccessToken', err)
+                    return Promise.reject(err.status)
                 })
             }
             const SaveAuto = (r, data, del = false)=>{
@@ -1106,32 +1103,23 @@ font.wait{color:#9c27b0;}
                     if(false == getAuthStatus.twitch || true === forceUpdate)
                     {
                         getAuthStatus.twitch = true;
-                        GM_openInTab("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth", true);
-                    }
-                    let i = 0;
-                    let check = setInterval(()=>{
-                        i++;
-                        if(GM_getValue("twitchAuth") && new Date().getTime() - GM_getValue("twitchAuth").updateTime <= 10 * 1000)
-                        {
-                            if(GM_getValue("twitchAuth").status != 200)
+                        const tab = GM_openInTab("https://www.twitch.tv/settings/profile?keyjokertask=storageAuth", {active: false, insert: true, setParent: true});
+                        tab.onclose = ()=>{
+                            if(GM_getValue("twitchAuth") && new Date().getTime() - GM_getValue("twitchAuth").updateTime <= 10 * 1000)
                             {
-                                clearInterval(check);
-                                reject(401);
-                                return;
+                                if(GM_getValue("twitchAuth").status != 200)
+                                {
+                                    reject(401);
+                                    return;
+                                }
+                                twitchConfig["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
+                                twitchConfig.updateTime = GM_getValue('twitchAuth').updateTime;
+                                twitchConfig.status = GM_getValue('twitchAuth').status;
+                                resolve(200)
                             }
-                            twitchConfig["auth-token"] = GM_getValue('twitchAuth')["auth-token"];
-                            twitchConfig.updateTime = GM_getValue('twitchAuth').updateTime;
-                            twitchConfig.status = GM_getValue('twitchAuth').status;
-                            clearInterval(check);
-                            resolve(200)
                         }
-                        if(i >= 10)
-                        {
-                            clearInterval(check);
-                            reject(408)
-                        }
-                    }, 1000)
-                    })
+                    }
+                })
             }
             return {
                 AuthUpdate: AuthUpdate,
@@ -1250,33 +1238,25 @@ font.wait{color:#9c27b0;}
                     if(false == getAuthStatus.twitter || true === update)
                     {
                         getAuthStatus.twitter = true;
-                        GM_openInTab("https://twitter.com/settings/account?keyjokertask=storageAuth", true);
-                    }
-                    let i = 0;
-                    let check = setInterval(()=>{
-                        const auth = GM_getValue("twitterAuth");
-                        i++;
-                        if(GM_getValue("twitterAuth") && new Date().getTime() - auth.updateTime <= 10 * 1000)
-                        {
-                            if(auth.status != 200)
+                        const tab = GM_openInTab("https://twitter.com/settings/account?keyjokertask=storageAuth", {active: false, insert: true, setParent: true});
+                        tab.onclose = ()=>{
+                            const auth = GM_getValue("twitterAuth");
+                            if(GM_getValue("twitterAuth") && new Date().getTime() - auth.updateTime <= 10 * 1000)
                             {
-                                clearInterval(check);
-                                reject(auth.status)
-                                return;
+                                if(auth.status != 200)
+                                {
+                                    reject(auth.status)
+                                    return;
+                                }
+                                twitterConfig.ct0 = auth.ct0;
+                                twitterConfig.updateTime = auth.updateTime
+                                twitterConfig.status = auth.status;
+                                resolve(twitterConfig.status)
                             }
-                            twitterConfig.ct0 = auth.ct0;
-                            twitterConfig.updateTime = auth.updateTime
-                            twitterConfig.status = auth.status;
-                            clearInterval(check);
-                            resolve(twitterConfig.status)
+
                         }
-                        if(i >= 30)
-                        {
-                            clearInterval(check);
-                            reject(408)
-                        }
-                    }, 1000)
-                    })
+                    }
+                })
             }
             // 推特取得用户页面响应头（OK）
             /*twitterAP:function(r){
@@ -1414,7 +1394,7 @@ font.wait{color:#9c27b0;}
             },
             authVerify:function(){
                 noticeFrame.clearNotice();
-                noticeFrame.addNotice("检查各项凭证");
+                noticeFrame.addNotice("<span data-i18n=\"notification.checkAuth\">检查各项凭证</span>");
                 if(discordAuth.enable)noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://discord.com/login/\" target=\"_blank\">Discord</a> Auth", status:{id: "discord", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://accounts.spotify.com/login/\" target=\"_blank\">Spotify</a> Auth&nbsp;", status:{id: "spotify", class: "wait", text:"ready"}});
                 noticeFrame.addNotice({type: "authVerify", name: "<a href=\"https://steamcommunity.com/login/\" target=\"_blank\">Steam</a> Auth&nbsp;&nbsp;", status:{id: "steam", class: "wait", text:"ready"}});
@@ -1459,6 +1439,7 @@ font.wait{color:#9c27b0;}
             },
             statusReact: (code, id)=>{
                 const result = {
+                    0:{class:"error", text:"Time Out"},
                     200: {
                         class:"success",
                         text: 'success'
@@ -1475,11 +1456,11 @@ font.wait{color:#9c27b0;}
                     604: {class:"error", text:"Network Error"},
                     605: {class:"error", text:"评论区未找到"},
                 }
-                log.info(code)
-                noticeFrame.updateNotice(id, result[code])
+                log.info('statusReact', id, code)
+                if(result[code]) noticeFrame.updateNotice(id, result[code])
             },
             checkUpdate: function(){
-                noticeFrame.addNotice({type:"msg",msg:"正在检查版本信息...(当前版本：" + GM_info.script.version + ")"})
+                noticeFrame.addNotice({type:"msg",msg:"<span data-i18n=\"notification.checkingUpdate\">正在检查版本信息...(当前版本：</span>" + GM_info.script.version + ")"})
                 HTTP.GET('https://task.jysafe.cn/keyjoker/script/update.php?type=ver', null, {headers:{action: "keyjoker"}})
                 .then(res=>{
                     const resp = JSON.parse(res.response)
@@ -1490,13 +1471,13 @@ font.wait{color:#9c27b0;}
                         }
                         if(func.checkVersion(resp.ver))
                         {
-                            noticeFrame.addNotice({type:"msg", msg:"发现新版本！<font class=\"success\">" + resp.ver + "=>" + resp.msg + "</font>"})
+                            noticeFrame.addNotice({type:"msg", msg:"<span data-i18n=\"notification.newVersionFound\">发现新版本！</span><font class=\"success\">" + resp.ver + "=>" + resp.msg + "</font>"})
                         }else{
-                            noticeFrame.addNotice({type:"msg",msg:"当前已是最新版本！"})
+                            noticeFrame.addNotice({type:"msg",msg:"<span data-i18n=\"notification.youAreInLatest\">当前已是最新版本！</span>"})
                         }
                 }).catch(err=>{
-                        log.error(err);
-                        noticeFrame.addNotice({type:"msg", msg:"请求异常！请至控制台查看详情！"})
+                    log.error(err);
+                    noticeFrame.addNotice({type:"msg", msg:"<span data-i18n=\"notification.errGoConsole\" style=\"color:red\">请求异常！请至控制台查看详情！</span>"})
                 })
             },
             checkVersion: function(ver){
@@ -1895,12 +1876,12 @@ font.wait{color:#9c27b0;}
                         // use plugins and options as needed, for options, detail see
                         // https://www.i18next.com/overview/configuration-options
                         i18next.use(i18nextHttpBackend).init({
-                            lng: 'en-US', // evtl. use language-detector https://github.com/i18next/i18next-browser-languageDetector
+                            lng: KJConfig.language || navigator.language, // evtl. use language-detector https://github.com/i18next/i18next-browser-languageDetector
                             backend:{
                                 loadPath : languagePrefix + '/{{lng}}/{{ns}}.json',
                             },
                             ns: ['translation','message'],
-                            defaultNs: 'translation' //默认使用的，不指定namespace时
+                            defaultNS: 'translation' //默认使用的，不指定namespace时
                         }, function(err, t) {
                             // for options see
                             // https://github.com/i18next/jquery-i18next#initialize-the-plugin
@@ -1909,8 +1890,8 @@ font.wait{color:#9c27b0;}
                             // start localizing, details:
                             // https://github.com/i18next/jquery-i18next#usage-of-selector-function
                             jq('.notification').localize();
-                            jq('.nav').localize();
-                            jq('.content').localize();
+                            //jq('.nav').localize();
+                            //jq('.content').localize();
                         });
                     }catch(e){
                         log.error(e)
@@ -1955,7 +1936,7 @@ font.wait{color:#9c27b0;}
                 noticeFrame.clearNotice()
             })
             jq('button#changeLog').click(function(){
-                noticeFrame.addNotice({type:"msg", msg:"获取日志中..."})
+                noticeFrame.addNotice({type:"msg", msg:"<span data-i18n=\"notification.getChangeLog\">获取日志中...</span>"})
                 HTTP.GET( 'https://task.jysafe.cn/keyjoker/script/update.php?type=changelog&ver=' + GM_info.script.version, null, {
                     headers:{action: "keyjoker"},
                 }).then(res=>{
@@ -1972,6 +1953,18 @@ font.wait{color:#9c27b0;}
                     noticeFrame.addNotice({type:"msg", msg:"<font class=\"error\">请求异常！请至控制台查看详情！</font>"})
                 })
             })
+            jq('button#setting').click(function(){
+                // https://jiyeme.github.io/keyjokerScript/
+                const settingPage = GM_openInTab('https://jiyeme.github.io/keyjokerScript/', {active: true, insert: true, setParent: true})
+                settingPage.onclose = ()=>{
+                    // 关闭设置页面后更新配置
+                    KJConfig.language = GM_getValue('KJConfig').language
+                    i18next.changeLanguage(KJConfig.language, (err, t) => {
+                        if (err) console.log('something went wrong loading', err);
+                        jq('.notification').localize()
+                    });
+                }
+            })
             jq('button#report').click(function(){
                 noticeFrame.addNotice({type:"msg",msg:"目前提供以下反馈渠道："})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
@@ -1986,11 +1979,9 @@ font.wait{color:#9c27b0;}
                     anonymous:true
                 }).then(res=>{
                     let ret = JSON.parse(res.response)
-                    if(ret.status != 200)
-                    {
+                    if(ret.status != 200){
                         noticeFrame.addNotice({type:"msg", msg:"异常！<font class=\"error\">" + ret.msg + "</font>"})
-                    }else
-                    {
+                    }else{
                         noticeFrame.addNotice({type:"msg", msg:"<font class=\"success\">" + ret.msg + "</font>"})
                     }
                 }).catch(err=>{
@@ -2005,6 +1996,7 @@ font.wait{color:#9c27b0;}
         GM_registerMenuCommand("凭证检测",()=>{
             func.authVerify();
         });
+        // Deprecated 离线模式切换菜单
         function offlineSwitch(id){
             GM_unregisterMenuCommand(id);
             if(true == GM_getValue("offlineMode")){

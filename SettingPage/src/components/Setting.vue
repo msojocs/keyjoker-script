@@ -29,6 +29,15 @@ const lang1 = reactive(props);
 watch(lang1, (newVal, oldVal) => {
   console.log(newVal);
   locale.value = lang1.lang;
+  if(typeof kj === "object"){
+    const KJConfig = kj.get('KJConfig') || {}
+    let dict = {
+      en: 'en-US',
+      'zh-cn': 'zh-CN'
+    }
+    KJConfig.language = dict[newVal.lang]
+    kj.set('KJConfig', KJConfig)
+  }
 });
 
 const checkPluginLoaded = () => {

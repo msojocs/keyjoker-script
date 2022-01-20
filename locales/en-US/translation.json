@@ -12,6 +12,12 @@
     "setting": "Open the setting page",
     "clearLog": "Clear log",
     "bugReport": "Report Bugs",
-    "logForRunning": "Log of running"
+    "logForRunning": "Log of running",
+    "checkingUpdate": "Check for latest version...(Current Version:",
+    "newVersionFound": "New Version Found !",
+    "youAreInLatest": "It is the latest version now!",
+    "errGoConsole": "ERROR ! Please go to the console for details!",
+    "getChangeLog": "Getting changelog of this version...",
+    "checkAuth": "Checking Auth of Accounts..."
   }
 }
