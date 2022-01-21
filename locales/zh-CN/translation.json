@@ -9,6 +9,8 @@
     "checkUpdate": "检查更新",
     "forceToTask": "强制做任务",
     "startTask": "开始做任务",
+    "pauseTask": "暂停任务",
+    "stopTask": "停止做任务",
     "viewChangelog": "更新日志",
     "setting": "打开设置页面",
     "clearLog": "清空日志",
@@ -25,6 +27,18 @@
   },
   "message": {
     "executing": "检测新任务",
-    "newTaskAvailable": "检测到新任务!(暂停检测)"
+    "newTaskAvailable": "检测到新任务!(暂停检测)",
+    "taskStopped": "检测任务已停止"
+  },
+  "modal": {
+    "title": "标题",
+    "cancel": "取消",
+    "confirm": "确定",
+    "exeConfirm": "执行确认",
+    "exeConfirm1": "是否以时间间隔 {{time, number}} 进行任务检测？"
+
+  },
+  "test": {
+    "one": "abc {{a}}"
   }
 }
