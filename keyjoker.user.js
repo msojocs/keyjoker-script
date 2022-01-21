@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.5.2
+// @version      1.5.5
 // @description  KeyJoker Auto Task
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -27,6 +27,7 @@
 // @grant        GM_openInTab
 // @grant        GM_log
 // @grant        GM_notification
+// @grant        GM_getResourceText
 // @connect      hcaptcha.com
 // @connect      store.steampowered.com
 // @connect      steamcommunity.com
@@ -37,6 +38,7 @@
 // @connect      tumblr.com
 // @connect      spotify.com
 // @connect      task.jysafe.cn
+// @resource iconfont https://at.alicdn.com/t/font_3156299_z1libxgbph.css
 // @require      https://cdn.staticfile.org/jquery/3.3.1/jquery.min.js
 // @require      https://cdn.staticfile.org/i18next/8.1.0/i18next.min.js
 // @require      https://cdn.jsdelivr.net/gh/i18next/jquery-i18next@1.2.1/jquery-i18next.min.js
@@ -48,10 +50,14 @@
 (function() {
     'use strict';
     const debug = false;
+
     const languagePrefix = debug?"http://127.0.0.1:5500/locales":"https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@master/locales"
     const KJConfig = GM_getValue('KJConfig') || {
         language: navigator.language
     }
+    // iconfont
+    GM_addStyle(GM_getResourceText('iconfont'))
+
     const discordAuth = GM_getValue('discordAuth') || {
         enable: false,
         authorization: "",
@@ -115,13 +121,6 @@ font.success{color:green;}
 font.error{color:red;}
 font.warning{color:#00f;}
 font.wait{color:#9c27b0;}
-[class^=el-icon-]{font-family:element-icons !important;speak:none;font-style:normal;font-weight:400;font-variant:normal;text-transform:none;line-height:1;vertical-align:baseline;display:inline-block;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-.el-icon-brush:before{content:"\\e76e"}
-.el-icon-document:before{content:"\\e785"}
-.el-icon-refresh:before{content:"\\e6d0"}
-.el-icon-s-promotion:before{content:"\\e7ba"}
-.el-icon-setting:before{content:"\\e6ca"}
-.el-icon-video-play:before{content:"\\e7c0"}
 .el-notification{display:-webkit-box;display:-ms-flexbox;display:flex;padding:14px 26px 14px 13px;border-radius:8px;-webkit-box-sizing:border-box;box-sizing:border-box;border:1px solid #ebeef5;position:fixed;background-color:#fff;-webkit-box-shadow:0 2px 12px 0 rgba(0,0,0,.1);box-shadow:0 2px 12px 0 rgba(0,0,0,.1);-webkit-transition:opacity .3s,left .3s,right .3s,top .4s,bottom .3s,-webkit-transform .3s;transition:opacity .3s,left .3s,right .3s,top .4s,bottom .3s,-webkit-transform .3s;transition:opacity .3s,transform .3s,left .3s,right .3s,top .4s,bottom .3s;transition:opacity .3s,transform .3s,left .3s,right .3s,top .4s,bottom .3s,-webkit-transform .3s;overflow:hidden}
 .el-notification__group{margin-left:13px;margin-right:8px}
 .el-notification__title{font-weight:700;font-size:16px;color:#303133;margin:0}
@@ -140,55 +139,54 @@ font.wait{color:#9c27b0;}
 .el-button::-moz-focus-inner{border:0}
 .el-button.is-circle{border-radius:50%;padding:15px}
 #extraBtn .el-button.is-circle{padding:8px !important}
-@font-face{font-family:element-icons;src:url(https://cdn.bootcss.com/element-ui/2.12.0/theme-chalk/fonts/element-icons.woff) format("woff"),url(https://cdn.bootcss.com/element-ui/2.12.0/theme-chalk/fonts/element-icons.ttf) format("truetype");font-weight:400;font-display:auto;font-style:normal}
 </style>
 
 <div role="alert" class="el-notification fuck-task-logs right" style="bottom: 16px; z-index: 2000;">
     <div class="notification el-notification__group">
         <h2 id="extraBtn" class="el-notification__title">
 
-            <div class="el-badge item"><button id="checkUpdate" type="button"
-                    class="el-button el-button--default is-circle" data-i18n="[title]notification.checkUpdate" title="检查更新">
-                    <i class="el-icon-refresh"></i>
-                </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
-                    style="display: none;"></sup></div>
-
-            <div class="el-badge item"><button id="fuck" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.forceToTask"
-                    title="强制做任务">
-                    <i class="el-icon-video-play"></i>
-                </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
-                    style="display: none;"></sup>
+            <div class="el-badge item">
+                <button id="checkUpdate" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.checkUpdate" title="检查更新">
+                    <i class="iconfont icon-update"></i>
+                </button>
+                <sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
             </div>
 
-            <div class="el-badge item"><button id="changeLog" type="button"
-                    class="el-button el-button--default is-circle" data-i18n="[title]notification.viewChangelog" title="查看更新内容">
-                    <i class="el-icon-document"></i>
-                </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
-                    style="display: none;"></sup></div>
+            <div class="el-badge item">
+                <button id="fuck" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.startTask" title="开始做任务">
+                    <i class="iconfont icon-Start-01"></i>
+                </button>
+                <sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
+            </div>
+
+            <div class="el-badge item"><button id="changeLog" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.viewChangelog" title="查看更新内容">
+                    <i class="iconfont icon-text"></i>
+                </button>
+                <sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
+            </div>
 
             <div class="el-badge item">
                 <button type="button" id="setting" class="el-button el-button--default is-circle" data-i18n="[title]notification.setting" title="设置">
-                    <i class="el-icon-setting"></i>
+                    <i class="iconfont icon-setting"></i>
                 </button>
-                <sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
-                    style="display: none;"></sup>
+                <sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
             </div>
 
             <div class="el-badge item">
-            <button id="clearNotice" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.clearLog" title="清空执行日志">
-                    <i class="el-icon-brush"></i>
-                </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
-                    style="display: none;"></sup>
+                <button id="clearNotice" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.clearLog" title="清空执行日志">
+                    <i class="iconfont icon-clear"></i>
+                </button>
+                <sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
             </div>
 
-            <div class="el-badge item"><button id="report" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.bugReport"
-                    title="提交建议/BUG">
-                    <i class="el-icon-s-promotion"></i>
-                </button><sup class="el-badge__content el-badge__content--undefined is-fixed is-dot"
-                    style="display: none;"></sup></div>
-
+            <div class="el-badge item">
+                <button id="report" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.bugReport" title="提交建议/BUG">
+                    <i class="iconfont icon-bug-report"></i>
+                </button>
+                <sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
+            </div>
         </h2>
-        <h2 class="el-notification__title"  data-i18n="notification.logForRunning">任务执行日志</h2>
+        <h2 class="el-notification__title" data-i18n="notification.logForRunning">任务执行日志</h2>
         <div class="el-notification__content">
             <p></p>
         </div>
@@ -218,14 +216,56 @@ font.wait{color:#9c27b0;}
             jq('.el-notification__content li').remove();
         },
         updateNotice: function(id, result){
-            jq('font#' + id).removeClass()
-            jq('font#' + id).addClass(result.class)
-            jq('font#' + id).text(result.text)
+            jq(`font#${id}`).removeClass()
+            jq(`font#${id}`).addClass(result.class)
+            jq(`font#${id}`).text(result.text)
         },
     }
+    const KJModal = {
+        show: (config)=>{
+            const html = `<div id="custom-modal" tabindex="-1" role="dialog" aria-labelledby="fraud-warning-modal-title" class="modal fade show" style="display: block; padding-right: 15px;" aria-modal="true">
+          <div role="document" class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                 <div class="modal-header">
+                     <h5 id="fraud-warning-modal-title" class="modal-title">${config?.title ?? 'Title'}</h5>
+                     <button id="custom-modal-close" type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true">×</span></button>
+                 </div>
+                 <div class="modal-body">
+                        ${config?.content ?? 'Content'}
+                 </div>
+                 <div class="modal-footer">
+                    <button id="custom-modal-cancel" class="btn btn-secondary">${config?.cancelText??'Cancel'}</button> <button id="custom-modal-confirm" class="btn btn-primary">${config?.comfirText??'Okay'}</button>
+                 </div>
+             </div><!--modal-content-->
+            </div><!--document-->
+         </div>
+         <div class="modal-backdrop fade show"></div>`
 
+            return new Promise((resolve, reject)=>{
+                if(jq('#custom-modal').length === 1){
+                    jq('#custom-modal').remove()
+                    jq('.modal-backdrop, .fade, .show').remove()
+                }
+                const ele = jq('body').append(html)
+                jq('#custom-modal-close').click(()=>{
+                    jq('#custom-modal').remove()
+                    jq('.modal-backdrop, .fade, .show').remove()
+                    reject()
+                })
+                jq('#custom-modal-cancel').click(()=>{
+                    jq('#custom-modal').remove()
+                    jq('.modal-backdrop, .fade, .show').remove()
+                    reject()
+                })
+                jq('#custom-modal-confirm').click(()=>{
+                    jq('#custom-modal').remove()
+                    jq('.modal-backdrop, .fade, .show').remove()
+                    resolve()
+                })
+            })
+        }
+    }
     const log = (()=>{
-
         const log = (...data)=>{
             if(debug)console.log("KJ", ...data)
         }
@@ -388,11 +428,19 @@ font.wait{color:#9c27b0;}
                 if(!time){
                     time=60;
                 }
-                if(confirm("是否以时间间隔" + time + "秒进行任务检测？")){
+
+                KJModal.show({
+                    title: '执行确认',
+                    content: `是否以时间间隔${time}秒进行任务检测？`
+                }).then(()=>{
+                    log.log('确认')
+                    if(GM_getValue('start') === 1)return;
                     GM_setValue("start",1);
                     if(r)r();
                     this.next();
-                }
+                }).catch(()=>{
+                    log.log('取消')
+                })
             },
             next: function (){
                 kjData.loadData.actions = []
@@ -1905,7 +1953,6 @@ font.wait{color:#9c27b0;}
                         jq('.row')[1].remove();
                         jq('.layout-container').append('<entries-component></entries-component>');
                         kjData["app.js"]();
-                        unsafeWindow.test = kjData
                     }
                     noticeFrame.loadFrame();
                     // 事件绑定

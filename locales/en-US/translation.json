@@ -8,6 +8,7 @@
     
     "checkUpdate": "Check for update",
     "forceToTask": "Force to do task",
+    "startTask": "Start the task",
     "viewChangelog": "To view changelog of current version",
     "setting": "Open the setting page",
     "clearLog": "Clear log",
