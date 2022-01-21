@@ -19,7 +19,8 @@
     "errGoConsole": "ERROR ! Please go to the console for details!",
     "getChangeLog": "Getting changelog of this version...",
     "checkAuth": "Checking Auth of Accounts...",
-    "taskOK": "All tasks have been completed, continue to detect."
+    "taskOK": "All tasks have been completed, continue to detect.",
+    "reportChannel": "The report channels:"
   },
   "message": {
     "executing": "Checking for new task",

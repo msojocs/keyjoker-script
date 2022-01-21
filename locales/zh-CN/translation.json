@@ -19,7 +19,8 @@
     "errGoConsole": "发生异常 ! 请到控制台查看详情!",
     "getChangeLog": "正在获取当前版本更新日志...",
     "checkAuth": "检查账户凭证...",
-    "taskOK": "所有任务已完成, 继续检测."
+    "taskOK": "所有任务已完成, 继续检测.",
+    "reportChannel": "目前提供以下反馈渠道："
   },
   "message": {
     "executing": "检测新任务",

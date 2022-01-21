@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.5.1
-// @description  KeyJoker Auto Task,修改自https://greasyfork.org/zh-CN/scripts/383411
+// @version      1.5.2
+// @description  KeyJoker Auto Task
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
 // @include      *://www.keyjoker.com/entries*
@@ -10,8 +10,8 @@
 // @include      *?keyjokertask=*
 // @include      http://localhost:3001*
 // @include      https://jiyeme.github.io/keyjokerScript*
-// @updateURL    https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
-// @downloadURL  https://github.com/jiyeme/keyjokerScript/raw/master/keyjoker.user.js
+// @updateURL    https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@master/keyjoker.user.js
+// @downloadURL  https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@master/keyjoker.user.js
 // @supportURL   https://www.jysafe.cn/4332.air
 // @homepage     https://github.com/jiyeme/keyjokerScript/
 // @run-at       document-start
@@ -1350,20 +1350,63 @@ font.wait{color:#9c27b0;}
                         // https://twitter.com/settings/account?keyjokertask=storageAuth
                         if(location.search === "?keyjokertask=storageAuth")
                         {
-                            setTimeout(()=>{
-                                let m = document.cookie.match(/ct0=(.+?);/);
-                                twitterConfig.updateTime = new Date().getTime()
-                                // 未登录时，页面地址会发生变更
-                                if(location.search === "?keyjokertask=storageAuth" && m != null && m[1])
-                                {
-                                    twitterConfig.status = 200;
-                                    twitterConfig.ct0 = m[1];
+                            log.log('twitter auth store')
+                            log.log(location.href)
+                            // 注册地址变换事件
+                            const _historyWrap = function(type) {
+                                const orig = history[type];
+                                const e = new Event(type);
+                                return function() {
+                                    const rv = orig.apply(this, arguments);
+                                    e.arguments = arguments;
+                                    window.dispatchEvent(e);
+                                    return rv;
+                                };
+                            };
+                            history.replaceState = _historyWrap('replaceState');
+                            // 监听地址变换
+                            window.addEventListener('replaceState', function(e) {
+                                log.log(location.href)
+                                console.log('change replaceState', e);
+                                if(location.href.endsWith('login')){
+                                    // 切换到登陆页面
+                                    twitterConfig.status = 401;
+                                    GM_setValue("twitterAuth", twitterConfig)
+                                    unsafeWindow.close();
+                                }
+                            });
+
+                            // 检测cookie有效性
+                            let m = document.cookie.match(/ct0=(.+?);/);
+                            HTTP.GET('https://twitter.com/i/api/1.1/users/email_phone_info.json', null, {
+                                headers: {
+                                    authorization: `Bearer ${twitterConfig.authorization}`,
+                                    'x-csrf-token': m[1]
+                                },
+                                responseType: 'json'
+                            })
+                            .then(res=>{
+                                log.log(res)
+                                if(res.status === 200){
+                                    twitterConfig.updateTime = new Date().getTime()
+                                    // 未登录时，页面地址会发生变更
+                                    if(m != null && m[1])
+                                    {
+                                        twitterConfig.status = 200;
+                                        twitterConfig.ct0 = m[1];
+                                    }else{
+                                        twitterConfig.status = 401;
+                                    }
                                 }else{
                                     twitterConfig.status = 401;
                                 }
                                 GM_setValue("twitterAuth", twitterConfig)
                                 unsafeWindow.close();
-                            }, 3000)
+                            }).catch(err=>{
+                                twitterConfig.status = 401;
+                                GM_setValue("twitterAuth", twitterConfig)
+                                unsafeWindow.close();
+                            })
                         }
                         break;
                     case "www.keyjoker.com":
@@ -1964,10 +2007,10 @@ font.wait{color:#9c27b0;}
                 }
             })
             jq('button#report').click(function(){
-                noticeFrame.addNotice({type:"msg",msg:"目前提供以下反馈渠道："})
-                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
+                noticeFrame.addNotice({type:"msg",msg:"<span data-i18n='notification.reportChannel'>目前提供以下反馈渠道：</span>"})
+                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://greasyfork.org/zh-CN/scripts/406476-keyjoker-auto-task/feedback\" target=\"_blank\">Greasy Fork</a>"})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/jiyeme/keyjokerScript/issues/new/choose\" target=\"_blank\">GitHub</a>"})
-
+                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
             })
             // 版本升级后显示一次更新日志
             if(GM_getValue("currentVer") != GM_info.script.version)
