@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.5.5
+// @version      1.5.6
 // @description  KeyJoker Auto Task
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -38,9 +38,9 @@
 // @connect      tumblr.com
 // @connect      spotify.com
 // @connect      task.jysafe.cn
-// @resource iconfont https://at.alicdn.com/t/font_3156299_z1libxgbph.css
+// @resource iconfont https://at.alicdn.com/t/font_3156299_07qky93uxv0e.css
 // @require      https://cdn.staticfile.org/jquery/3.3.1/jquery.min.js
-// @require      https://cdn.staticfile.org/i18next/8.1.0/i18next.min.js
+// @require      https://cdn.staticfile.org/i18next/21.3.0/i18next.min.js
 // @require      https://cdn.jsdelivr.net/gh/i18next/jquery-i18next@1.2.1/jquery-i18next.min.js
 // @require      https://cdn.jsdelivr.net/gh/i18next/i18next-http-backend@1.3.1/i18nextHttpBackend.min.js
 // @require      https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@9a84040672898ece9d677e72c7617f95d7c92c86/keyjoker.ext.js
@@ -109,6 +109,7 @@
         loadFrame: ()=>{
             log.log("loadFrame");
             jq('body').append(`<style>
+            .hidden{display:none!important}
 .fuck-task-logs li{display:list-item !important;float:none !important}
 #extraBtn .el-badge.item{margin-bottom:4px !important}
 #extraBtn .el-badge.item sup{padding-right:0 !important}
@@ -158,6 +159,18 @@ font.wait{color:#9c27b0;}
                 </button>
                 <sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
             </div>
+            <div class="el-badge item hidden" >
+                <button id="pause-fuck" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.pauseTask" title="暂停做任务">
+                    <i class="iconfont icon-Stop"></i>
+                </button>
+                <sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
+            </div>
+            <div class="el-badge item hidden" >
+                <button id="stop-fuck" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.stopTask" title="停止做任务">
+                    <i class="iconfont icon-Stop"></i>
+                </button>
+                <sup class="el-badge__content el-badge__content--undefined is-fixed is-dot" style="display: none;"></sup>
+            </div>
 
             <div class="el-badge item"><button id="changeLog" type="button" class="el-button el-button--default is-circle" data-i18n="[title]notification.viewChangelog" title="查看更新内容">
                     <i class="iconfont icon-text"></i>
@@ -188,6 +201,7 @@ font.wait{color:#9c27b0;}
         </h2>
         <h2 class="el-notification__title" data-i18n="notification.logForRunning">任务执行日志</h2>
         <div class="el-notification__content">
+            <span class="${!debug?'hidden':''}" data-i18n="test.one" data-i18n-options='{"a": "123"}'>test</span>
             <p></p>
         </div>
     </div>
@@ -227,14 +241,13 @@ font.wait{color:#9c27b0;}
           <div role="document" class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                  <div class="modal-header">
-                     <h5 id="fraud-warning-modal-title" class="modal-title">${config?.title ?? 'Title'}</h5>
+                     <h5 id="fraud-warning-modal-title" class="modal-title" data-i18n="modal.${config?.title ?? 'title'}">${config?.title ?? 'title'}</h5>
                      <button id="custom-modal-close" type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true">×</span></button>
                  </div>
-                 <div class="modal-body">
-                        ${config?.content ?? 'Content'}
-                 </div>
+                 <div class="modal-body">${config?.content ?? 'content'}</div>
                  <div class="modal-footer">
-                    <button id="custom-modal-cancel" class="btn btn-secondary">${config?.cancelText??'Cancel'}</button> <button id="custom-modal-confirm" class="btn btn-primary">${config?.comfirText??'Okay'}</button>
+                    <button id="custom-modal-cancel" class="btn btn-secondary" data-i18n="modal.${config?.cancelText??'cancel'}">${config?.cancelText??'Cancel'}</button>
+                    <button id="custom-modal-confirm" class="btn btn-primary" data-i18n="modal.${config?.comfirText??'confirm'}">${config?.comfirText??'Okay'}</button>
                  </div>
              </div><!--modal-content-->
             </div><!--document-->
@@ -247,6 +260,9 @@ font.wait{color:#9c27b0;}
                     jq('.modal-backdrop, .fade, .show').remove()
                 }
                 const ele = jq('body').append(html)
+
+                jq('#custom-modal').localize(config?.options ?? null)
+
                 jq('#custom-modal-close').click(()=>{
                     jq('#custom-modal').remove()
                     jq('.modal-backdrop, .fade, .show').remove()
@@ -380,6 +396,9 @@ font.wait{color:#9c27b0;}
                                 let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                                 jq(".border-bottom").html(`${hour}:${min} <span data-i18n='message.newTaskAvailable'>检测到新任务（暂停检测）</span>`);
 
+                                jq('#fuck').parent().removeClass('hidden')
+                                jq('#pause-fuck').parent().addClass('hidden')
+
                                 // 清空提示
                                 noticeFrame.clearNotice();
                                 // 关闭检测开关
@@ -430,8 +449,8 @@ font.wait{color:#9c27b0;}
                 }
 
                 KJModal.show({
-                    title: '执行确认',
-                    content: `是否以时间间隔${time}秒进行任务检测？`
+                    title: 'exeConfirm',
+                    content: `<span data-i18n="modal.exeConfirm1" data-i18n-options='{"time": ${time}}'></span>`,
                 }).then(()=>{
                     log.log('确认')
                     if(GM_getValue('start') === 1)return;
@@ -443,7 +462,7 @@ font.wait{color:#9c27b0;}
                 })
             },
             next: function (){
-                kjData.loadData.actions = []
+                if(kjData.loadData)kjData.loadData.actions = []
                 //kjData.loadData.isLoading = true
                 jq(".border-bottom").html("<span id='checkTime'></span><span data-i18n='message.executing'>执行新任务检测</span>");
                 jq(".border-bottom").localize && jq(".border-bottom").localize()
@@ -456,6 +475,11 @@ font.wait{color:#9c27b0;}
                 // getAuthStatus.tumblr = false;
                 getAuthStatus.twitch = false;
                 getAuthStatus.twitter = 0;
+
+                jq('#fuck').parent().addClass('hidden')
+                jq('#pause-fuck').parent().addClass('hidden')
+                jq('#stop-fuck').parent().removeClass('hidden')
+
                 let time = GM_getValue("time");
                 if(!time){
                     time=60;
@@ -466,7 +490,8 @@ font.wait{color:#9c27b0;}
                 }else{
                     this.reLoad(time*1000, 0);
                 }
-            }
+            },
+
         }
         // 模拟点击
         const DISCORD = (()=>{
@@ -1970,11 +1995,20 @@ font.wait{color:#9c27b0;}
                                 loadPath : languagePrefix + '/{{lng}}/{{ns}}.json?v=' + GM_info.script.version,
                             },
                             ns: ['translation','message'],
-                            defaultNS: 'translation' //默认使用的，不指定namespace时
+                            defaultNS: 'translation', //默认使用的，不指定namespace时
                         }, function(err, t) {
                             // for options see
                             // https://github.com/i18next/jquery-i18next#initialize-the-plugin
-                            jqueryI18next.init(i18next, jq);
+                            jqueryI18next.init(i18next, jq, {
+                                tName: 't', // --> appends $.t = i18next.t
+                                i18nName: 'i18n', // --> appends $.i18n = i18next
+                                handleName: 'localize', // --> appends $(selector).localize(opts);
+                                selectorAttr: 'data-i18n', // selector for translating elements
+                                targetAttr: 'i18n-target', // data-() attribute to grab target element to translate (if diffrent then itself)
+                                optionsAttr: 'i18n-options', // data-() attribute that contains options, will load/set if useOptionsAttr = true
+                                useOptionsAttr: true, // see optionsAttr
+                                parseDefaultValueFromContent: true // parses default values from content ele.val or ele.text
+                            });
 
                             // start localizing, details:
                             // https://github.com/i18next/jquery-i18next#usage-of-selector-function
@@ -2019,6 +2053,12 @@ font.wait{color:#9c27b0;}
             jq('button#fuck').click(function(){
                 checkTask.start(()=>{jq('.card').remove();})
             })
+            jq('button#stop-fuck').click(function(){
+                GM_setValue('start', 0)
+                jq(".border-bottom").html(`<span data-i18n='message.taskStopped'>手动停止</span>`);
+                jq('#fuck').parent().removeClass('hidden')
+                jq('#stop-fuck').parent().addClass('hidden')
+            })
             jq('button#clearNotice').click(function(){
                 noticeFrame.clearNotice()
             })
@@ -2050,6 +2090,7 @@ font.wait{color:#9c27b0;}
                         if (err) console.log('something went wrong loading', err);
                         jq('.notification').localize()
                         jq('.border-bottom').localize()
+                        jq('#custom-modal').localize()
                     });
                 }
             })
@@ -2107,7 +2148,7 @@ font.wait{color:#9c27b0;}
                     let hour=date.getHours();
                     let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                     GM_setValue("start",0);
-                    jq(".border-bottom").text(hour + ":" + min + " 停止执行新任务检测");
+                    jq(".border-bottom").text("手动停止");
                     checkSwitch();
                 });
             }else{
