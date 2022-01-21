@@ -19,16 +19,21 @@ const configList = [
     text: "Twitch",
   },
 ];
+
+// 初始化语言
 const props = defineProps({
   lang: String,
 });
 const { locale, t } = useI18n({
   inheritLocale: true,
 });
-const lang1 = reactive(props);
-watch(lang1, (newVal, oldVal) => {
-  console.log(newVal);
-  locale.value = lang1.lang;
+locale.value = props.lang;
+
+// 监听语言切换
+const p = reactive(props);
+watch(p, (newVal, oldVal) => {
+  console.log('setting', newVal);
+  locale.value = p.lang;
   if(typeof kj === "object"){
     const KJConfig = kj.get('KJConfig') || {}
     let dict = {
@@ -40,6 +45,7 @@ watch(lang1, (newVal, oldVal) => {
   }
 });
 
+// 检测KJ插件是否加载
 const checkPluginLoaded = () => {
   if (typeof kj === "undefined") {
     ElMessage({
@@ -50,13 +56,14 @@ const checkPluginLoaded = () => {
   }
   return true;
 };
+
 // //////////////DISCORD
 const discord = ref({
   enable: false,
 });
 if (checkPluginLoaded()) {
   const temp = kj.get("discordAuth") || {};
-  discord.enable = temp.enable || false;
+  discord.value.enable = temp.enable || false;
 }
 // //////////////END DISCORD
 

@@ -15,6 +15,22 @@ function changeLang(){
   locale_t.value = locale_m.value
   locale_m.value = temp
 }
+
+if(typeof kj === "object"){
+  const KJConfig = kj.get('KJConfig') || {}
+  let dict = {
+    'en-US': en,
+    'zh-CN': zhCn
+  }
+  console.log(KJConfig, locale_m.value, locale_t.value)
+  let lang = KJConfig.language ?? 'zh-CN'
+  // 目标语言是第二语言
+  if(locale_t.value.name === dict[lang].name){
+    console.log('切换语言', locale_m, '---->', locale_t)
+    changeLang()
+  }
+}
+
 </script>
 
 <template>
