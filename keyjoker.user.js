@@ -94,6 +94,18 @@
     unsafeWindow.jq = jq
     let completeCheck = null;
 
+    window.pro_elt_addEventListener=Element.prototype.addEventListener;
+    Element.prototype.addEventListener=function(){
+        if(!this.eventList) this.eventList={};
+        if(!this.eventList[arguments[0]]) this.eventList[arguments[0]]=[];
+        this.eventList[arguments[0]].push(arguments[1]);
+
+        // fix dropdown
+        if(this.id === 'user-dropdown' && this.eventList?.click?.length === 1)return;
+
+        window.pro_elt_addEventListener.apply(this,arguments);
+    };
+
     // 0-未动作|200-成功取得|401未登录|603正在取得
     const getAuthStatus = {
         discord: false,
@@ -1978,6 +1990,8 @@ font.wait{color:#9c27b0;}
                         jq('.row')[1].remove();
                         jq('.layout-container').append('<entries-component></entries-component>');
                         kjData["app.js"]();
+                        // fix dropdown
+                        document.getElementById('user-dropdown').click()
                     }
                     noticeFrame.loadFrame();
                     // 事件绑定
