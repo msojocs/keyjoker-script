@@ -39,10 +39,10 @@
 // @connect      spotify.com
 // @connect      task.jysafe.cn
 // @resource iconfont https://at.alicdn.com/t/font_3156299_07qky93uxv0e.css
-// @require      https://cdn.staticfile.org/jquery/3.3.1/jquery.min.js
-// @require      https://cdn.staticfile.org/i18next/21.3.0/i18next.min.js
-// @require      https://cdn.jsdelivr.net/gh/i18next/jquery-i18next@1.2.1/jquery-i18next.min.js
-// @require      https://cdn.jsdelivr.net/gh/i18next/i18next-http-backend@1.3.1/i18nextHttpBackend.min.js
+// @require      https://lib.baomitu.com/jquery/3.3.1/jquery.min.js
+// @require      https://lib.baomitu.com/i18next/21.3.0/i18next.min.js
+// @require      https://lib.baomitu.com/jquery-i18next/1.2.1/jquery-i18next.min.js
+// @require      https://unpkg.com/i18next-http-backend@1.3.2/i18nextHttpBackend.min.js
 // @require      https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@9a84040672898ece9d677e72c7617f95d7c92c86/keyjoker.ext.js
 // ==/UserScript==
 // @require      http://task.jysafe.cn/keyjoker/script/keyjoker6.ext.js
@@ -2033,6 +2033,7 @@ font.wait{color:#9c27b0;}
                             }
                             //jq('.nav').localize();
                             //jq('.content').localize();
+
                         });
                     }catch(e){
                         log.error(e)
