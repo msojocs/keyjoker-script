@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.5.6
+// @version      1.5.7
 // @description  KeyJoker Auto Task
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -1752,7 +1752,7 @@ font.wait{color:#9c27b0;}
                             jq('.card').remove();
                         }
                         // check discord error [Could not refresh Discord information, please try again.]
-                        if(discordCheck == true && document.getElementById("toast-container").textContent == "Could not verify server information from Discord, please try again.")
+                        if(discordCheck == true && (document.getElementById("toast-container").textContent == "Could not verify server information from Discord, please try again." || document.getElementById("toast-container").textContent == "Could not refresh Discord information, please try again."))
                         {
                             log.info("Discord 身份过期")
                             discordCheck = false;
