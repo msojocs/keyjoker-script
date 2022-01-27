@@ -410,6 +410,7 @@ font.wait{color:#9c27b0;}
 
                                 jq('#fuck').parent().removeClass('hidden')
                                 jq('#pause-fuck').parent().addClass('hidden')
+                                jq('#stop-fuck').parent().addClass('hidden')
 
                                 // 清空提示
                                 noticeFrame.clearNotice();
@@ -613,7 +614,7 @@ font.wait{color:#9c27b0;}
                     responseType: 'json'
                 }).then(res=>{
                     if(res.status == 200)return Promise.resolve(res.response)
-                    else return Promise.reject(res)
+                    else return Promise.reject(res.status)
                 })
             }
             const doJoinServer = (server, info)=>{
