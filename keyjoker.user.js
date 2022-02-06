@@ -51,7 +51,7 @@
     'use strict';
     const debug = false;
 
-    const languagePrefix = debug?"http://127.0.0.1:5500/locales":"https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@master/locales"
+    const languagePrefix = "https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@master/locales"
     const KJConfig = GM_getValue('KJConfig') || {
         language: navigator.language
     }
@@ -381,7 +381,7 @@ font.wait{color:#9c27b0;}
     })();
     try{
         const checkTask = {
-            reLoad: function (time,sum){
+            reLoad: function (time){
                 let date=new Date();
                 let hour=date.getHours();
                 let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
@@ -397,10 +397,12 @@ font.wait{color:#9c27b0;}
                             const disabledTask = GM_getValue('taskDisabled') || {}
                             log.log(disabledTask)
                             // 过滤出不在忽略列表且要做的任务
+                            log.log('actions before filter', data.actions)
                             data.actions = data.actions.filter(e=>ignoreList.indexOf(e.id)===-1 && !disabledTask[e.task.provider.icon])
+                            log.log('actions after filter', data.actions)
 
                             log.info("检测是否新增")
-                            if(data && (data.actions && (data.actions.length > sum) )){
+                            if(data && (data.actions && (data.actions.length > 0) )){
                                 log.info("检测是否新增", "是")
                                 log.log(data);
                                 let date=new Date();
@@ -440,7 +442,7 @@ font.wait{color:#9c27b0;}
                                 });*/
                             }else{
                                 log.info("检测是否新增", "否")
-                                setTimeout(()=>this.reLoad(time,sum),time);
+                                setTimeout(()=>this.reLoad(time), time);
                             }
                         },
                         error:(err)=>{
@@ -497,12 +499,7 @@ font.wait{color:#9c27b0;}
                 if(!time){
                     time=60;
                 }
-                let sum=jq(".list-complete-item").length;
-                if(sum>0){
-                    this.reLoad(time*1000, sum);
-                }else{
-                    this.reLoad(time*1000, 0);
-                }
+                this.reLoad(time*1000);
             },
 
         }
@@ -1652,12 +1649,17 @@ font.wait{color:#9c27b0;}
                                     ignoreBtn.innerText = '忽略'
                                     ignoreBtn.style.background = 'red'
                                     ignoreBtn.style.color = 'white'
+                                    ignoreBtn.style['margin-left'] = '10px'
                                     ignoreBtn.className = 'btn'
                                     ignoreBtn.addEventListener('click', e=>{
                                         log.info("点击忽略")
                                         log.log(e)
                                         log.log(task.id)
-                                        ignoreList.push(task.id)
+                                        log.log(kjData.loadData)
+                                        kjData.loadData.actions = kjData.loadData.actions.filter(a=>a.id!==task.id)
+                                        if(!ignoreList.includes(task.id)){
+                                            ignoreList.push(task.id)
+                                        }
                                         GM_setValue('ignoreList', ignoreList)
                                     })
                                     jq(`a[href='https://www.keyjoker.com/entries/open/${task.id}']`)[0].parentNode.append(ignoreBtn)
@@ -1994,10 +1996,6 @@ font.wait{color:#9c27b0;}
                         // fix dropdown
                         document.getElementById('user-dropdown').click()
                     }
-                    noticeFrame.loadFrame();
-                    // 事件绑定
-                    eventBind();
-                    checkUpdate();
 
                     try{
                         log.log("i18n初始化")
@@ -2012,6 +2010,7 @@ font.wait{color:#9c27b0;}
                             ns: ['translation','message'],
                             defaultNS: 'translation', //默认使用的，不指定namespace时
                         }, function(err, t) {
+                            log.log("i18n初始化END")
                             // for options see
                             // https://github.com/i18next/jquery-i18next#initialize-the-plugin
                             jqueryI18next.init(i18next, jq, {
@@ -2024,6 +2023,11 @@ font.wait{color:#9c27b0;}
                                 useOptionsAttr: true, // see optionsAttr
                                 parseDefaultValueFromContent: true // parses default values from content ele.val or ele.text
                             });
+
+                            noticeFrame.loadFrame();
+                            // 事件绑定
+                            eventBind();
+                            checkUpdate();
 
                             // start localizing, details:
                             // https://github.com/i18next/jquery-i18next#usage-of-selector-function
@@ -2039,7 +2043,6 @@ font.wait{color:#9c27b0;}
                     }catch(e){
                         log.error(e)
                     }
-                    log.log("i18n初始化END")
 
                 }else{
                     if(jq('.container').length > 0)
