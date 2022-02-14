@@ -38,6 +38,7 @@
 // @connect      tumblr.com
 // @connect      spotify.com
 // @connect      task.jysafe.cn
+// @connect      raw.fastgit.org
 // @connect      127.0.0.1
 // @resource iconfont https://at.alicdn.com/t/font_3156299_07qky93uxv0e.css
 // @require      https://lib.baomitu.com/jquery/3.3.1/jquery.min.js
@@ -92,6 +93,7 @@
     unsafeWindow.jq = jq
     let completeCheck = null;
 
+    // 监听处理器hook
     window.pro_elt_addEventListener=Element.prototype.addEventListener;
     Element.prototype.addEventListener=function(){
         if(!this.eventList) this.eventList={};
@@ -218,27 +220,30 @@ font.wait{color:#9c27b0;}
 </div>
 `)
         },
+        // 添加
         addNotice: function(data){
             switch(data.type)
             {
                 case "taskStatus":
-                    jq('.el-notification__content').append('<li>' + data.task.task.name + ' <a href="' + data.task.data.url + '" target="_blank">' + (data.task.data.name||data.task.data.username) + '</a>|<font id="' + data.task.id + '" class="' + data.status +'">' + data.status +'</font></li>');
+                    jq('.el-notification__content').append(`<li>${data.task.task.name}<a href="${data.task.data.url}" target="_blank">${(data.task.data.name||data.task.data.username)}</a>|<font id="${data.task.id}" class="${data.status}">${data.status}</font></li>`);
                     break;
                 case "msg":
-                    jq('.el-notification__content').append("<li>" + data.msg + "</li>");
+                    jq('.el-notification__content').append(`<li>${data.msg}</li>`);
                     break;
                 case "authVerify":
-                    jq('.el-notification__content').append('<li>' + data.name + ' |<font id="' + data.status.id + '" class="' + data.status.class +'">' + data.status.text + '</font></li>');
+                    jq('.el-notification__content').append(`<li>${data.name} |<font id="${data.status.id}" class="${data.status.class}">${data.status.text}</font></li>`);
                     break;
                 default:
-                    jq('.el-notification__content').append("<li>" + data + "</li>");
+                    jq('.el-notification__content').append(`<li>${data}</li>`);
                     break;
             }
             if(jq('.notification').localize)jq('.notification').localize();
         },
+        // 清空
         clearNotice:()=>{
             jq('.el-notification__content li').remove();
         },
+        // 更新
         updateNotice: function(id, result){
             jq(`font#${id}`).removeClass()
             jq(`font#${id}`).addClass(result.class)
@@ -1607,7 +1612,7 @@ font.wait{color:#9c27b0;}
             },
             getTaskReplace: async function(task){
                 log.log('task', task)
-                const res = await HTTP.GET(`http://127.0.0.1:5500/task-replace/${task.task.provider.icon}.json`, null, {
+                const res = await HTTP.GET(`https://raw.fastgit.org/msojocs/keyjokerScript/master/task-replace/${task.task.provider.icon}.json`, null, {
                     responseType: 'json'
                 })
                 log.log('res', res)
@@ -1757,9 +1762,11 @@ font.wait{color:#9c27b0;}
                     //if(i >= 50)clearInterval(completeCheck);
                     //else
                     log.info("点击redeem按钮")
+                    // 点击redeem按钮
                     jq('.card-body button[class="btn btn-primary"]').click();
-
-                    /*jq(".modal-backdrop, .fade, .show").remove();
+                    // 除遮罩
+                    jq(".modal-backdrop, .fade, .show").remove();
+                    /*
                     if(1 == jq('#fraud-warning-modal[style!="display: none;"]').length){
                         log.info("有弹窗，模拟点击OK")
                         const ele = jq('button.btn.btn-secondary[type!="button"]')
