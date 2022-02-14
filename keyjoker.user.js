@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.5.7
+// @version      1.5.8
 // @description  KeyJoker Auto Task
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
@@ -9,11 +9,11 @@
 // @include      *://assets.hcaptcha.com/*
 // @include      *?keyjokertask=*
 // @include      http://localhost:3001*
-// @include      https://jiyeme.github.io/keyjokerScript*
-// @updateURL    https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@master/keyjoker.user.js
-// @downloadURL  https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@master/keyjoker.user.js
+// @include      https://msojocs.github.io/keyjokerScript*
+// @updateURL    https://cdn.jsdelivr.net/gh/msojocs/keyjokerScript@master/keyjoker.user.js
+// @downloadURL  https://cdn.jsdelivr.net/gh/msojocs/keyjokerScript@master/keyjoker.user.js
 // @supportURL   https://www.jysafe.cn/4332.air
-// @homepage     https://github.com/jiyeme/keyjokerScript/
+// @homepage     https://github.com/msojocs/keyjokerScript/
 // @run-at       document-start
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
@@ -38,20 +38,21 @@
 // @connect      tumblr.com
 // @connect      spotify.com
 // @connect      task.jysafe.cn
+// @connect      127.0.0.1
 // @resource iconfont https://at.alicdn.com/t/font_3156299_07qky93uxv0e.css
 // @require      https://lib.baomitu.com/jquery/3.3.1/jquery.min.js
 // @require      https://lib.baomitu.com/i18next/21.3.0/i18next.min.js
 // @require      https://lib.baomitu.com/jquery-i18next/1.2.1/jquery-i18next.min.js
 // @require      https://unpkg.com/i18next-http-backend@1.3.2/i18nextHttpBackend.min.js
-// @require      https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@9a84040672898ece9d677e72c7617f95d7c92c86/keyjoker.ext.js
+// @require      https://cdn.jsdelivr.net/gh/msojocs/keyjokerScript@9a84040672898ece9d677e72c7617f95d7c92c86/keyjoker.ext.js
 // ==/UserScript==
 // @require      http://task.jysafe.cn/keyjoker/script/keyjoker6.ext.js
 
 (function() {
     'use strict';
-    const debug = false;
+    const debug = true;
 
-    const languagePrefix = "https://cdn.jsdelivr.net/gh/jiyeme/keyjokerScript@master/locales"
+    const languagePrefix = "https://cdn.jsdelivr.net/gh/msojocs/keyjokerScript@master/locales"
     const KJConfig = GM_getValue('KJConfig') || {
         language: navigator.language
     }
@@ -85,9 +86,6 @@
         updateTime: 0
     }
     const ignoreList = GM_getValue('ignoreList') || [];
-
-    //删除旧版数据键
-    GM_deleteValue('offlineMode')
 
     const jq = $;
     const kjData = offlineData;
@@ -410,10 +408,6 @@ font.wait{color:#9c27b0;}
                                 let min=date.getMinutes()<10?("0"+date.getMinutes()):date.getMinutes();
                                 jq(".border-bottom").html(`${hour}:${min} <span data-i18n='message.newTaskAvailable'>检测到新任务（暂停检测）</span>`);
 
-                                jq('#fuck').parent().removeClass('hidden')
-                                jq('#pause-fuck').parent().addClass('hidden')
-                                jq('#stop-fuck').parent().addClass('hidden')
-
                                 // 清空提示
                                 noticeFrame.clearNotice();
                                 // 关闭检测开关
@@ -428,18 +422,6 @@ font.wait{color:#9c27b0;}
 
                                 log.info("做任务")
                                 func.do_task(data);
-                                /*
-                                func.reLoadTaskList().then(()=>{
-                                    log.info("忽略处理")
-                                    ignoreList.forEach(id=>{
-                                        const ele = jq(`a[href='https://www.keyjoker.com/entries/open/${id}']`)
-                                        if(ele.length > 0){
-                                            ele[0].parentNode.parentNode.parentNode.parentNode.remove()
-                                        }
-                                    })
-                                    log.info("做任务")
-                                    func.do_task(data);
-                                });*/
                             }else{
                                 log.info("检测是否新增", "否")
                                 setTimeout(()=>this.reLoad(time), time);
@@ -491,6 +473,7 @@ font.wait{color:#9c27b0;}
                 getAuthStatus.twitch = false;
                 getAuthStatus.twitter = 0;
 
+                // 切换按钮
                 jq('#fuck').parent().addClass('hidden')
                 jq('#pause-fuck').parent().addClass('hidden')
                 jq('#stop-fuck').parent().removeClass('hidden')
@@ -1622,111 +1605,144 @@ font.wait{color:#9c27b0;}
                 }
                 return 0;
             },
+            getTaskReplace: async function(task){
+                log.log('task', task)
+                const res = await HTTP.GET(`http://127.0.0.1:5500/task-replace/${task.task.provider.icon}.json`, null, {
+                    responseType: 'json'
+                })
+                log.log('res', res)
+                const resp = res.response
+                log.log('resp', resp)
+                return resp[task.data.name]
+            },
+            // 做单个任务
+            do_task_single: function(task, retry=false){
+                retry || noticeFrame.addNotice({type: "taskStatus", task:task, status:'wait'});
+                retry && noticeFrame.updateNotice(task.id, {class:"wait", text:"重试中"})
+                this.runDirectUrl(task.redirect_url);
+                let react = (code)=>{
+                    switch(code)
+                    {
+                        case 200:
+                            noticeFrame.updateNotice(task.id, {class:"success",text:'success'})
+                            this.redeemAuto(task.redirect_url);
+                            break;
+                        case 601:
+                            noticeFrame.updateNotice(task.id, {class:"error",text:'error'})
+                            break;
+                        case 401:
+                            noticeFrame.updateNotice(task.id, {class:"error", text:"Not Login"})
+                            break;
+                        case 404:
+                            {
+                                // 创建一个新的 div 元素
+                                let ignoreBtn = document.createElement("button");
+                                ignoreBtn.innerText = '忽略'
+                                ignoreBtn.style.background = 'red'
+                                ignoreBtn.style.color = 'white'
+                                ignoreBtn.style['margin-left'] = '10px'
+                                ignoreBtn.className = 'btn'
+                                ignoreBtn.addEventListener('click', e=>{
+                                    log.info("点击忽略")
+                                    log.log(e)
+                                    log.log(task.id)
+                                    log.log(kjData.loadData)
+                                    kjData.loadData.actions = kjData.loadData.actions.filter(a=>a.id!==task.id)
+                                    if(!ignoreList.includes(task.id)){
+                                        ignoreList.push(task.id)
+                                    }
+                                    GM_setValue('ignoreList', ignoreList)
+                                })
+                                if(jq(`a[href='https://www.keyjoker.com/entries/open/24301']`)[0].parentNode.children.length === 2){
+                                    jq(`a[href='https://www.keyjoker.com/entries/open/${task.id}']`)[0].parentNode.append(ignoreBtn)
+                                }
+                                noticeFrame.updateNotice(task.id, {class:"error", text:"目标不存在"})
+
+                                task.try = task?.try ?? 0
+                                task.try++
+                                if(task.try <= 1){
+                                    log.log('test')
+                                    this.getTaskReplace(task)
+                                    .then(url=>{
+                                        log.log('获取到的新任务链接：', url)
+                                        if(url){
+                                            task.data.url = url
+                                            setTimeout(()=>{
+                                                this.do_task_single(task, true)
+                                            }, 5000)
+                                        }
+                                    })
+                                }
+                            }
+                            break;
+                        case 408:
+                            noticeFrame.updateNotice(task.id, {class:"error", text:"Time Out"})
+                            break;
+                        case 603:
+                            noticeFrame.updateNotice(task.id, {class:"wait", text:"Getting Auth"})
+                            break;
+                        case 604:
+                            noticeFrame.updateNotice(task.id, {class:"error", text:"Network Error"})
+                            break;
+                        case 605:
+                            noticeFrame.updateNotice(task.id, {class:"error", text:"评论区未找到"})
+                            break;
+                        default:
+                            noticeFrame.updateNotice(task.id, {class:"error", text:"Unknown Error"})
+                            log.error("React Unknown Error--->", code)
+                            break;
+                    }
+                }
+
+                switch(task.task.name)
+                {
+                    case "Join Steam Group":
+                        STEAM.JoinGroup(react, task.data.url);
+                        break;
+                    case "Rep Steam Account":
+                        STEAM.Rep(react, task.data.id);
+                        break;
+                    case "Wishlist Steam Game":
+                        STEAM.AddWishlist(react, task.data.id);
+                        break;
+                    case "Follow Twitter Account":
+                        TWITTER.FollowAuto(react, task.data);
+                        break;
+                    case "Join Discord Server":
+                        if(!discordAuth.enable){
+                            DISCORD.JoinServer(react, task.data)
+                        }else{
+                            let server = task.data.url.split(".gg/")[1];
+                            DISCORD2.JoinServer(react, server)
+                        }
+                        break;
+                    case "Retweet Twitter Tweet":
+                        TWITTER.RetweetAuto(react, task.data.url);
+                        break;
+                    case "Save Spotify Album":
+                        SPOTIFY.SaveAuto(react, task.data);
+                        break;
+                    case "Follow Spotify Account":
+                        SPOTIFY.Follow(react, task.data);
+                        break;
+                    case "Follow Twitch Channel":
+                        TWITCH.FollowAuto(react, task.data.id);
+                        break;
+                        //case "Follow Tumblr Blog":
+                        //TUMBLR.Follow(react, task.data.name);
+                        //break;
+                    default:
+                        noticeFrame.updateNotice(task.id, {class:"error", text:"Unknow Type:" + task.task.name})
+                        log.error("未指定操作" + task.task.name)
+                        break;
+                }
+            },
             // 做任务
             do_task: function(data){
                 log.info("遍历做任务")
                 for(const task of data.actions)
                 {
-                    noticeFrame.addNotice({type: "taskStatus", task:task, status:'wait'});
-                    this.runDirectUrl(task.redirect_url);
-                    let react = (code)=>{
-                        switch(code)
-                        {
-                            case 200:
-                                noticeFrame.updateNotice(task.id, {class:"success",text:'success'})
-                                this.redeemAuto(task.redirect_url);
-                                break;
-                            case 601:
-                                noticeFrame.updateNotice(task.id, {class:"error",text:'error'})
-                                break;
-                            case 401:
-                                noticeFrame.updateNotice(task.id, {class:"error", text:"Not Login"})
-                                break;
-                            case 404:
-                                {
-                                    // 创建一个新的 div 元素
-                                    let ignoreBtn = document.createElement("button");
-                                    ignoreBtn.innerText = '忽略'
-                                    ignoreBtn.style.background = 'red'
-                                    ignoreBtn.style.color = 'white'
-                                    ignoreBtn.style['margin-left'] = '10px'
-                                    ignoreBtn.className = 'btn'
-                                    ignoreBtn.addEventListener('click', e=>{
-                                        log.info("点击忽略")
-                                        log.log(e)
-                                        log.log(task.id)
-                                        log.log(kjData.loadData)
-                                        kjData.loadData.actions = kjData.loadData.actions.filter(a=>a.id!==task.id)
-                                        if(!ignoreList.includes(task.id)){
-                                            ignoreList.push(task.id)
-                                        }
-                                        GM_setValue('ignoreList', ignoreList)
-                                    })
-                                    jq(`a[href='https://www.keyjoker.com/entries/open/${task.id}']`)[0].parentNode.append(ignoreBtn)
-                                    noticeFrame.updateNotice(task.id, {class:"error", text:"目标不存在"})
-                                }
-                                break;
-                            case 408:
-                                noticeFrame.updateNotice(task.id, {class:"error", text:"Time Out"})
-                                break;
-                            case 603:
-                                noticeFrame.updateNotice(task.id, {class:"wait", text:"Getting Auth"})
-                                break;
-                            case 604:
-                                noticeFrame.updateNotice(task.id, {class:"error", text:"Network Error"})
-                                break;
-                            case 605:
-                                noticeFrame.updateNotice(task.id, {class:"error", text:"评论区未找到"})
-                                break;
-                            default:
-                                noticeFrame.updateNotice(task.id, {class:"error", text:"Unknown Error"})
-                                log.error("React Unknown Error--->", code)
-                                break;
-                        }
-                    }
-
-                    switch(task.task.name)
-                    {
-                        case "Join Steam Group":
-                            STEAM.JoinGroup(react, task.data.url);
-                            break;
-                        case "Rep Steam Account":
-                            STEAM.Rep(react, task.data.id);
-                            break;
-                        case "Wishlist Steam Game":
-                            STEAM.AddWishlist(react, task.data.id);
-                            break;
-                        case "Follow Twitter Account":
-                            TWITTER.FollowAuto(react, task.data);
-                            break;
-                        case "Join Discord Server":
-                            if(!discordAuth.enable){
-                                DISCORD.JoinServer(react, task.data)
-                            }else{
-                                let server = task.data.url.split(".gg/")[1];
-                                DISCORD2.JoinServer(react, server)
-                            }
-                            break;
-                        case "Retweet Twitter Tweet":
-                            TWITTER.RetweetAuto(react, task.data.url);
-                            break;
-                        case "Save Spotify Album":
-                            SPOTIFY.SaveAuto(react, task.data);
-                            break;
-                        case "Follow Spotify Account":
-                            SPOTIFY.Follow(react, task.data);
-                            break;
-                        case "Follow Twitch Channel":
-                            TWITCH.FollowAuto(react, task.data.id);
-                            break;
-                        //case "Follow Tumblr Blog":
-                            //TUMBLR.Follow(react, task.data.name);
-                            //break;
-                        default:
-                            noticeFrame.updateNotice(task.id, {class:"error", text:"Unknow Type:" + task.task.name})
-                            log.error("未指定操作" + task.task.name)
-                            break;
-                    }
+                    this.do_task_single(task)
                 }
                 log.info("遍历完毕")
 
@@ -1881,34 +1897,6 @@ font.wait{color:#9c27b0;}
             redeemAuto: function(redirect_url){
                 if(0 != jq('a[href="' + redirect_url + '"]').length)jq('a[href="' + redirect_url + '"]').next().click();
             },
-            // Deprecated
-            reLoadTaskList: function(r){
-                return new Promise((resolve, reject)=>{
-                    // 重载任务列表
-                    if(2 === document.getElementsByClassName('row').length)
-                    {
-                        jq('.row')[1].remove();
-                        jq('.layout-container').append('<entries-component></entries-component>');
-                        if(true == GM_getValue("offlineMode") && typeof kjData === "object")
-                        {
-                            kjData["app.js"]();
-                            resolve();
-                        }else{
-                            jq.getScript("/js/app.js", (rep,status)=>{
-                                if("success" == status){
-                                    resolve();
-                                }else {
-                                    log.error(status, rep);
-                                    reject()
-                                }
-                            });
-                        }
-                    }else
-                    {
-                        resolve();
-                    }
-                })
-            },
             reset: function (){
                 if(!confirm("你确定要执行重置操作？"))return;
                 noticeFrame.addNotice({type:"msg",msg:"正在重置设置"})
@@ -2024,9 +2012,11 @@ font.wait{color:#9c27b0;}
                                 parseDefaultValueFromContent: true // parses default values from content ele.val or ele.text
                             });
 
+                            // 加载操作面板
                             noticeFrame.loadFrame();
                             // 事件绑定
                             eventBind();
+                            // 更新检测
                             checkUpdate();
 
                             // start localizing, details:
@@ -2067,13 +2057,28 @@ font.wait{color:#9c27b0;}
                 GM_setValue("lastCheckUpdate", new Date().getTime())
             }
         }
+        // 时间绑定
         function eventBind(){
             jq('button#checkUpdate').click(func.checkUpdate)
+            // 开始做任务按钮
             jq('button#fuck').click(function(){
+                if(null != completeCheck){
+                    clearInterval(completeCheck);
+                    completeCheck=null;
+                }
                 checkTask.start(()=>{jq('.card').remove();})
             })
+            // 停止做任务按钮
             jq('button#stop-fuck').click(function(){
                 GM_setValue('start', 0)
+                if(null != completeCheck){
+                    clearInterval(completeCheck);
+                    completeCheck=null;
+                }
+                // 按钮切换
+                jq('#fuck').parent().removeClass('hidden')
+                jq('#pause-fuck').parent().addClass('hidden')
+                jq('#stop-fuck').parent().addClass('hidden')
                 jq(".border-bottom").html(`<span data-i18n='message.taskStopped'>手动停止</span>`);
                 jq('#fuck').parent().removeClass('hidden')
                 jq('#stop-fuck').parent().addClass('hidden')
@@ -2100,8 +2105,8 @@ font.wait{color:#9c27b0;}
                 })
             })
             jq('button#setting').click(function(){
-                // https://jiyeme.github.io/keyjokerScript/
-                const settingPage = GM_openInTab('https://jiyeme.github.io/keyjokerScript/', {active: true, insert: true, setParent: true})
+                // https://msojocs.github.io/keyjokerScript/
+                const settingPage = GM_openInTab('https://msojocs.github.io/keyjokerScript/', {active: true, insert: true, setParent: true})
                 settingPage.onclose = ()=>{
                     // 关闭设置页面后更新配置
                     KJConfig.language = GM_getValue('KJConfig').language
@@ -2116,7 +2121,7 @@ font.wait{color:#9c27b0;}
             jq('button#report').click(function(){
                 noticeFrame.addNotice({type:"msg",msg:"<span data-i18n='notification.reportChannel'>目前提供以下反馈渠道：</span>"})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://greasyfork.org/zh-CN/scripts/406476-keyjoker-auto-task/feedback\" target=\"_blank\">Greasy Fork</a>"})
-                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/jiyeme/keyjokerScript/issues/new/choose\" target=\"_blank\">GitHub</a>"})
+                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/msojocs/keyjokerScript/issues/new/choose\" target=\"_blank\">GitHub</a>"})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
             })
             // 版本升级后显示一次更新日志
@@ -2144,21 +2149,6 @@ font.wait{color:#9c27b0;}
         GM_registerMenuCommand("凭证检测",()=>{
             func.authVerify();
         });
-        // Deprecated 离线模式切换菜单
-        function offlineSwitch(id){
-            GM_unregisterMenuCommand(id);
-            if(true == GM_getValue("offlineMode")){
-                let id = GM_registerMenuCommand("进入稳定模式",()=>{
-                    GM_setValue("offlineMode", false);
-                    offlineSwitch(id);
-                });
-            }else{
-                let id = GM_registerMenuCommand("进入极速模式",()=>{
-                    GM_setValue("offlineMode", true);
-                    offlineSwitch(id);
-                });
-            }
-        }
         function checkSwitch(){
             GM_unregisterMenuCommand(checkSwitchId);
             if(1 == GM_getValue("start")){
@@ -2179,8 +2169,6 @@ font.wait{color:#9c27b0;}
         }
         // 检测开关
         checkSwitch(null);
-        // 离线模式切换菜单
-        // offlineSwitch(null);
         if(debug)
         {
             GM_registerMenuCommand("Test",()=>{
