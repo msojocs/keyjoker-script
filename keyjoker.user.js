@@ -1,8 +1,9 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.5.8
-// @description  KeyJoker Auto Task
+// @version      1.5.9
+// @description  KeyJoker Auto Task Script
+// @description:zh-cn  KeyJoker 的任务自动化脚本
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
 // @include      *://www.keyjoker.com/entries*
@@ -12,7 +13,7 @@
 // @include      https://msojocs.github.io/keyjokerScript*
 // @updateURL    https://cdn.jsdelivr.net/gh/msojocs/keyjokerScript@master/keyjoker.user.js
 // @downloadURL  https://cdn.jsdelivr.net/gh/msojocs/keyjokerScript@master/keyjoker.user.js
-// @supportURL   https://www.jysafe.cn/4332.air
+// @supportURL   https://greasyfork.org/zh-CN/scripts/406476-keyjoker-auto-task/feedback
 // @homepage     https://github.com/msojocs/keyjokerScript/
 // @run-at       document-start
 // @grant        GM_registerMenuCommand
@@ -51,7 +52,7 @@
 
 (function() {
     'use strict';
-    const debug = true;
+    const debug = false;
 
     const languagePrefix = "https://cdn.jsdelivr.net/gh/msojocs/keyjokerScript@master/locales"
     const KJConfig = GM_getValue('KJConfig') || {
