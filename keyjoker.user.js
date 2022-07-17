@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.6.0
+// @version      1.6.1
 // @description  KeyJoker Auto Task Script
 // @description:zh-cn  KeyJoker 的任务自动化脚本
 // @author       祭夜
@@ -9,6 +9,7 @@
 // @match      *://www.keyjoker.com/entries*
 // @match      *://assets.hcaptcha.com/*
 // @match      https://www.twitch.tv/settings/profile?keyjokertask=*
+// @match      https://twitter.com/settings/account?keyjokertask=*
 // @match      http://localhost:3001*
 // @match      https://msojocs.github.io/keyjoker-script*
 // @updateURL    https://cdn.jsdelivr.net/gh/msojocs/keyjoker-script@master/keyjoker.user.js
@@ -697,6 +698,9 @@ font.wait{color:#9c27b0;}
                         log.error(res)
                         r(401);
                     }
+                }).catch(err=>{
+                    log.error("SPOTIFY.GetUserInfo error", err)
+                    r(408)
                 })
             }
             const GetAccessToken = function(){
@@ -1311,7 +1315,9 @@ font.wait{color:#9c27b0;}
                         getAuthStatus.twitter = true;
                         const tab = GM_openInTab("https://twitter.com/settings/account?keyjokertask=storageAuth", {active: false, insert: true, setParent: true});
                         tab.onclose = ()=>{
+                            log.log("twitter tab closed")
                             const auth = GM_getValue("twitterAuth");
+                            // 10s之内
                             if(GM_getValue("twitterAuth") && new Date().getTime() - auth.updateTime <= 10 * 1000)
                             {
                                 if(auth.status != 200)
@@ -1323,6 +1329,8 @@ font.wait{color:#9c27b0;}
                                 twitterConfig.updateTime = auth.updateTime
                                 twitterConfig.status = auth.status;
                                 resolve(twitterConfig.status)
+                            }else{
+                                reject(408)
                             }
 
                         }
@@ -1459,8 +1467,8 @@ font.wait{color:#9c27b0;}
                             })
                             .then(res=>{
                                 log.log(res)
+                                twitterConfig.updateTime = new Date().getTime()
                                 if(res.status === 200){
-                                    twitterConfig.updateTime = new Date().getTime()
                                     // 未登录时，页面地址会发生变更
                                     if(m != null && m[1])
                                     {
@@ -1475,6 +1483,7 @@ font.wait{color:#9c27b0;}
                                 GM_setValue("twitterAuth", twitterConfig)
                                 unsafeWindow.close();
                             }).catch(err=>{
+                                log.err(err)
                                 twitterConfig.status = 401;
                                 GM_setValue("twitterAuth", twitterConfig)
                                 unsafeWindow.close();
