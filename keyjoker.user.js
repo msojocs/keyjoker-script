@@ -1,20 +1,20 @@
 // ==UserScript==
 // @name         KeyJoker Auto Task
 // @namespace    KeyJokerAutoTask
-// @version      1.5.9
+// @version      1.6.0
 // @description  KeyJoker Auto Task Script
 // @description:zh-cn  KeyJoker 的任务自动化脚本
 // @author       祭夜
 // @icon         https://www.jysafe.cn/assets/images/avatar.jpg
-// @include      *://www.keyjoker.com/entries*
-// @include      *://assets.hcaptcha.com/*
-// @include      *?keyjokertask=*
-// @include      http://localhost:3001*
-// @include      https://msojocs.github.io/keyjokerScript*
-// @updateURL    https://cdn.jsdelivr.net/gh/msojocs/keyjokerScript@master/keyjoker.user.js
-// @downloadURL  https://cdn.jsdelivr.net/gh/msojocs/keyjokerScript@master/keyjoker.user.js
+// @match      *://www.keyjoker.com/entries*
+// @match      *://assets.hcaptcha.com/*
+// @match      https://www.twitch.tv/settings/profile?keyjokertask=*
+// @match      http://localhost:3001*
+// @match      https://msojocs.github.io/keyjoker-script*
+// @updateURL    https://cdn.jsdelivr.net/gh/msojocs/keyjoker-script@master/keyjoker.user.js
+// @downloadURL  https://cdn.jsdelivr.net/gh/msojocs/keyjoker-script@master/keyjoker.user.js
 // @supportURL   https://greasyfork.org/zh-CN/scripts/406476-keyjoker-auto-task/feedback
-// @homepage     https://github.com/msojocs/keyjokerScript/
+// @homepage     https://github.com/msojocs/keyjoker-script/
 // @run-at       document-start
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
@@ -46,7 +46,7 @@
 // @require      https://lib.baomitu.com/i18next/21.3.0/i18next.min.js
 // @require      https://lib.baomitu.com/jquery-i18next/1.2.1/jquery-i18next.min.js
 // @require      https://unpkg.com/i18next-http-backend@1.3.2/i18nextHttpBackend.min.js
-// @require      https://cdn.jsdelivr.net/gh/msojocs/keyjokerScript@9a84040672898ece9d677e72c7617f95d7c92c86/keyjoker.ext.js
+// @require      https://cdn.jsdelivr.net/gh/msojocs/keyjoker-script@9a84040672898ece9d677e72c7617f95d7c92c86/keyjoker.ext.js
 // ==/UserScript==
 // @require      http://task.jysafe.cn/keyjoker/script/keyjoker6.ext.js
 
@@ -54,7 +54,7 @@
     'use strict';
     const debug = false;
 
-    const languagePrefix = "https://cdn.jsdelivr.net/gh/msojocs/keyjokerScript@master/locales"
+    const languagePrefix = "https://cdn.jsdelivr.net/gh/msojocs/keyjoker-script@master/locales"
     const KJConfig = GM_getValue('KJConfig') || {
         language: navigator.language
     }
@@ -1613,7 +1613,7 @@ font.wait{color:#9c27b0;}
             },
             getTaskReplace: async function(task){
                 log.log('task', task)
-                const res = await HTTP.GET(`https://raw.fastgit.org/msojocs/keyjokerScript/master/task-replace/${task.task.provider.icon}.json`, null, {
+                const res = await HTTP.GET(`https://raw.fastgit.org/msojocs/keyjoker-script/master/task-replace/${task.task.provider.icon}.json`, null, {
                     responseType: 'json'
                 })
                 log.log('res', res)
@@ -2113,8 +2113,8 @@ font.wait{color:#9c27b0;}
                 })
             })
             jq('button#setting').click(function(){
-                // https://msojocs.github.io/keyjokerScript/
-                const settingPage = GM_openInTab('https://msojocs.github.io/keyjokerScript/', {active: true, insert: true, setParent: true})
+                // https://msojocs.github.io/keyjoker-script/
+                const settingPage = GM_openInTab('https://msojocs.github.io/keyjoker-script/', {active: true, insert: true, setParent: true})
                 settingPage.onclose = ()=>{
                     // 关闭设置页面后更新配置
                     KJConfig.language = GM_getValue('KJConfig').language
@@ -2129,7 +2129,7 @@ font.wait{color:#9c27b0;}
             jq('button#report').click(function(){
                 noticeFrame.addNotice({type:"msg",msg:"<span data-i18n='notification.reportChannel'>目前提供以下反馈渠道：</span>"})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://greasyfork.org/zh-CN/scripts/406476-keyjoker-auto-task/feedback\" target=\"_blank\">Greasy Fork</a>"})
-                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/msojocs/keyjokerScript/issues/new/choose\" target=\"_blank\">GitHub</a>"})
+                noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://github.com/msojocs/keyjoker-script/issues/new/choose\" target=\"_blank\">GitHub</a>"})
                 noticeFrame.addNotice({type:"msg",msg:"<a href=\"https://www.jysafe.cn/4332.air\" target=\"_blank\">博客页面</a>"})
             })
             // 版本升级后显示一次更新日志
